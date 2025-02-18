@@ -2,7 +2,11 @@
 "use client";
 
 import { useState } from "react";
-import { EnvelopeIcon, LockClosedIcon } from "@heroicons/react/24/outline";
+import {
+  EnvelopeIcon,
+  LockClosedIcon,
+  ArrowLeftIcon,
+} from "@heroicons/react/24/outline";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -22,6 +26,16 @@ export default function Login() {
       {/* Left side - Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 md:px-16 lg:px-24">
         <div className="max-w-md mx-auto w-full">
+          {/* Back to home button at top left */}
+          <div className="mb-4">
+            <Link
+              href="/"
+              className="text-yellow-500 hover:underline text-sm flex items-center"
+            >
+              <ArrowLeftIcon className="h-6 w-6 mr-1" />
+              <span>Volver a la tienda</span>
+            </Link>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Bienvenido de nuevo
           </h1>

@@ -8,6 +8,8 @@ import {
   ShoppingBagIcon,
   UserCircleIcon,
   MagnifyingGlassIcon,
+  ShoppingCartIcon,
+  UserIcon,
 } from "@heroicons/react/24/outline";
 import { useInView } from "react-intersection-observer";
 
@@ -26,7 +28,7 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const { ref: bannerRef, inView: bannerInView } = useInView({
+  const { ref: heroRef, inView: heroInView } = useInView({
     triggerOnce: true,
     threshold: 0.1,
   });
@@ -37,27 +39,30 @@ export default function LandingPage() {
   });
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black">
       {/* Top Navbar */}
       <nav
-        className={`flex items-center justify-between px-6 fixed w-full z-50 transition-all duration-300 ${
-          isShrunk ? "py-4 bg-black" : "py-6 bg-transparent"
+        className={`flex items-center justify-between px-8 fixed w-full z-50 transition-all duration-300 ${
+          isShrunk ? "py-3 bg-black" : "py-4 bg-transparent"
         }`}
       >
-        {/* Left: Navigation Links */}
+        {/* Left: Brand */}
+        <Link href="/">
+          <span className="text-2xl font-bold text-white">KEISHEN</span>
+        </Link>
+
+        {/* Center: Navigation Links */}
         <div className="flex space-x-8">
           {[
             { name: "Inicio", href: "/" },
-            { name: "Productos", href: "/productos" },
+            { name: "Categorías", href: "/categorias" },
+            { name: "Todos los productos", href: "/productos" },
             { name: "Contacto", href: "/contacto" },
           ].map((item) => (
             <Link key={item.name} href={item.href}>
               <span
-                className={`text-lg transition-colors hover:text-yellow-300 ${
-                  pathname === item.href ||
-                  (pathname === "/" && item.name === "Inicio")
-                    ? "text-yellow-300"
-                    : "text-gray-300"
+                className={`text-sm font-medium transition-colors hover:text-yellow-300 ${
+                  pathname === item.href ? "text-yellow-300" : "text-gray-300"
                 }`}
               >
                 {item.name}
@@ -66,126 +71,128 @@ export default function LandingPage() {
           ))}
         </div>
 
-        {/* Center: Logo */}
-        <div className="absolute left-1/2 transform -translate-x-1/2">
-          <Image
-            src="/logo.png"
-            alt="Keishen Logo"
-            width={isShrunk ? 150 : 200}
-            height={isShrunk ? 75 : 100}
-          />
-        </div>
-
-        {/* Right: Search Bar & Icons */}
+        {/* Right: Cart & Account */}
         <div className="flex items-center space-x-6">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Buscar"
-              className="w-56 bg-black border-2 border-gray-400 rounded-full px-4 py-2 transition-all duration-300 focus:w-[30vw] focus:bg-white focus:text-black"
-              onFocus={() => setSearchFocus(true)}
-              onBlur={() => setSearchFocus(false)}
-            />
-            <MagnifyingGlassIcon className="w-5 h-5 absolute right-4 top-2 text-gray-400" />
-          </div>
-          {[
-            { icon: ShoppingBagIcon, name: "carrito", href: "/carrito" },
-            { icon: UserCircleIcon, name: "login", href: "/login" },
-          ].map(({ icon: Icon, name, href }) => (
-            <Link key={name} href={href} passHref>
-              <div className="relative flex items-center cursor-pointer">
-                {/* Animated Label */}
-                <span
-                  className={`absolute right-10 bg-gray-800 text-white text-sm px-3 py-1 rounded-lg transition-all duration-300 opacity-0 transform translate-x-2`}
-                ></span>
-
-                {/* Icon */}
-                <Icon className="w-6 h-6 text-gray-300 hover:text-yellow-500 transition-all duration-300" />
-              </div>
-            </Link>
-          ))}
+          <Link href="/cart">
+            <div className="relative">
+              <ShoppingCartIcon className="h-6 w-6 text-white" />
+              <span className="absolute -top-3 -right-3 bg-yellow-300 text-black text-xs px-2 py-1 rounded-full">
+                0
+              </span>
+            </div>
+          </Link>
+          <Link href="/login">
+            <UserIcon className="h-6 w-6 text-white" />
+          </Link>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <header className="relative flex items-center h-[95vh] bg-black text-white pt-24 overflow-hidden">
-        <div className="absolute w-full bottom-0 z-0 overflow-hidden">
-          <h1
-            className="text-[23vw] font-extrabold text-center tracking-tighter opacity-60"
-            style={{
-              background: "linear-gradient(to top, #808080, #000000)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
-            Keishen
-          </h1>
+      <section ref={heroRef} className="relative pt-24 px-8">
+        {/* Background text */}
+        <div className="absolute bottom-[-35%] left-0 w-full flex justify-center z-0">
+          {" "}
+          {/* Changed back to z-0 */}
+          <span className="text-[20rem] font-extrabold text-center tracking-tighter opacity-50 font-bold text-transparent bg-clip-text bg-gradient-to-t from-[#808080] to-black">
+            KEISHEN
+          </span>
         </div>
 
-        <div className="relative flex w-full h-full z-10">
-          {/* Watch Image */}
-          <div
-            className="absolute left-10 top-0 transform transition-transform duration-300"
-            style={{
-              transform: `translateY(${scrollY * 0.05}px) rotate(-6deg)`,
-            }}
-          >
-            <Image
-              src="/watch.png"
-              alt="Luxury Watch"
-              width={350}
-              height={350}
-            />
-          </div>
-
-          {/* Banner Text */}
-          <div
-            ref={bannerRef}
-            className={`absolute left-[30%] top-[10%] transition-all duration-500 w-[65vw] ${
-              bannerInView
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-2"
-            }`}
-            style={{ transform: `translateY(${scrollY * 0.03}px)` }}
-          >
-            <h1 className="text-5xl font-serif font-bold leading-snug bg-gradient-to-r from-gray-500 to-gray-300 bg-clip-text text-transparent opacity-100">
-              Una experiencia única para hombres, con productos de alta calidad
-              en joyería, ropa y accesorios.
-            </h1>
-          </div>
-        </div>
-      </header>
-
-      {/* Products Section */}
-      <section
-        ref={productsRef}
-        className={`relative bg-white text-gray-900 py-16 px-12 mt-[-200px] z-10 rounded-t-3xl shadow-lg transition-all duration-500 ${
-          productsInView
-            ? "opacity-100 translate-y-0"
-            : "opacity-0 translate-y-2"
-        }`}
-      >
-        <h2 className="text-2xl font-bold">Productos destacados</h2>
-        <div className="grid grid-cols-4 gap-6 mt-6">
-          {[100000, 200000, 300000, 400000].map((price, idx) => (
-            <div
-              key={idx}
-              className="bg-gray-200 rounded-lg p-4 shadow-lg h-64 flex flex-col justify-end transform transition-all duration-300 hover:-translate-y-2 hover:shadow-xl"
-            >
-              <p className="text-lg font-bold">
-                ${price.toLocaleString("es-ES")}
+        <div
+          className={`max-w-6xl mx-auto transition-all duration-700 ${
+            heroInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+        >
+          <div className="flex items-start justify-between">
+            <div className="w-1/2 pt-16">
+              <h1 className="text-6xl font-bold text-white leading-tight">
+                TRANSFORMA TU
+                <br />
+                <span className="text-yellow-300">ESTILO</span> CON MODA
+                <br />
+                QUE HABLA <span className="text-yellow-300">POR TI</span>
+              </h1>
+              <p className="mt-6 text-gray-400 max-w-xl">
+                Eleva tu estilo adoptando las últimas tendencias y prestando
+                atención a cada detalle para reflejar tu personalidad única.
               </p>
+
+              <button className="mt-8 bg-yellow-300 text-black px-8 py-3 rounded-full font-medium flex items-center space-x-2 hover:bg-yellow-400 transition-colors">
+                <span>Ver todo</span>
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M5 12h14M12 5l7 7-7 7"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
             </div>
-          ))}
+            <div className="w-1/2 relative">
+              <div className="relative w-full min-h-[600px]">
+                <Image
+                  src="/watch.png"
+                  alt="Fashion Model"
+                  layout="fill"
+                  objectFit="contain"
+                  className="rounded-3xl"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-black text-gray-300 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p>&copy; 2023 Keishen. Todos los derechos reservados.</p>
+      {/* Brands Section */}
+      <div className="mt-16 py-8 bg-yellow-300 relative z-20">
+        {" "}
+        {/* Increased z-index to z-20 */}
+        <div className="max-w-6xl mx-auto px-8">
+          <div className="flex justify-between items-center">
+            {["JOYERIA", "CAMISAS", "PANTALONES", "GORRAS", "OTROS"].map(
+              (brand) => (
+                <span key={brand} className="text-black font-bold text-xl">
+                  {brand}
+                </span>
+              )
+            )}
+          </div>
         </div>
-      </footer>
+      </div>
+
+      {/* Products Section */}
+      <section ref={productsRef} className="py-16 px-8 bg-white">
+        <div
+          className={`max-w-6xl mx-auto transition-all duration-700 ${
+            productsInView
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-8"
+          }`}
+        >
+          <h2 className="text-3xl font-bold text-black mb-8">
+            VISTE CON ESTILO
+          </h2>
+          <div className="grid grid-cols-3 gap-8">
+            {[
+              { name: "MEN'S CASUAL BLAZE", price: "$185" },
+              { name: "CARGO MENS WIDE JEANS", price: "$275" },
+              { name: "MEN LEATHER JACKET", price: "$375" },
+            ].map((product) => (
+              <div key={product.name} className="group cursor-pointer">
+                <div className="bg-gray-100 rounded-xl aspect-square mb-4 overflow-hidden">
+                  <div className="w-full h-full bg-gray-200" />
+                </div>
+                <h3 className="text-sm font-medium text-black">
+                  {product.name}
+                </h3>
+                <p className="text-sm text-gray-500">{product.price}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
