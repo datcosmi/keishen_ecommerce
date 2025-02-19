@@ -4,14 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import {
-  MinusIcon,
-  PlusIcon,
-  MagnifyingGlassIcon,
-  ShoppingCartIcon,
-  UserIcon,
-} from "@heroicons/react/24/outline";
+import { MinusIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { useInView } from "react-intersection-observer";
+import NavbarWhite from "../components/navbarWhite";
 
 interface CartItem {
   id: number;
@@ -73,68 +68,9 @@ export default function CartPage() {
     );
   };
 
-  const pathname = usePathname();
-  const [searchFocus, setSearchFocus] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
-  const [isShrunk, setIsShrunk] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-      setIsShrunk(window.scrollY > 50);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   return (
     <div className="min-h-screen bg-white">
-      {/* Top Navbar */}
-      <nav
-        className={`flex items-center justify-between px-8 fixed w-full z-50 transition-all duration-300 bg-black ${
-          isShrunk ? "py-3" : "py-4"
-        }`}
-      >
-        {/* Left: Brand */}
-        <Link href="/">
-          <span className="text-2xl font-bold text-white">KEISHEN</span>
-        </Link>
-
-        {/* Center: Navigation Links */}
-        <div className="flex space-x-8">
-          {[
-            { name: "Inicio", href: "/" },
-            { name: "Categorías", href: "/categorias" },
-            { name: "Todos los productos", href: "/productos" },
-            { name: "Contacto", href: "/contacto" },
-          ].map((item) => (
-            <Link key={item.name} href={item.href}>
-              <span
-                className={`text-sm font-medium transition-colors hover:text-yellow-300 ${
-                  pathname === item.href ? "text-yellow-300" : "text-gray-300"
-                }`}
-              >
-                {item.name}
-              </span>
-            </Link>
-          ))}
-        </div>
-
-        {/* Right: Cart & Account */}
-        <div className="flex items-center space-x-6">
-          <Link href="/cart">
-            <div className="relative">
-              <ShoppingCartIcon className="h-6 w-6 text-white" />
-              <span className="absolute -top-3 -right-3 bg-yellow-300 text-black text-xs px-2 py-1 rounded-full">
-                0
-              </span>
-            </div>
-          </Link>
-          <Link href="/login">
-            <UserIcon className="h-6 w-6 text-white" />
-          </Link>
-        </div>
-      </nav>
+      <NavbarWhite />
 
       <main className="max-w-6xl mx-auto px-8 py-12">
         <h1 className="text-2xl font-medium mb-12 mt-10">Carrito de compras</h1>
