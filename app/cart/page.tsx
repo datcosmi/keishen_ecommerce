@@ -73,7 +73,7 @@ export default function CartPage() {
       <NavbarWhite />
 
       <main className="max-w-6xl mx-auto px-8 py-12">
-        <h1 className="text-2xl font-medium mb-12 mt-10">Carrito de compras</h1>
+        <h1 className="text-2xl font-medium mb-12">Carrito de compras</h1>
 
         <div className="grid grid-cols-12 gap-16">
           {/* Cart Items */}
