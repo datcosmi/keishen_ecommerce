@@ -3,11 +3,16 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingCartIcon, UserIcon } from "@heroicons/react/24/outline";
+import {
+  ShoppingCartIcon,
+  UserIcon,
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
 
 export default function NavbarBlack() {
   const pathname = usePathname();
   const [isShrunk, setIsShrunk] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,21 +24,29 @@ export default function NavbarBlack() {
 
   return (
     <nav
-      className={`flex items-center justify-between px-8 fixed w-full z-50 transition-all duration-300 ${
-        isShrunk ? "py-3 bg-black" : "py-4 bg-transparent"
+      className={`flex items-center px-8 sticky top-0 w-full z-50 transition-all duration-300 ${
+        isShrunk ? "py-4 bg-black" : "py-6 bg-transparent"
       }`}
     >
-      {/* Left: Brand */}
-      <Link href="/">
-        <span className="text-2xl font-bold text-white">KEISHEN</span>
-      </Link>
+      {/* Logo */}
+      <div className="w-1/3 flex justify-start">
+        <Link href="/">
+          <span className="text-2xl font-bold text-white tracking-widest">
+            KEISHEN
+          </span>
+        </Link>
+      </div>
 
-      {/* Center: Navigation Links */}
-      <div className="flex space-x-8">
+      {/* Links de navegación */}
+      <div className="w-1/3 flex justify-center space-x-8">
         {["Inicio", "Categorías", "Todos los productos", "Contacto"].map(
           (name, index) => {
             const href =
-              index === 0 ? "/" : `/${name.toLowerCase().replace(" ", "")}`;
+              index === 0
+                ? "/"
+                : index === 2
+                ? "products"
+                : `/${name.toLowerCase().replace(" ", "")}`;
             return (
               <Link key={name} href={href}>
                 <span
@@ -49,8 +62,26 @@ export default function NavbarBlack() {
         )}
       </div>
 
-      {/* Right: Cart & Account */}
-      <div className="flex items-center space-x-6">
+      {/* Barra de búsqueda e íconos */}
+      <div className="w-1/3 flex justify-end items-center space-x-6">
+        <div className="relative transition-all duration-300">
+          <input
+            type="text"
+            placeholder="Buscar"
+            className={`py-1 px-4 border border-gray-300 rounded-full text-sm focus:outline-none transition-all duration-300 ${
+              isFocused
+                ? "w-80 bg-white text-black shadow-lg"
+                : "w-64 bg-black text-white"
+            }`}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+          />
+          <MagnifyingGlassIcon
+            className={`absolute right-3 top-2 h-4 w-4 transition-all duration-300 ${
+              isFocused ? "text-gray-500" : "text-gray-300"
+            }`}
+          />
+        </div>
         <Link href="/cart">
           <div className="relative">
             <ShoppingCartIcon className="h-6 w-6 text-white" />

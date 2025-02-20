@@ -5,7 +5,7 @@ import { useState } from "react";
 import {
   EnvelopeIcon,
   LockClosedIcon,
-  ArrowLeftIcon,
+  ChevronLeftIcon,
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import Link from "next/link";
@@ -32,8 +32,8 @@ export default function Login() {
               href="/"
               className="text-yellow-500 hover:underline text-sm flex items-center"
             >
-              <ArrowLeftIcon className="h-6 w-6 mr-1" />
-              <span>Volver a la tienda</span>
+              <ChevronLeftIcon className="h-6 w-6 mr-1" />
+              <span>Volver a la página de inicio</span>
             </Link>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
