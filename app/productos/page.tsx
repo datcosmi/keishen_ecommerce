@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import {
   ChevronDownIcon,
-  XMarkIcon,
   AdjustmentsHorizontalIcon,
   ChevronUpIcon,
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import NavbarWhite from "../components/navbarWhite";
 import Link from "next/link";
+import Footer from "../components/footer";
 
 interface Product {
   id: string;
@@ -67,7 +67,6 @@ export default function ProductsPage() {
   return (
     <div className="min-h-screen bg-white">
       <NavbarWhite />
-      {/* Agregamos un div con padding-top para compensar la altura del navbar */}
       <div>
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-between items-center mb-8">
@@ -102,7 +101,7 @@ export default function ProductsPage() {
           </div>
 
           <div className="flex gap-8">
-            {/* Sidebar filters - Ajustado el z-index y top para evitar superposición */}
+            {/* Filtros */}
             {filters.showFilters && (
               <div className="w-72 flex-shrink-0">
                 <div className="sticky top-[140px] h-[calc(100vh-180px)] overflow-y-auto pr-4">
@@ -186,13 +185,13 @@ export default function ProductsPage() {
               </div>
             )}
 
-            {/* Product grid - Productos más pequeños */}
+            {/* Grid de Productos */}
             <div className="flex-1">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {products.map((product) => (
                   <Link
                     key={product.id}
-                    href={`/product/${product.id}`}
+                    href={`/producto/${product.id}`}
                     className="bg-gray-50 rounded-lg overflow-hidden group"
                   >
                     <div className="relative aspect-square bg-gray-100">
@@ -225,6 +224,7 @@ export default function ProductsPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -43,7 +43,7 @@ export default function ProductPage() {
       <NavbarWhite />
       <div className="flex flex-row h-screen">
         {/* Imagen */}
-        <div className="w-1/2 h-full fixed top-0 left-0 bg-gray-100 flex items-center justify-center">
+        <div className="w-1/2 h-[calc(100vh-100px)] fixed bottom-0 left-0 bg-gray-100 flex items-center justify-center">
           <button className="absolute left-4 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md">
             <ChevronLeftIcon className="h-6 w-6 text-gray-600" />
           </button>
@@ -62,7 +62,7 @@ export default function ProductPage() {
         {/* Detalles del producto */}
         <div className="w-1/2 ml-auto min-h-screen p-8 relative">
           <Link
-            href="/products"
+            href="/productos"
             className="inline-flex items-center text-yellow-400 hover:text-yellow-500 mb-6"
           >
             <ChevronLeftIcon className="h-5 w-5 mr-1" />

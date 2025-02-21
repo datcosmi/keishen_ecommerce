@@ -6,6 +6,7 @@ import { useInView } from "react-intersection-observer";
 import NavbarBlack from "./components/navbarBlack";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import { motion, useScroll, useTransform } from "framer-motion";
+import Footer from "./components/footer";
 
 interface Product {
   id: string;
@@ -117,7 +118,9 @@ export default function LandingPage() {
               </p>
 
               <button className="mt-8 bg-yellow-300 text-black px-8 py-3 rounded-full font-medium flex items-center space-x-2 hover:bg-yellow-400 transition-colors">
-                <span>Ver todo</span>
+                <Link href={"/productos"}>
+                  <span>Ver todo</span>
+                </Link>
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                   <path
                     d="M5 12h14M12 5l7 7-7 7"
@@ -194,7 +197,7 @@ export default function LandingPage() {
                     style={{ flex: "0 0 33.333%" }}
                   >
                     <Link
-                      href={`/product/${product.id}`}
+                      href={`/producto/${product.id}`}
                       className="group cursor-pointer block"
                     >
                       <div className="w-full h-64 flex items-center justify-center bg-gray-100 rounded-xl overflow-hidden">
@@ -226,6 +229,7 @@ export default function LandingPage() {
           </button>
         </div>
       </section>
+      <Footer />
     </div>
   );
 }

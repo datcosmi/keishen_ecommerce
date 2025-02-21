@@ -25,7 +25,7 @@ export default function NavbarBlack() {
   return (
     <nav
       className={`flex items-center px-8 sticky top-0 w-full z-50 transition-all duration-300 ${
-        isShrunk ? "py-4 bg-black" : "py-6 bg-transparent"
+        isShrunk ? "py-4 bg-black" : "py-6 bg-black"
       }`}
     >
       {/* Logo */}
@@ -45,7 +45,7 @@ export default function NavbarBlack() {
               index === 0
                 ? "/"
                 : index === 2
-                ? "products"
+                ? "productos"
                 : `/${name.toLowerCase().replace(" ", "")}`;
             return (
               <Link key={name} href={href}>
@@ -82,7 +82,7 @@ export default function NavbarBlack() {
             }`}
           />
         </div>
-        <Link href="/cart">
+        <Link href="/carrito">
           <div className="relative">
             <ShoppingCartIcon className="h-6 w-6 text-white" />
             <span className="absolute -top-3 -right-3 bg-yellow-300 text-black text-xs px-2 py-1 rounded-full">

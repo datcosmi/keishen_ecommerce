@@ -102,12 +102,14 @@ export default function Login() {
             </div>
 
             <div className="mt-8">
-              <button
-                type="submit"
-                className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-lg transition duration-200"
-              >
-                Iniciar sesión
-              </button>
+              <Link href={"/dashboard"}>
+                <button
+                  type="submit"
+                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-lg transition duration-200"
+                >
+                  Iniciar sesión
+                </button>
+              </Link>
             </div>
           </form>
 

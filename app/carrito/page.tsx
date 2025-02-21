@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
 import NavbarWhite from "../components/navbarWhite";
+import Footer from "../components/footer";
 
 interface CartItem {
   id: number;
@@ -211,6 +212,7 @@ export default function CartPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

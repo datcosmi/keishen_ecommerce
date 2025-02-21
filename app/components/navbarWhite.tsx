@@ -68,7 +68,7 @@ export default function NavbarWhite() {
             <MagnifyingGlassIcon className="absolute right-3 top-2 h-4 w-4 text-gray-500" />
           </div>
 
-          <Link href="/cart">
+          <Link href="/carrito">
             <div className="relative">
               <ShoppingCartIcon className="h-6 w-6 text-black cursor-pointer" />
               <span className="absolute -top-3 -right-3 bg-yellow-300 text-black text-xs px-2 py-1 rounded-full">
