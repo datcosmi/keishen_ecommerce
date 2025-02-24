@@ -10,6 +10,7 @@ import {
   ArchiveBoxIcon,
   UserIcon,
   UserGroupIcon,
+  CreditCardIcon,
 } from "@heroicons/react/24/outline";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -20,6 +21,7 @@ const Sidebar = () => {
   const menuItems = [
     { name: "Inicio", icon: HomeIcon, href: "/dashboard" },
     { name: "Productos", icon: ArchiveBoxIcon, href: "/products" },
+    { name: "Pedidos", icon: CreditCardIcon, href: "/pedidos" },
     { name: "Ventas", icon: DocumentChartBarIcon, href: "/ventas" },
     { name: "Administradores", icon: UserIcon, href: "/administradores" },
     { name: "Vendedores", icon: UserGroupIcon, href: "/vendedores" },
@@ -53,7 +55,7 @@ const Sidebar = () => {
               className={`flex items-center px-3 py-2 mt-2 rounded-lg transition-colors duration-200
               ${
                 isActiveRoute(item.href)
-                  ? "bg-gray-800 text-white"
+                  ? "bg-black text-white"
                   : "text-[#898f9f] hover:bg-yellow-50 hover:text-yellow-600"
               }`}
             >

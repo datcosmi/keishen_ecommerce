@@ -12,6 +12,7 @@ interface Product {
   colors: string[];
   straps: string[];
   image: string;
+  inStock: boolean;
 }
 
 const mockProducts: Product[] = [
@@ -28,6 +29,7 @@ const mockProducts: Product[] = [
     colors: ["#000000", "#ffffff", "#ff0000"],
     straps: ["Acero inoxidable", "Cuero", "Silicona"],
     image: "/images/reloj-hombre.png",
+    inStock: true,
   },
   {
     id: "2",
@@ -41,6 +43,7 @@ const mockProducts: Product[] = [
     colors: ["#0000ff", "#ffff00"],
     straps: ["Acero inoxidable", "Silicona"],
     image: "/images/otro-reloj.png",
+    inStock: false,
   },
   {
     id: "3",
@@ -55,6 +58,7 @@ const mockProducts: Product[] = [
     colors: ["#000000", "#ff0000", "#008000"],
     straps: [],
     image: "/images/gorra-nike.png",
+    inStock: true,
   },
   {
     id: "4",
@@ -69,6 +73,7 @@ const mockProducts: Product[] = [
     colors: ["#c0c0c0"],
     straps: [],
     image: "/images/pulsera-plata.png",
+    inStock: true,
   },
   {
     id: "5",
@@ -82,6 +87,7 @@ const mockProducts: Product[] = [
     colors: ["#ffffff", "#000000", "#0000ff"],
     straps: [],
     image: "/images/camiseta-adidas.png",
+    inStock: false,
   },
   {
     id: "6",
@@ -96,6 +102,7 @@ const mockProducts: Product[] = [
     colors: ["#ffd700"],
     straps: [],
     image: "/images/anillo-oro.png",
+    inStock: true,
   },
 ];
 
