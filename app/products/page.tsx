@@ -1,7 +1,17 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { Search, Edit, Trash2 } from "lucide-react";
+import {
+  Search,
+  Edit,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 import Sidebar from "../components/admins/sidebar";
 
 interface Product {
@@ -19,11 +29,23 @@ interface Product {
   inStock: boolean;
 }
 
+type SortField = "name" | "brand" | "price" | "sizes" | "inStock";
+type SortDirection = "asc" | "desc";
+
 const ProductDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("Todos");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Ordenamiento
+  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -74,6 +96,72 @@ const ProductDashboard: React.FC = () => {
     return matchesSearch;
   });
 
+  // Ordenar los productos
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (sortField === "name") {
+      return sortDirection === "asc"
+        ? a.name.localeCompare(b.name)
+        : b.name.localeCompare(a.name);
+    } else if (sortField === "brand") {
+      return sortDirection === "asc"
+        ? a.brand.localeCompare(b.brand)
+        : b.brand.localeCompare(a.brand);
+    } else if (sortField === "price") {
+      return sortDirection === "asc" ? a.price - b.price : b.price - a.price;
+    } else if (sortField === "sizes") {
+      return sortDirection === "asc"
+        ? a.sizes.length - b.sizes.length
+        : b.sizes.length - a.sizes.length;
+    } else if (sortField === "inStock") {
+      if (sortDirection === "asc") {
+        return a.inStock === b.inStock ? 0 : a.inStock ? -1 : 1;
+      } else {
+        return a.inStock === b.inStock ? 0 : a.inStock ? 1 : -1;
+      }
+    }
+    return 0;
+  });
+
+  // Actualizar el total de páginas cuando los productos filtrados cambian
+  useEffect(() => {
+    setTotalPages(
+      Math.max(1, Math.ceil(filteredProducts.length / rowsPerPage))
+    );
+    setCurrentPage(1); // Resetear a la primera página cuando cambian los filtros
+  }, [filteredProducts.length, rowsPerPage]);
+
+  // Paginación
+  const indexOfLastProduct = currentPage * rowsPerPage;
+  const indexOfFirstProduct = indexOfLastProduct - rowsPerPage;
+  const currentProducts = sortedProducts.slice(
+    indexOfFirstProduct,
+    indexOfLastProduct
+  );
+
+  // Manejadores para la paginación
+  const handlePageChange = (page: number) => {
+    if (page < 1) page = 1;
+    if (page > totalPages) page = totalPages;
+    setCurrentPage(page);
+  };
+
+  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setRowsPerPage(Number(e.target.value));
+    setCurrentPage(1); // Resetear a la primera página cuando cambia el número de filas
+  };
+
+  // Manejador para el ordenamiento
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Cambiar dirección si es la misma columna
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // Nueva columna, comenzar con ascendente
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
   const handleDelete = (id: string) => {
     if (confirm("¿Estás seguro de que deseas eliminar este producto?")) {
       setProducts(products.filter((product) => product.id !== id));
@@ -82,6 +170,16 @@ const ProductDashboard: React.FC = () => {
 
   const handleEdit = (id: string) => {
     alert(`Editando producto con ID: ${id}`);
+  };
+
+  // Renderizar indicador de ordenamiento
+  const renderSortIndicator = (field: SortField) => {
+    if (sortField !== field) return null;
+    return sortDirection === "asc" ? (
+      <ChevronUp className="ml-1 h-4 w-4" />
+    ) : (
+      <ChevronDown className="ml-1 h-4 w-4" />
+    );
   };
 
   return (
@@ -202,20 +300,50 @@ const ProductDashboard: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Producto
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort("name")}
+                    >
+                      <div className="flex items-center">
+                        Producto
+                        {renderSortIndicator("name")}
+                      </div>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Marca
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort("brand")}
+                    >
+                      <div className="flex items-center">
+                        Marca
+                        {renderSortIndicator("brand")}
+                      </div>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Precio
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort("price")}
+                    >
+                      <div className="flex items-center">
+                        Precio
+                        {renderSortIndicator("price")}
+                      </div>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tallas
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort("sizes")}
+                    >
+                      <div className="flex items-center">
+                        Tallas
+                        {renderSortIndicator("sizes")}
+                      </div>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estado
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                      onClick={() => handleSort("inStock")}
+                    >
+                      <div className="flex items-center">
+                        Estado
+                        {renderSortIndicator("inStock")}
+                      </div>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Acciones
@@ -223,7 +351,7 @@ const ProductDashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredProducts.map((product) => (
+                  {currentProducts.map((product) => (
                     <tr key={product.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
@@ -305,7 +433,7 @@ const ProductDashboard: React.FC = () => {
                     </tr>
                   ))}
 
-                  {filteredProducts.length === 0 && (
+                  {currentProducts.length === 0 && (
                     <tr>
                       <td
                         colSpan={6}
@@ -318,6 +446,68 @@ const ProductDashboard: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Paginación */}
+            {filteredProducts.length > 0 && (
+              <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200">
+                <div className="flex items-center">
+                  <select
+                    value={rowsPerPage}
+                    onChange={handleRowsPerPageChange}
+                    className="mr-2 h-8 border-gray-300 rounded-md text-sm"
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                  <span className="text-sm text-gray-500">
+                    filas por página
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-end gap-2">
+                  <span className="text-sm text-gray-700">
+                    Página {currentPage} de {totalPages}
+                  </span>
+
+                  <div className="flex ml-2 gap-1">
+                    <button
+                      onClick={() => handlePageChange(1)}
+                      disabled={currentPage === 1}
+                      className="p-1 rounded border border-gray-300 disabled:opacity-50"
+                      title="Primera página"
+                    >
+                      <ChevronsLeft size={16} />
+                    </button>
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="p-1 rounded border border-gray-300 disabled:opacity-50"
+                      title="Página anterior"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="p-1 rounded border border-gray-300 disabled:opacity-50"
+                      title="Página siguiente"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                    <button
+                      onClick={() => handlePageChange(totalPages)}
+                      disabled={currentPage === totalPages}
+                      className="p-1 rounded border border-gray-300 disabled:opacity-50"
+                      title="Última página"
+                    >
+                      <ChevronsRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
