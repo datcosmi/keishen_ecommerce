@@ -1,15 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  ChevronDownIcon,
-  AdjustmentsHorizontalIcon,
-  ChevronUpIcon,
-} from "@heroicons/react/24/outline";
+import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 import Image from "next/image";
-import NavbarWhite from "../components/navbarWhite";
 import Link from "next/link";
+import NavbarWhite from "../components/navbarWhite";
 import Footer from "../components/footer";
+
+// Importamos componentes de shadcn UI
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Product {
   id: string;
@@ -23,11 +35,18 @@ interface Product {
   colors: string[];
   straps: string[];
   image: string;
+  inStock: boolean;
+}
+
+interface FilterCategoryProps {
+  title: string;
+  children: React.ReactNode;
 }
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState("newest");
 
   useEffect(() => {
     async function fetchProducts() {
@@ -53,8 +72,12 @@ export default function ProductsPage() {
       accesorios: false,
       calzado: false,
     },
-    memberPromotion: false,
-    onSale: false,
+    price: {
+      low: false,
+      medium: false,
+      high: false,
+    },
+    inStock: false,
   });
 
   const [showCollectionFilter, setShowCollectionFilter] = useState(true);
@@ -64,163 +87,514 @@ export default function ProductsPage() {
     return `$${price.toLocaleString("es-MX")}`;
   };
 
+  // Función para filtrar productos (podríamos implementarla completamente)
+  const filteredProducts = products.filter((product) => {
+    // Si el filtro de stock está activo y el producto no está en stock, lo excluimos
+    if (filters.inStock && !product.inStock) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Ordenar productos
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    switch (sortBy) {
+      case "price-asc":
+        return a.price - b.price;
+      case "price-desc":
+        return b.price - a.price;
+      case "bestsellers":
+        return b.reviews - a.reviews;
+      case "newest":
+      default:
+        return 0; // Asumimos que ya están ordenados por lo más nuevo
+    }
+  });
+
+  // Componente para mostrar categorías de filtro
+  const FilterCategory: React.FC<FilterCategoryProps> = ({
+    title,
+    children,
+  }) => (
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium">{title}</h3>
+      {children}
+    </div>
+  );
+
+  // Componente para los esqueletos de carga
+  const ProductSkeleton = () => (
+    <Card>
+      <CardContent className="p-0">
+        <div className="aspect-square relative">
+          <Skeleton className="h-full w-full rounded-t-lg" />
+        </div>
+        <div className="p-4 space-y-2">
+          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-4 w-1/3" />
+          <Skeleton className="h-6 w-1/4 mt-2" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="min-h-screen bg-white">
       <NavbarWhite />
-      <div>
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-2xl font-medium">
-              Artículos para Hombre ({products.length})
-            </h1>
+      <div className="max-w-8xl mx-auto px-2 sm:px-4 lg:px-6 py-8">
+        <div className="flex justify-between items-center mb-8 px-2">
+          <h1 className="text-2xl font-semibold">
+            Artículos para Hombre ({sortedProducts.length})
+          </h1>
 
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    showFilters: !prev.showFilters,
-                  }))
-                }
-                className="flex items-center text-sm font-medium text-gray-700 hover:text-gray-900"
-              >
-                <AdjustmentsHorizontalIcon className="h-5 w-5 mr-2" />
-                {filters.showFilters ? "Ocultar filtros" : "Mostrar filtros"}
-              </button>
-
-              <div className="flex items-center border rounded-lg px-4 py-2">
-                <span className="text-sm text-gray-600 mr-2">Ordenar por</span>
-                <select className="text-sm font-medium bg-transparent">
-                  <option>Lo más nuevo</option>
-                  <option>Precio: menor a mayor</option>
-                  <option>Precio: mayor a menor</option>
-                  <option>Más vendidos</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-8">
-            {/* Filtros */}
-            {filters.showFilters && (
-              <div className="w-72 flex-shrink-0">
-                <div className="sticky top-[140px] h-[calc(100vh-180px)] overflow-y-auto pr-4">
+          <div className="flex items-center gap-4">
+            {/* Filtros para móvil */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="lg:hidden flex items-center gap-2"
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Filtros
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+                <div className="h-full py-4 overflow-y-auto">
+                  <h2 className="text-xl font-semibold mb-6">Filtros</h2>
                   <div className="space-y-8">
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Categorías</h3>
-                      <ul className="space-y-3">
-                        <li>
-                          <button className="text-gray-800 hover:text-gray-900 font-medium">
-                            Joyería
-                          </button>
-                        </li>
-                        <li>
-                          <button className="text-gray-600 hover:text-gray-900">
-                            Camisas
-                          </button>
-                        </li>
-                        <li>
-                          <button className="text-gray-600 hover:text-gray-900">
-                            Pantalones
-                          </button>
-                        </li>
-                        <li>
-                          <button className="text-gray-600 hover:text-gray-900">
-                            Gorras
-                          </button>
-                        </li>
-                        <li>
-                          <button className="text-gray-600 hover:text-gray-900">
-                            Otros
-                          </button>
-                        </li>
-                      </ul>
-                    </div>
-
-                    <div className="border-t pt-6">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-medium">Precio</h3>
-                        <button
-                          onClick={() => setShowPriceFilter(!showPriceFilter)}
-                        >
-                          {showPriceFilter ? (
-                            <ChevronUpIcon className="h-5 w-5" />
-                          ) : (
-                            <ChevronDownIcon className="h-5 w-5" />
-                          )}
-                        </button>
-                      </div>
-                      {showPriceFilter && (
-                        <div className="space-y-3">
-                          <label className="flex items-center">
-                            <input
-                              type="checkbox"
-                              className="form-checkbox h-4 w-4"
-                            />
-                            <span className="ml-3 text-gray-600">
-                              $0 - $2,000
-                            </span>
-                          </label>
-                          <label className="flex items-center">
-                            <input
-                              type="checkbox"
-                              className="form-checkbox h-4 w-4"
-                            />
-                            <span className="ml-3 text-gray-600">
-                              $2,000 - $5,000
-                            </span>
-                          </label>
-                          <label className="flex items-center">
-                            <input
-                              type="checkbox"
-                              className="form-checkbox h-4 w-4"
-                            />
-                            <span className="ml-3 text-gray-600">$5,000+</span>
+                    <FilterCategory title="Categorías">
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="relojes"
+                            checked={filters.categories.relojes}
+                            onCheckedChange={(checked) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                categories: {
+                                  ...prev.categories,
+                                  relojes: !!checked,
+                                },
+                              }))
+                            }
+                          />
+                          <label htmlFor="relojes" className="text-gray-700">
+                            Relojes
                           </label>
                         </div>
-                      )}
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="ropa"
+                            checked={filters.categories.ropa}
+                            onCheckedChange={(checked) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                categories: {
+                                  ...prev.categories,
+                                  ropa: !!checked,
+                                },
+                              }))
+                            }
+                          />
+                          <label htmlFor="ropa" className="text-gray-700">
+                            Ropa
+                          </label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="accesorios"
+                            checked={filters.categories.accesorios}
+                            onCheckedChange={(checked) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                categories: {
+                                  ...prev.categories,
+                                  accesorios: !!checked,
+                                },
+                              }))
+                            }
+                          />
+                          <label htmlFor="accesorios" className="text-gray-700">
+                            Accesorios
+                          </label>
+                        </div>
+                      </div>
+                    </FilterCategory>
+
+                    <Separator />
+
+                    <FilterCategory title="Precio">
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="price-low"
+                            checked={filters.price.low}
+                            onCheckedChange={(checked) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                price: { ...prev.price, low: !!checked },
+                              }))
+                            }
+                          />
+                          <label htmlFor="price-low" className="text-gray-700">
+                            $0 - $1,000
+                          </label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="price-medium"
+                            checked={filters.price.medium}
+                            onCheckedChange={(checked) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                price: { ...prev.price, medium: !!checked },
+                              }))
+                            }
+                          />
+                          <label
+                            htmlFor="price-medium"
+                            className="text-gray-700"
+                          >
+                            $1,000 - $3,000
+                          </label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="price-high"
+                            checked={filters.price.high}
+                            onCheckedChange={(checked) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                price: { ...prev.price, high: !!checked },
+                              }))
+                            }
+                          />
+                          <label htmlFor="price-high" className="text-gray-700">
+                            $3,000+
+                          </label>
+                        </div>
+                      </div>
+                    </FilterCategory>
+
+                    <Separator />
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="inStock-mobile"
+                        checked={filters.inStock}
+                        onCheckedChange={(checked) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            inStock: !!checked,
+                          }))
+                        }
+                      />
+                      <label htmlFor="inStock-mobile" className="text-gray-700">
+                        Solo productos en existencia
+                      </label>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              </SheetContent>
+            </Sheet>
 
-            {/* Grid de Productos */}
-            <div className="flex-1">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((product) => (
+            {/* Botón para mostrar/ocultar filtros en desktop */}
+            <Button
+              variant="outline"
+              className="hidden lg:flex items-center gap-2"
+              onClick={() =>
+                setFilters((prev) => ({
+                  ...prev,
+                  showFilters: !prev.showFilters,
+                }))
+              }
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              {filters.showFilters ? "Ocultar filtros" : "Mostrar filtros"}
+            </Button>
+
+            {/* Selector de ordenamiento */}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Lo más nuevo</SelectItem>
+                <SelectItem value="price-asc">Precio: menor a mayor</SelectItem>
+                <SelectItem value="price-desc">
+                  Precio: mayor a menor
+                </SelectItem>
+                <SelectItem value="bestsellers">Más vendidos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex gap-6">
+          {/* Filtros - Ahora estáticos */}
+          {filters.showFilters && (
+            <div className="w-64 flex-shrink-0 hidden lg:block">
+              <div className="pr-4">
+                <div className="space-y-8">
+                  <FilterCategory title="Categorías">
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="relojes-desktop"
+                          checked={filters.categories.relojes}
+                          onCheckedChange={(checked) =>
+                            setFilters((prev) => ({
+                              ...prev,
+                              categories: {
+                                ...prev.categories,
+                                relojes: !!checked,
+                              },
+                            }))
+                          }
+                        />
+                        <label
+                          htmlFor="relojes-desktop"
+                          className="text-gray-700"
+                        >
+                          Relojes
+                        </label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="ropa-desktop"
+                          checked={filters.categories.ropa}
+                          onCheckedChange={(checked) =>
+                            setFilters((prev) => ({
+                              ...prev,
+                              categories: {
+                                ...prev.categories,
+                                ropa: !!checked,
+                              },
+                            }))
+                          }
+                        />
+                        <label htmlFor="ropa-desktop" className="text-gray-700">
+                          Ropa
+                        </label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="accesorios-desktop"
+                          checked={filters.categories.accesorios}
+                          onCheckedChange={(checked) =>
+                            setFilters((prev) => ({
+                              ...prev,
+                              categories: {
+                                ...prev.categories,
+                                accesorios: !!checked,
+                              },
+                            }))
+                          }
+                        />
+                        <label
+                          htmlFor="accesorios-desktop"
+                          className="text-gray-700"
+                        >
+                          Accesorios
+                        </label>
+                      </div>
+                    </div>
+                  </FilterCategory>
+
+                  <Separator />
+
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-medium">Precio</h3>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowPriceFilter(!showPriceFilter)}
+                      >
+                        {showPriceFilter ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    {showPriceFilter && (
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="price-low-desktop"
+                            checked={filters.price.low}
+                            onCheckedChange={(checked) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                price: { ...prev.price, low: !!checked },
+                              }))
+                            }
+                          />
+                          <label
+                            htmlFor="price-low-desktop"
+                            className="text-gray-700"
+                          >
+                            $0 - $1,000
+                          </label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="price-medium-desktop"
+                            checked={filters.price.medium}
+                            onCheckedChange={(checked) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                price: { ...prev.price, medium: !!checked },
+                              }))
+                            }
+                          />
+                          <label
+                            htmlFor="price-medium-desktop"
+                            className="text-gray-700"
+                          >
+                            $1,000 - $3,000
+                          </label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="price-high-desktop"
+                            checked={filters.price.high}
+                            onCheckedChange={(checked) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                price: { ...prev.price, high: !!checked },
+                              }))
+                            }
+                          />
+                          <label
+                            htmlFor="price-high-desktop"
+                            className="text-gray-700"
+                          >
+                            $3,000+
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="inStock-desktop"
+                      checked={filters.inStock}
+                      onCheckedChange={(checked) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          inStock: !!checked,
+                        }))
+                      }
+                    />
+                    <label htmlFor="inStock-desktop" className="text-gray-700">
+                      Solo productos en existencia
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Grid de Productos - Ahora con 4 por fila */}
+          <div className="flex-1">
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {[...Array(8)].map((_, i) => (
+                  <ProductSkeleton key={i} />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {sortedProducts.map((product) => (
                   <Link
                     key={product.id}
                     href={`/producto/${product.id}`}
-                    className="bg-gray-50 rounded-lg overflow-hidden group"
+                    className="block"
                   >
-                    <div className="relative aspect-square bg-gray-100">
-                      <Image
-                        src={product.image}
-                        alt={product.name}
-                        fill
-                        className="object-cover p-6 group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    <div className="p-4">
-                      <h3 className="text-lg font-bold mt-1">{product.name}</h3>
-                      <p className="text-sm text-gray-600 mb-2">
-                        {product.brand}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {product.colors.length}{" "}
-                        {product.colors.length === 1 ? "color" : "colores"}
-                      </p>
-                      <div className="mt-2">
-                        <span className="text-lg font-bold">
-                          {formatPrice(product.price)}
-                        </span>
-                      </div>
-                    </div>
+                    <Card className="overflow-hidden h-full transition-all duration-300 hover:shadow-md">
+                      <CardContent className="p-0">
+                        <div className="relative aspect-square bg-gray-100">
+                          <Image
+                            src={product.image}
+                            alt={product.name}
+                            fill
+                            className="object-cover p-6 transition-transform duration-300 group-hover:scale-105"
+                          />
+                          {!product.inStock && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                              <Badge
+                                variant="destructive"
+                                className="text-sm px-3 py-1"
+                              >
+                                Agotado
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-sm text-gray-600 mb-1">
+                                {product.brand}
+                              </p>
+                              <h3 className="text-base font-semibold">
+                                {product.name}
+                              </h3>
+                            </div>
+                            <span className="text-base font-bold text-right">
+                              {formatPrice(product.price)}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex items-center justify-between">
+                            <p className="text-xs text-gray-500">
+                              {product.colors.length}{" "}
+                              {product.colors.length === 1
+                                ? "color"
+                                : "colores"}
+                            </p>
+                            <div className="flex gap-1">
+                              {product.colors
+                                .slice(0, 3)
+                                .map((color, index) => (
+                                  <div
+                                    key={index}
+                                    className="h-3 w-3 rounded-full border border-gray-300"
+                                    style={{ backgroundColor: color }}
+                                  />
+                                ))}
+                              {product.colors.length > 3 && (
+                                <div className="text-xs text-gray-500">
+                                  +{product.colors.length - 3}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </Link>
                 ))}
               </div>
-            </div>
+            )}
+
+            {!loading && sortedProducts.length === 0 && (
+              <div className="text-center py-12">
+                <h3 className="text-lg font-medium mb-2">
+                  No se encontraron productos
+                </h3>
+                <p className="text-gray-500">
+                  Intenta cambiar los filtros para ver más resultados.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

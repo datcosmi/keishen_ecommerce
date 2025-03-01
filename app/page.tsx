@@ -4,19 +4,26 @@ import Image from "next/image";
 import Link from "next/link";
 import { useInView } from "react-intersection-observer";
 import NavbarBlack from "./components/navbarBlack";
-import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import Footer from "./components/footer";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface Product {
   id: string;
   name: string;
   price: number;
   image: string;
+  brand?: string;
+  colors?: string[];
+  inStock?: boolean;
 }
 
 export default function LandingPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [displayProducts, setDisplayProducts] = useState<Product[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const productsPerPage = 3;
 
@@ -49,11 +56,26 @@ export default function LandingPage() {
   useEffect(() => {
     fetch("/api/products")
       .then((res) => res.json())
-      .then((data) => setProducts(data))
+      .then((data) => {
+        // Asegurarse de que todos los productos tengan las propiedades necesarias
+        const enhancedProducts = data.map((product: Product) => ({
+          ...product,
+          brand: product.brand || "KEISHEN",
+          colors: product.colors || ["#000000", "#FFFFFF", "#808080"],
+          inStock: product.inStock !== undefined ? product.inStock : true,
+        }));
+        setAllProducts(enhancedProducts);
+
+        // Filtrar solo productos en existencia
+        const inStockProducts = enhancedProducts.filter(
+          (product: Product) => product.inStock !== false
+        );
+        setDisplayProducts(inStockProducts);
+      })
       .catch((err) => console.error(err));
   }, []);
 
-  const totalPages = Math.ceil(products.length / productsPerPage);
+  const totalPages = Math.ceil(displayProducts.length / productsPerPage);
 
   const nextPage = () => {
     if (currentPage < totalPages - 1) {
@@ -66,6 +88,16 @@ export default function LandingPage() {
       setCurrentPage((prev) => prev - 1);
     }
   };
+
+  const formatPrice = (price: number) => {
+    return `$${price.toLocaleString("es-MX")}`;
+  };
+
+  // Calcular productos a mostrar en la página actual
+  const currentProducts = displayProducts.slice(
+    currentPage * productsPerPage,
+    (currentPage + 1) * productsPerPage
+  );
 
   return (
     <div className="min-h-screen bg-black">
@@ -117,20 +149,16 @@ export default function LandingPage() {
                 atención a cada detalle para reflejar tu personalidad única.
               </p>
 
-              <button className="mt-8 bg-yellow-300 text-black px-8 py-3 rounded-full font-medium flex items-center space-x-2 hover:bg-yellow-400 transition-colors">
-                <Link href={"/productos"}>
+              <Button
+                className="mt-8 bg-yellow-300 text-black hover:bg-yellow-400 rounded-full"
+                size="lg"
+                asChild
+              >
+                <Link href="/productos" className="flex items-center gap-2">
                   <span>Ver todo</span>
+                  <ChevronRight className="h-4 w-4" />
                 </Link>
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M5 12h14M12 5l7 7-7 7"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
+              </Button>
             </motion.div>
             <motion.div
               className="w-1/2 relative"
@@ -170,63 +198,124 @@ export default function LandingPage() {
       {/* Products Section */}
       <section className="py-16 px-8 bg-white relative z-30">
         <div className="max-w-6xl mx-auto relative">
-          <h2 className="text-3xl font-bold text-black mb-8">
-            VISTE CON ESTILO
-          </h2>
-
-          <button
-            onClick={prevPage}
-            disabled={currentPage === 0}
-            className="absolute left-[-60px] top-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full shadow-lg disabled:opacity-0"
-          >
-            <ChevronLeftIcon className="h-8 w-8 text-gray-500" />
-          </button>
-
-          {/* Carrusel de productos */}
-          <div className="overflow-hidden w-full relative">
-            <motion.div
-              className="flex"
-              animate={{ x: `-${currentPage * 100}%` }}
-              transition={{ duration: 0.5, ease: "easeInOut" }}
-            >
-              <div className="flex w-full">
-                {products.map((product) => (
-                  <div
-                    key={product.id}
-                    className="w-1/3 px-4"
-                    style={{ flex: "0 0 33.333%" }}
-                  >
-                    <Link
-                      href={`/producto/${product.id}`}
-                      className="group cursor-pointer block"
-                    >
-                      <div className="w-full h-64 flex items-center justify-center bg-gray-100 rounded-xl overflow-hidden">
-                        <Image
-                          src={product.image}
-                          alt={product.name}
-                          width={200}
-                          height={200}
-                          className="object-contain w-full h-full"
-                        />
-                      </div>
-                      <h3 className="mt-4 text-sm font-medium text-black">
-                        {product.name}
-                      </h3>
-                      <p className="text-sm text-gray-500">${product.price}</p>
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-3xl font-bold text-black">VISTE CON ESTILO</h2>
+            <p className="text-gray-500">
+              Mostrando {displayProducts.length} productos en existencia
+            </p>
           </div>
 
-          <button
-            onClick={nextPage}
-            disabled={currentPage === totalPages - 1}
-            className="absolute right-[-60px] top-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full shadow-lg disabled:opacity-0"
-          >
-            <ChevronRightIcon className="h-8 w-8 text-gray-500" />
-          </button>
+          {displayProducts.length > 0 ? (
+            <>
+              <Button
+                onClick={prevPage}
+                disabled={currentPage === 0}
+                variant="outline"
+                size="icon"
+                className="absolute left-[-60px] top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow-lg disabled:opacity-0"
+              >
+                <ChevronLeft className="h-6 w-6 text-gray-500" />
+              </Button>
+
+              {/* Carrusel de productos */}
+              <div className="overflow-hidden w-full relative">
+                <motion.div
+                  className="flex"
+                  animate={{ x: `-${currentPage * 100}%` }}
+                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                >
+                  <div className="flex w-full">
+                    {currentProducts.map((product) => (
+                      <div
+                        key={product.id}
+                        className="w-1/3 px-4"
+                        style={{ flex: "0 0 33.333%" }}
+                      >
+                        <Link
+                          href={`/producto/${product.id}`}
+                          className="block h-full"
+                        >
+                          <Card className="overflow-hidden h-full transition-all duration-300 hover:shadow-md">
+                            <CardContent className="p-0">
+                              <div className="relative aspect-square bg-gray-100">
+                                <Image
+                                  src={product.image}
+                                  alt={product.name}
+                                  fill
+                                  className="object-cover p-6 transition-transform duration-300 group-hover:scale-105"
+                                />
+                              </div>
+                              <div className="p-3">
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <p className="text-sm text-gray-600 mb-1">
+                                      {product.brand}
+                                    </p>
+                                    <h3 className="text-base font-semibold">
+                                      {product.name}
+                                    </h3>
+                                  </div>
+                                  <span className="text-base font-bold text-right">
+                                    {formatPrice(product.price)}
+                                  </span>
+                                </div>
+                                {product.colors && (
+                                  <div className="mt-2 flex items-center justify-between">
+                                    <p className="text-xs text-gray-500">
+                                      {product.colors.length}{" "}
+                                      {product.colors.length === 1
+                                        ? "color"
+                                        : "colores"}
+                                    </p>
+                                    <div className="flex gap-1">
+                                      {product.colors
+                                        .slice(0, 3)
+                                        .map((color, index) => (
+                                          <div
+                                            key={index}
+                                            className="h-3 w-3 rounded-full border border-gray-300"
+                                            style={{ backgroundColor: color }}
+                                          />
+                                        ))}
+                                      {product.colors.length > 3 && (
+                                        <div className="text-xs text-gray-500">
+                                          +{product.colors.length - 3}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              </div>
+
+              <Button
+                onClick={nextPage}
+                disabled={currentPage === totalPages - 1}
+                variant="outline"
+                size="icon"
+                className="absolute right-[-60px] top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow-lg disabled:opacity-0"
+              >
+                <ChevronRight className="h-6 w-6 text-gray-500" />
+              </Button>
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <h3 className="text-lg font-medium mb-2">
+                No hay productos en existencia
+              </h3>
+              <p className="text-gray-500">
+                Intenta consultar más tarde o contacta con nosotros para más
+                información.
+              </p>
+            </div>
+          )}
         </div>
       </section>
       <Footer />
