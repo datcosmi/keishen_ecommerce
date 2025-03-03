@@ -252,7 +252,7 @@ export default function DashboardHome() {
         </div>
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -326,7 +326,7 @@ export default function DashboardHome() {
         </div>
 
         {/* Revenue Chart */}
-        <Card className="col-span-4">
+        <Card className="col-span-4 mb-4">
           <CardHeader>
             <CardTitle>Ingresos por Día</CardTitle>
             <CardDescription>

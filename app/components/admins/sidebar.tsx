@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Layers2,
 } from "lucide-react";
 import {
   Tooltip,
@@ -33,6 +34,7 @@ const Sidebar = () => {
   const menuItems = [
     { name: "Inicio", icon: Home, href: "/dashboard" },
     { name: "Productos", icon: Archive, href: "/products" },
+    { name: "Categorias", icon: Layers2, href: "/categories" },
     { name: "Pedidos", icon: CreditCard, href: "/pedidos" },
     { name: "Ventas", icon: BarChart2, href: "/ventas" },
     { name: "Administradores", icon: User, href: "/administradores" },
