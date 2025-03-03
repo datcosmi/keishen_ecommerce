@@ -14,6 +14,7 @@ import {
   CreditCard,
   List,
   Grid,
+  RefreshCw,
 } from "lucide-react";
 import Sidebar from "../components/admins/sidebar";
 
@@ -100,6 +101,19 @@ const OrderDashboard: React.FC = () => {
 
     fetchOrders();
   }, []);
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/orders");
+      const data = await response.json();
+      setOrders(data);
+    } catch (error) {
+      console.error("Error refreshing orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Calcular las cantidades para los filtros
   const pendienteCount = orders.filter((o) => o.status === "pendiente").length;
@@ -301,12 +315,12 @@ const OrderDashboard: React.FC = () => {
 
           <div className="flex ml-auto">
             <Button
-              variant="outline"
+              variant={isGridView ? "outline" : "default"}
               size="icon"
-              className="mr-2"
+              className={`mr-2 ${!isGridView ? "bg-black text-white" : ""}`}
               onClick={() => setIsGridView(false)}
             >
-              <List className={`h-5 w-5 ${!isGridView ? "text-black" : ""}`} />
+              <List className="h-5 w-5" />
             </Button>
             <Button
               variant={isGridView ? "default" : "outline"}
@@ -320,17 +334,28 @@ const OrderDashboard: React.FC = () => {
         </div>
 
         {/* Barra de búsqueda */}
-        <div className="relative mb-6">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
+        <div className="relative mb-6 flex">
+          <div className="relative flex-grow">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400" />
+            </div>
+            <Input
+              type="text"
+              className="pl-10 pr-3 bg-white"
+              placeholder="Buscar productos..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-          <Input
-            type="text"
-            className="pl-10 pr-3 bg-white"
-            placeholder="Buscar por ID de pedido o cliente..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <Button
+            variant="outline"
+            className="ml-2"
+            onClick={handleRefresh}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+            <span className="ml-2">Actualizar</span>
+          </Button>
         </div>
 
         {/* Estado para cargar los pedidos */}

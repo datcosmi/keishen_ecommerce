@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, ChevronUp, SlidersHorizontal, Tag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import NavbarWhite from "../components/navbarWhite";
@@ -36,6 +36,33 @@ interface Product {
   straps: string[];
   image: string;
   inStock: boolean;
+  categoryId: string;
+  addedDate: string;
+  // Added properties for discount handling
+  discountedPrice?: number;
+  discountPercentage?: number;
+  isDiscounted?: boolean;
+}
+
+interface ProductDiscount {
+  id: string;
+  productId: string;
+  discountPercentage: number;
+  startDate: string;
+  endDate: string;
+}
+
+interface CategoryDiscount {
+  id: string;
+  categoryId: string;
+  discountPercentage: number;
+  startDate: string;
+  endDate: string;
+}
+
+interface Discounts {
+  products: ProductDiscount[];
+  categories: CategoryDiscount[];
 }
 
 interface FilterCategoryProps {
@@ -45,24 +72,90 @@ interface FilterCategoryProps {
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [discounts, setDiscounts] = useState<Discounts | null>(null);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState("newest");
 
   useEffect(() => {
-    async function fetchProducts() {
+    async function fetchData() {
       try {
-        const response = await fetch("/api/products");
-        const data = await response.json();
-        setProducts(data);
+        // Fetch products and discounts in parallel
+        const [productsResponse, discountsResponse] = await Promise.all([
+          fetch("/api/products"),
+          fetch("/api/discounts"),
+        ]);
+
+        const productsData = await productsResponse.json();
+        const discountsData = await discountsResponse.json();
+
+        setDiscounts(discountsData);
+
+        // Apply discounts to products
+        const productsWithDiscounts = applyDiscounts(
+          productsData,
+          discountsData
+        );
+        setProducts(productsWithDiscounts);
       } catch (error) {
-        console.error("Error fetching products:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchProducts();
+    fetchData();
   }, []);
+
+  // Function to apply discounts to products
+  const applyDiscounts = (
+    products: Product[],
+    discounts: Discounts
+  ): Product[] => {
+    const currentDate = new Date();
+
+    return products.map((product) => {
+      // Check for product-specific discount
+      const productDiscount = discounts.products.find(
+        (d) =>
+          d.productId === product.id &&
+          new Date(d.startDate) <= currentDate &&
+          new Date(d.endDate) >= currentDate
+      );
+
+      // Check for category-specific discount
+      const categoryDiscount = discounts.categories.find(
+        (d) =>
+          d.categoryId === product.categoryId &&
+          new Date(d.startDate) <= currentDate &&
+          new Date(d.endDate) >= currentDate
+      );
+
+      // Use the highest discount (product-specific or category-specific)
+      let appliedDiscount = 0;
+      if (productDiscount && categoryDiscount) {
+        appliedDiscount = Math.max(
+          productDiscount.discountPercentage,
+          categoryDiscount.discountPercentage
+        );
+      } else if (productDiscount) {
+        appliedDiscount = productDiscount.discountPercentage;
+      } else if (categoryDiscount) {
+        appliedDiscount = categoryDiscount.discountPercentage;
+      }
+
+      if (appliedDiscount > 0) {
+        const discountedPrice = product.price * (1 - appliedDiscount / 100);
+        return {
+          ...product,
+          discountedPrice: Math.round(discountedPrice * 100) / 100,
+          discountPercentage: appliedDiscount,
+          isDiscounted: true,
+        };
+      }
+
+      return { ...product, isDiscounted: false };
+    });
+  };
 
   const [filters, setFilters] = useState({
     showFilters: true,
@@ -78,6 +171,7 @@ export default function ProductsPage() {
       high: false,
     },
     inStock: false,
+    onSale: false, // New filter for discounted items
   });
 
   const [showCollectionFilter, setShowCollectionFilter] = useState(true);
@@ -87,32 +181,40 @@ export default function ProductsPage() {
     return `$${price.toLocaleString("es-MX")}`;
   };
 
-  // Función para filtrar productos (podríamos implementarla completamente)
+  // Function to filter products
   const filteredProducts = products.filter((product) => {
-    // Si el filtro de stock está activo y el producto no está en stock, lo excluimos
+    // Stock filter
     if (filters.inStock && !product.inStock) {
+      return false;
+    }
+
+    // On sale filter
+    if (filters.onSale && !product.isDiscounted) {
       return false;
     }
 
     return true;
   });
 
-  // Ordenar productos
+  // Sort products
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
       case "price-asc":
-        return a.price - b.price;
+        return (a.discountedPrice || a.price) - (b.discountedPrice || b.price);
       case "price-desc":
-        return b.price - a.price;
+        return (b.discountedPrice || b.price) - (a.discountedPrice || a.price);
+      case "discount":
+        // Sort by discount percentage (highest first)
+        return (b.discountPercentage || 0) - (a.discountPercentage || 0);
       case "bestsellers":
         return b.reviews - a.reviews;
       case "newest":
       default:
-        return 0; // Asumimos que ya están ordenados por lo más nuevo
+        return 0; // Assuming they're already sorted by newest
     }
   });
 
-  // Componente para mostrar categorías de filtro
+  // Filter category component
   const FilterCategory: React.FC<FilterCategoryProps> = ({
     title,
     children,
@@ -123,7 +225,7 @@ export default function ProductsPage() {
     </div>
   );
 
-  // Componente para los esqueletos de carga
+  // Loading skeleton component
   const ProductSkeleton = () => (
     <Card>
       <CardContent className="p-0">
@@ -150,7 +252,7 @@ export default function ProductsPage() {
           </h1>
 
           <div className="flex items-center gap-4">
-            {/* Filtros para móvil */}
+            {/* Mobile filters */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button
@@ -296,12 +398,29 @@ export default function ProductsPage() {
                         Solo productos en existencia
                       </label>
                     </div>
+
+                    {/* New filter for discounted items - mobile */}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="onSale-mobile"
+                        checked={filters.onSale}
+                        onCheckedChange={(checked) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            onSale: !!checked,
+                          }))
+                        }
+                      />
+                      <label htmlFor="onSale-mobile" className="text-gray-700">
+                        Solo productos en oferta
+                      </label>
+                    </div>
                   </div>
                 </div>
               </SheetContent>
             </Sheet>
 
-            {/* Botón para mostrar/ocultar filtros en desktop */}
+            {/* Desktop filter toggle button */}
             <Button
               variant="outline"
               className="hidden lg:flex items-center gap-2"
@@ -316,7 +435,7 @@ export default function ProductsPage() {
               {filters.showFilters ? "Ocultar filtros" : "Mostrar filtros"}
             </Button>
 
-            {/* Selector de ordenamiento */}
+            {/* Sort selector */}
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Ordenar por" />
@@ -328,13 +447,14 @@ export default function ProductsPage() {
                   Precio: mayor a menor
                 </SelectItem>
                 <SelectItem value="bestsellers">Más vendidos</SelectItem>
+                <SelectItem value="discount">Mayor descuento</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
         <div className="flex gap-6">
-          {/* Filtros - Ahora estáticos */}
+          {/* Desktop filters */}
           {filters.showFilters && (
             <div className="w-64 flex-shrink-0 hidden lg:block">
               <div className="pr-4">
@@ -498,12 +618,29 @@ export default function ProductsPage() {
                       Solo productos en existencia
                     </label>
                   </div>
+
+                  {/* New filter for discounted items - desktop */}
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="onSale-desktop"
+                      checked={filters.onSale}
+                      onCheckedChange={(checked) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          onSale: !!checked,
+                        }))
+                      }
+                    />
+                    <label htmlFor="onSale-desktop" className="text-gray-700">
+                      Solo productos en oferta
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Grid de Productos - Ahora con 4 por fila */}
+          {/* Product grid */}
           <div className="flex-1">
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -528,6 +665,20 @@ export default function ProductsPage() {
                             fill
                             className="object-cover p-6 transition-transform duration-300 group-hover:scale-105"
                           />
+                          {/* Badges overlay */}
+                          <div className="absolute top-2 left-2 flex flex-col gap-2">
+                            {/* Discount badge */}
+                            {product.isDiscounted && (
+                              <Badge
+                                variant="destructive"
+                                className="bg-red-600 text-white px-2 py-1 flex items-center gap-1"
+                              >
+                                <Tag size={14} />
+                                {product.discountPercentage}% OFF
+                              </Badge>
+                            )}
+                          </div>
+                          {/* Out of stock overlay */}
                           {!product.inStock && (
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                               <Badge
@@ -549,9 +700,22 @@ export default function ProductsPage() {
                                 {product.name}
                               </h3>
                             </div>
-                            <span className="text-base font-bold text-right">
-                              {formatPrice(product.price)}
-                            </span>
+                            <div className="text-right">
+                              {product.isDiscounted ? (
+                                <>
+                                  <span className="text-base font-bold">
+                                    {formatPrice(product.discountedPrice!)}
+                                  </span>
+                                  <p className="text-xs text-gray-500 line-through">
+                                    {formatPrice(product.price)}
+                                  </p>
+                                </>
+                              ) : (
+                                <span className="text-base font-bold">
+                                  {formatPrice(product.price)}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <div className="mt-2 flex items-center justify-between">
                             <p className="text-xs text-gray-500">

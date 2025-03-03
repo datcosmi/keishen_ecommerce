@@ -62,8 +62,7 @@ const Sidebar = () => {
   return (
     <aside
       className={cn(
-        "h-screen bg-white hidden md:flex flex-col border-r border-gray-200 transition-all duration-300 ease-in-out relative",
-        collapsed ? "w-16" : "w-56"
+        "h-screen bg-white hidden md:flex flex-col border-r border-gray-200 transition-all duration-300 ease-in-out sticky top-0"
       )}
     >
       {/* Toggle button */}
