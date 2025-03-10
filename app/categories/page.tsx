@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import {
   Search,
   Edit,
@@ -15,12 +14,12 @@ import {
   List,
   Grid,
   RefreshCw,
+  Check,
 } from "lucide-react";
 import Sidebar from "../components/admins/sidebar";
-
-// Importaciones de shadcn/ui
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -37,7 +36,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,14 +47,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import AddProductModal from "../components/addProductModal";
+import CategoryModal from "../components/categoryModal";
 
 interface Category {
-  id: string;
+  id_cat: number;
   name: string;
 }
 
-type SortField = "id" | "name";
+type SortField = "id_cat" | "name";
 type SortDirection = "asc" | "desc";
 
 const CategoriesDashboard: React.FC = () => {
@@ -64,6 +62,18 @@ const CategoriesDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  // Selección de categorías
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
+
+  // Editar categoria
+  const [categoryToEdit, setCategoryToEdit] = useState<Category | undefined>(
+    undefined
+  );
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -77,10 +87,13 @@ const CategoriesDashboard: React.FC = () => {
   // Vista
   const [isGridView, setIsGridView] = useState(false);
 
+  // Diálogo de confirmación para eliminar múltiples
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch("/api/categories");
+        const response = await fetch("http://localhost:3001/api/categories");
         const data = await response.json();
         setCategories(data);
         setLoading(false);
@@ -96,9 +109,11 @@ const CategoriesDashboard: React.FC = () => {
   const handleRefresh = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/categories");
+      const response = await fetch("http://localhost:3001/api/categories");
       const data = await response.json();
       setCategories(data);
+      setSelectedCategories([]);
+      setSelectAll(false);
     } catch (error) {
       console.error("Error refreshing categories:", error);
     } finally {
@@ -106,39 +121,140 @@ const CategoriesDashboard: React.FC = () => {
     }
   };
 
-  const handleCategoryAdded = (newCategory: Category) => {
-    setCategories([newCategory, ...categories]);
+  const handleCategoryAdded = (category: Category) => {
+    setCategories([...categories, category]);
+    handleRefresh();
   };
 
-  // Aplicar los filtros por búsqueda y estado
+  const handleCategoryUpdated = (updatedCategory: Category) => {
+    setCategories(
+      categories.map((cat) =>
+        cat.id_cat === updatedCategory.id_cat ? updatedCategory : cat
+      )
+    );
+    setEditModalOpen(false);
+  };
+
+  const handleEdit = (category?: Category) => {
+    if (category) {
+      setCategoryToEdit(category);
+    } else if (selectedCategories.length === 1) {
+      const categoryToEdit = categories.find(
+        (cat) => cat.id_cat === selectedCategories[0]
+      );
+      setCategoryToEdit(categoryToEdit);
+    } else {
+      return;
+    }
+    setEditModalOpen(true);
+  };
+
+  const handleDelete = async (id_cat?: number) => {
+    setLoading(true);
+    setError("");
+
+    const idsToDelete = id_cat ? [id_cat] : selectedCategories;
+
+    try {
+      // Usar una sola petición para eliminar todas las categorías seleccionadas
+      const response = await fetch(`http://localhost:3001/api/categories`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ids: idsToDelete }),
+      });
+
+      if (!response.ok)
+        throw new Error("No se pudo eliminar la(s) categoría(s)");
+
+      setCategories((prev) =>
+        prev.filter((category) => !idsToDelete.includes(category.id_cat))
+      );
+      setSelectedCategories([]);
+      setDeleteDialogOpen(false);
+    } catch (error) {
+      setError("Error: No se pudo eliminar la(s) categoría(s)");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Obtener las iniciales del nombre de la categoría
+  const getCategoryInitials = (name: string): string => {
+    return name
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase())
+      .join("")
+      .substring(0, 2);
+  };
+
+  // Generar un color basado en el nombre de la categoría
+  const getInitialsBackgroundColor = (name: string): string => {
+    const colors = [
+      "bg-blue-500",
+      "bg-green-500",
+      "bg-purple-500",
+      "bg-yellow-500",
+      "bg-pink-500",
+      "bg-indigo-500",
+      "bg-red-500",
+      "bg-teal-500",
+      "bg-orange-500",
+    ];
+
+    // Usar la suma de los códigos de caracteres para determinar el color
+    const sum = name
+      .split("")
+      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[sum % colors.length];
+  };
+
+  // Manejo de selección de categorías
+  const toggleSelectCategory = (id: number) => {
+    setSelectedCategories((prev) =>
+      prev.includes(id) ? prev.filter((catId) => catId !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectAll) {
+      setSelectedCategories([]);
+    } else {
+      setSelectedCategories(currentCategories.map((cat) => cat.id_cat));
+    }
+    setSelectAll(!selectAll);
+  };
+
+  // Aplicar los filtros por búsqueda
   const filteredCategories = categories.filter((category) => {
     const matchesSearch =
       category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      category.id.toLowerCase().includes(searchQuery.toLowerCase());
+      category.id_cat.toString().includes(searchQuery);
 
     return matchesSearch;
   });
 
-  // Ordenar los productos
+  // Ordenar las categorías
   const sortedCategories = [...filteredCategories].sort((a, b) => {
     if (sortField === "name") {
       return sortDirection === "asc"
         ? a.name.localeCompare(b.name)
         : b.name.localeCompare(a.name);
-    } else if (sortField === "id") {
+    } else if (sortField === "id_cat") {
       return sortDirection === "asc"
-        ? a.id.localeCompare(b.id)
-        : b.id.localeCompare(a.id);
+        ? a.id_cat - b.id_cat
+        : b.id_cat - a.id_cat;
     }
     return 0;
   });
 
-  // Actualizar el total de páginas cuando los productos filtrados cambian
+  // Actualizar el total de páginas cuando las categorías filtradas cambian
   useEffect(() => {
     setTotalPages(
       Math.max(1, Math.ceil(filteredCategories.length / rowsPerPage))
     );
-    setCurrentPage(1); // Resetear a la primera página cuando cambian los filtros
+    setCurrentPage(1);
   }, [filteredCategories.length, rowsPerPage]);
 
   // Paginación
@@ -149,6 +265,14 @@ const CategoriesDashboard: React.FC = () => {
     indexOfLastCategory
   );
 
+  // Comprobar si todos los elementos de la página actual están seleccionados
+  useEffect(() => {
+    const allCurrentSelected = currentCategories.every((cat) =>
+      selectedCategories.includes(cat.id_cat)
+    );
+    setSelectAll(allCurrentSelected && currentCategories.length > 0);
+  }, [currentCategories, selectedCategories]);
+
   // Manejadores para la paginación
   const handlePageChange = (page: number) => {
     if (page < 1) page = 1;
@@ -158,28 +282,17 @@ const CategoriesDashboard: React.FC = () => {
 
   const handleRowsPerPageChange = (value: string) => {
     setRowsPerPage(Number(value));
-    setCurrentPage(1); // Resetear a la primera página cuando cambia el número de filas
+    setCurrentPage(1);
   };
 
   // Manejador para el ordenamiento
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      // Cambiar dirección si es la misma columna
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
-      // Nueva columna, comenzar con ascendente
       setSortField(field);
       setSortDirection("asc");
     }
-  };
-
-  const handleDelete = (id: string) => {
-    // Ahora usando AlertDialog en lugar de confirm nativo
-    setCategories(categories.filter((category) => category.id !== id));
-  };
-
-  const handleEdit = (id: string) => {
-    router.push(`/categories/${id}`);
   };
 
   // Renderizar indicador de ordenamiento
@@ -207,8 +320,75 @@ const CategoriesDashboard: React.FC = () => {
                 Aquí tienes una lista de todas las categorias existentes
               </p>
             </div>
-            <AddProductModal onProductAdded={handleCategoryAdded} />
+
+            <div className="flex items-center gap-2">
+              {selectedCategories.length > 0 && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedCategories([])}
+                    className="text-gray-600"
+                  >
+                    Cancelar ({selectedCategories.length})
+                  </Button>
+
+                  {selectedCategories.length === 1 && (
+                    <Button
+                      variant="outline"
+                      onClick={() => handleEdit()}
+                      className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                    >
+                      <Edit size={16} className="mr-1" />
+                      Editar
+                    </Button>
+                  )}
+
+                  <AlertDialog
+                    open={deleteDialogOpen}
+                    onOpenChange={setDeleteDialogOpen}
+                  >
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                      >
+                        <Trash2 size={16} className="mr-1" />
+                        Eliminar{" "}
+                        {selectedCategories.length > 1
+                          ? `(${selectedCategories.length})`
+                          : ""}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Confirmar eliminación
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {selectedCategories.length === 1
+                            ? "¿Estás seguro de que deseas eliminar esta categoria? Esta acción no se puede deshacer."
+                            : `¿Estás seguro de que deseas eliminar estas ${selectedCategories.length} categorias? Esta acción no se puede deshacer.`}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete()}
+                          className="bg-red-600 hover:bg-red-700"
+                          disabled={loading}
+                        >
+                          {loading ? "Eliminando..." : "Eliminar"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              )}
+
+              <CategoryModal onCategoryAdded={handleCategoryAdded} />
+            </div>
           </div>
+
           {/* Vista Toggle */}
           <div className="flex justify-end mt-4 space-x-2">
             <Button
@@ -239,7 +419,7 @@ const CategoriesDashboard: React.FC = () => {
             <Input
               type="text"
               className="pl-10 pr-3 bg-white"
-              placeholder="Buscar productos..."
+              placeholder="Buscar categorías..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -255,7 +435,7 @@ const CategoriesDashboard: React.FC = () => {
           </Button>
         </div>
 
-        {/* Estado para cargar los productos */}
+        {/* Estado para cargar las categorías */}
         {loading ? (
           <Card>
             <CardContent className="p-6 text-center">
@@ -263,7 +443,7 @@ const CategoriesDashboard: React.FC = () => {
             </CardContent>
           </Card>
         ) : (
-          /* Tabla de productos o vista de cuadrícula */
+          /* Tabla de categorías o vista de cuadrícula */
           <Card>
             <CardContent className="p-0">
               {!isGridView ? (
@@ -271,13 +451,20 @@ const CategoriesDashboard: React.FC = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={selectAll}
+                            onCheckedChange={toggleSelectAll}
+                            aria-label="Seleccionar todas las categorías"
+                          />
+                        </TableHead>
                         <TableHead
                           className="cursor-pointer"
-                          onClick={() => handleSort("id")}
+                          onClick={() => handleSort("id_cat")}
                         >
                           <div className="flex items-center">
-                            Nombre
-                            {renderSortIndicator("id")}
+                            ID
+                            {renderSortIndicator("id_cat")}
                           </div>
                         </TableHead>
                         <TableHead
@@ -285,90 +472,55 @@ const CategoriesDashboard: React.FC = () => {
                           onClick={() => handleSort("name")}
                         >
                           <div className="flex items-center">
-                            Número
+                            Nombre
                             {renderSortIndicator("name")}
                           </div>
                         </TableHead>
-                        <TableHead>Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {currentCategories.map((category) => (
                         <TableRow
-                          key={category.id}
-                          className="hover:bg-gray-50"
+                          key={category.id_cat}
+                          className={`hover:bg-gray-50 ${
+                            selectedCategories.includes(category.id_cat)
+                              ? "bg-blue-50"
+                              : ""
+                          }`}
                         >
+                          <TableCell className="p-2">
+                            <Checkbox
+                              checked={selectedCategories.includes(
+                                category.id_cat
+                              )}
+                              onCheckedChange={() =>
+                                toggleSelectCategory(category.id_cat)
+                              }
+                              aria-label={`Seleccionar ${category.name}`}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-gray-600">
+                              {category.id_cat}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center">
-                              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100">
-                                <div className="w-6 h-6 relative">
-                                  <Image
-                                    src={"/keishen.ico"}
-                                    alt={category.name}
-                                    layout="fill"
-                                    objectFit="contain"
-                                  />
-                                </div>
+                              <div
+                                className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium ${getInitialsBackgroundColor(
+                                  category.name
+                                )}`}
+                              >
+                                {getCategoryInitials(category.name)}
                               </div>
                               <div className="ml-4">
                                 <div
                                   className="text-sm font-medium text-gray-900 hover:text-blue-600 cursor-pointer"
-                                  onClick={() => handleEdit(category.id)}
+                                  onClick={() => handleEdit(category)}
                                 >
                                   {category.name}
                                 </div>
                               </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm text-gray-600">
-                              {category.id}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEdit(category.id)}
-                                className="text-blue-600 hover:text-blue-800"
-                              >
-                                <Edit size={18} />
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-red-600 hover:text-red-800"
-                                  >
-                                    <Trash2 size={18} />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                      Confirmar eliminación
-                                    </AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      ¿Estás seguro de que deseas eliminar esta
-                                      categoria? Esta acción no se puede
-                                      deshacer.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>
-                                      Cancelar
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDelete(category.id)}
-                                      className="bg-red-600 hover:bg-red-700"
-                                    >
-                                      Eliminar
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -377,7 +529,7 @@ const CategoriesDashboard: React.FC = () => {
                       {currentCategories.length === 0 && (
                         <TableRow>
                           <TableCell
-                            colSpan={6}
+                            colSpan={3}
                             className="text-center text-gray-500 h-32"
                           >
                             No se encontraron categorias con los filtros
@@ -392,70 +544,44 @@ const CategoriesDashboard: React.FC = () => {
                 // Vista de cuadrícula
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                   {currentCategories.map((category) => (
-                    <Card key={category.id}>
+                    <Card
+                      key={category.id_cat}
+                      className={`${
+                        selectedCategories.includes(category.id_cat)
+                          ? "ring-2 ring-blue-400"
+                          : ""
+                      }`}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-center mb-3">
-                          <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-100">
-                            <div className="w-8 h-8 relative">
-                              <Image
-                                src={"/keishen.ico"}
-                                alt={category.name}
-                                layout="fill"
-                                objectFit="contain"
-                              />
-                            </div>
+                          <Checkbox
+                            checked={selectedCategories.includes(
+                              category.id_cat
+                            )}
+                            onCheckedChange={() =>
+                              toggleSelectCategory(category.id_cat)
+                            }
+                            aria-label={`Seleccionar ${category.name}`}
+                            className="mr-3"
+                          />
+                          <div
+                            className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-medium ${getInitialsBackgroundColor(
+                              category.name
+                            )}`}
+                          >
+                            {getCategoryInitials(category.name)}
                           </div>
                           <div className="ml-3">
                             <h3
                               className="font-medium hover:text-blue-600 cursor-pointer"
-                              onClick={() => handleEdit(category.id)}
+                              onClick={() => handleEdit(category)}
                             >
                               {category.name}
                             </h3>
+                            <p className="text-xs text-gray-500">
+                              ID: {category.id_cat}
+                            </p>
                           </div>
-                        </div>
-                        <div className="flex justify-end space-x-2 mt-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(category.id)}
-                            className="text-blue-600"
-                          >
-                            <Edit size={16} className="mr-1" />
-                            Editar
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-red-600"
-                              >
-                                <Trash2 size={16} className="mr-1" />
-                                Eliminar
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Confirmar eliminación
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  ¿Estás seguro de que deseas eliminar esta
-                                  categoria? Esta acción no se puede deshacer.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(category.id)}
-                                  className="bg-red-600 hover:bg-red-700"
-                                >
-                                  Eliminar
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
                         </div>
                       </CardContent>
                     </Card>
@@ -542,6 +668,18 @@ const CategoriesDashboard: React.FC = () => {
           </Card>
         )}
       </div>
+
+      {/* Modal para editar categoría */}
+      {categoryToEdit && (
+        <CategoryModal
+          isEdit={true}
+          category={categoryToEdit}
+          onCategoryUpdated={handleCategoryUpdated}
+          onCategoryAdded={handleCategoryAdded}
+          externalOpenState={editModalOpen}
+          onOpenStateChange={setEditModalOpen}
+        />
+      )}
     </div>
   );
 };
