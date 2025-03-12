@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { v4 as uuidv4 } from "uuid";
 import { Plus, X, Upload } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,30 +29,32 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+const API_BASE_URL = "http://localhost:3001/api";
+
 interface Category {
-  id: string;
+  id_cat: number;
   name: string;
 }
 
-interface Product {
-  id: string;
+interface ProductDetail {
+  detail_name: string;
+  detail_desc: string;
+}
+
+interface ProductFormData {
   name: string;
-  brand: string;
   description: string;
   price: number;
-  rating: number;
-  reviews: number;
-  sizes: string[];
-  colors: string[];
-  straps: string[];
-  image: string;
-  inStock: boolean;
-  categoryId: string;
-  addedDate: string;
+  cat_id: number;
+  stock: number;
+  colorDetails: ProductDetail[];
+  sizeDetails: ProductDetail[];
+  tallaSizeDetails: ProductDetail[];
+  materialDetails: ProductDetail[];
 }
 
 interface AddProductModalProps {
-  onProductAdded: (product: Product) => void;
+  onProductAdded: (product: any) => void;
 }
 
 const AddProductModal: React.FC<AddProductModalProps> = ({
@@ -65,35 +66,37 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form state
-  const [formData, setFormData] = useState<
-    Omit<Product, "id" | "addedDate" | "rating" | "reviews">
-  >({
+  const [formData, setFormData] = useState<ProductFormData>({
     name: "",
-    brand: "",
     description: "",
     price: 0,
-    sizes: [],
-    colors: [],
-    straps: [],
-    image: "/images/placeholder-product.png", // Default placeholder image
-    inStock: true,
-    categoryId: "",
+    cat_id: 0,
+    stock: 0,
+    colorDetails: [],
+    sizeDetails: [],
+    tallaSizeDetails: [],
+    materialDetails: [],
   });
 
-  // Input states for array fields
-  const [sizeInput, setSizeInput] = useState("");
+  // Input states for product details/variants
   const [colorInput, setColorInput] = useState("#000000");
-  const [strapInput, setStrapInput] = useState("");
+  const [sizeInput, setSizeInput] = useState("");
+  const [tallaInput, setTallaInput] = useState("");
+  const [materialInput, setMaterialInput] = useState("");
 
   // Fetch categories on component mount
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch("/api/categories");
+        const response = await fetch(`${API_BASE_URL}/categories`);
+        if (!response.ok) {
+          throw new Error(`Error fetching categories: ${response.statusText}`);
+        }
         const data = await response.json();
         setCategories(data);
       } catch (error) {
         console.error("Error fetching categories:", error);
+        toast.error("Error al cargar categorías");
       }
     };
 
@@ -106,77 +109,177 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "price" ? Number(value) : value,
+      [name]: ["price", "stock", "cat_id"].includes(name)
+        ? Number(value)
+        : value,
     }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: Number(value),
     }));
   };
 
-  const handleSwitchChange = (checked: boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      inStock: checked,
-    }));
-  };
-
-  // Array field handlers
-  const addSize = () => {
-    if (sizeInput.trim() !== "" && !formData.sizes.includes(sizeInput.trim())) {
-      setFormData((prev) => ({
-        ...prev,
-        sizes: [...prev.sizes, sizeInput.trim()],
-      }));
-      setSizeInput("");
-    }
-  };
-
-  const removeSize = (size: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      sizes: prev.sizes.filter((s) => s !== size),
-    }));
-  };
-
+  // Product Details/Variants handlers
   const addColor = () => {
-    if (colorInput && !formData.colors.includes(colorInput)) {
+    if (
+      colorInput &&
+      !formData.colorDetails.some((detail) => detail.detail_desc === colorInput)
+    ) {
       setFormData((prev) => ({
         ...prev,
-        colors: [...prev.colors, colorInput],
+        colorDetails: [
+          ...prev.colorDetails,
+          { detail_name: "Color", detail_desc: colorInput },
+        ],
       }));
       setColorInput("#000000");
     }
   };
 
-  const removeColor = (color: string) => {
+  const removeColor = (colorToRemove: string) => {
     setFormData((prev) => ({
       ...prev,
-      colors: prev.colors.filter((c) => c !== color),
+      colorDetails: prev.colorDetails.filter(
+        (detail) => detail.detail_desc !== colorToRemove
+      ),
     }));
   };
 
-  const addStrap = () => {
+  const addSize = () => {
     if (
-      strapInput.trim() !== "" &&
-      !formData.straps.includes(strapInput.trim())
+      sizeInput.trim() &&
+      !formData.sizeDetails.some(
+        (detail) => detail.detail_desc === sizeInput.trim()
+      )
     ) {
       setFormData((prev) => ({
         ...prev,
-        straps: [...prev.straps, strapInput.trim()],
+        sizeDetails: [
+          ...prev.sizeDetails,
+          { detail_name: "Tamaño", detail_desc: sizeInput.trim() },
+        ],
       }));
-      setStrapInput("");
+      setSizeInput("");
     }
   };
 
-  const removeStrap = (strap: string) => {
+  const removeSize = (sizeToRemove: string) => {
     setFormData((prev) => ({
       ...prev,
-      straps: prev.straps.filter((s) => s !== strap),
+      sizeDetails: prev.sizeDetails.filter(
+        (detail) => detail.detail_desc !== sizeToRemove
+      ),
     }));
+  };
+
+  const addTalla = () => {
+    if (
+      tallaInput.trim() &&
+      !formData.tallaSizeDetails.some(
+        (detail) => detail.detail_desc === tallaInput.trim()
+      )
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        tallaSizeDetails: [
+          ...prev.tallaSizeDetails,
+          { detail_name: "Talla", detail_desc: tallaInput.trim() },
+        ],
+      }));
+      setTallaInput("");
+    }
+  };
+
+  const removeTalla = (tallaToRemove: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      tallaSizeDetails: prev.tallaSizeDetails.filter(
+        (detail) => detail.detail_desc !== tallaToRemove
+      ),
+    }));
+  };
+
+  const addMaterial = () => {
+    if (
+      materialInput.trim() &&
+      !formData.materialDetails.some(
+        (detail) => detail.detail_desc === materialInput.trim()
+      )
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        materialDetails: [
+          ...prev.materialDetails,
+          { detail_name: "Material", detail_desc: materialInput.trim() },
+        ],
+      }));
+      setMaterialInput("");
+    }
+  };
+
+  const removeMaterial = (materialToRemove: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      materialDetails: prev.materialDetails.filter(
+        (detail) => detail.detail_desc !== materialToRemove
+      ),
+    }));
+  };
+
+  const createProductDetails = async (
+    productId: number,
+    details: ProductDetail[]
+  ) => {
+    try {
+      const detailsWithProductId = details.map((detail) => ({
+        prod_id: productId,
+        detail_name: detail.detail_name,
+        detail_desc: detail.detail_desc,
+      }));
+
+      console.log(
+        "Sending details:",
+        JSON.stringify(detailsWithProductId, null, 2)
+      );
+
+      const response = await fetch(`${API_BASE_URL}/product/detail`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(detailsWithProductId),
+      });
+
+      console.log("Response status:", response.status);
+      console.log("Response headers:", response.headers);
+
+      const responseText = await response.text();
+      console.log("Response body:", responseText);
+
+      if (!response.ok) {
+        throw new Error(
+          `Error creating product details: ${response.statusText} (${response.status})`
+        );
+      }
+
+      // Si la respuesta es texto vacío o no es JSON válido, maneja eso
+      if (!responseText.trim()) {
+        return { success: true };
+      }
+
+      try {
+        return JSON.parse(responseText);
+      } catch (e) {
+        console.warn("Invalid JSON response:", responseText);
+        return { success: true, rawResponse: responseText };
+      }
+    } catch (error) {
+      console.error("Error creating product details:", error);
+      throw error;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -184,57 +287,94 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Create a new product with generated ID and current date
-      const newProduct: Product = {
-        ...formData,
-        id: uuidv4(),
-        addedDate: new Date().toISOString().split("T")[0],
-        rating: 0,
-        reviews: 0,
+      // 1. Create the product first
+      const productData = {
+        name: formData.name,
+        description: formData.description,
+        price: formData.price,
+        cat_id: formData.cat_id,
+        stock: formData.stock,
       };
 
-      // In a real app, you would post to your API
-      // For now, we'll just simulate a successful addition
-      setTimeout(() => {
-        onProductAdded(newProduct);
+      const productResponse = await fetch(`${API_BASE_URL}/product`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(productData),
+      });
 
-        // Show success toast using Sonner
-        toast.success("Producto añadido", {
-          description: `${newProduct.name} ha sido añadido correctamente.`,
-        });
+      if (!productResponse.ok) {
+        throw new Error(
+          `Error creating product: ${productResponse.statusText}`
+        );
+      }
 
-        // Reset form and close modal
-        resetForm();
-        setOpen(false);
-        setIsSubmitting(false);
-      }, 1000);
+      const newProduct = await productResponse.json();
+      const productId = newProduct.id_prod;
+
+      // 2. Create all product details/variants in one request
+      const allDetails = [
+        ...formData.colorDetails,
+        ...formData.sizeDetails,
+        ...formData.tallaSizeDetails,
+        ...formData.materialDetails,
+      ];
+
+      // Solo enviar detalles si hay alguno
+      if (allDetails.length > 0) {
+        await createProductDetails(productId, allDetails);
+      }
+
+      // 3. Fetch the complete product with details to pass to the parent component
+      const completeProductResponse = await fetch(
+        `${API_BASE_URL}/product/${productId}/details-images`
+      );
+      if (!completeProductResponse.ok) {
+        throw new Error(
+          `Error fetching complete product: ${completeProductResponse.statusText}`
+        );
+      }
+
+      const completeProduct = await completeProductResponse.json();
+
+      // 4. Call the onProductAdded callback with the new product
+      onProductAdded(completeProduct);
+
+      // Show success toast
+      toast.success("Producto añadido", {
+        description: `${formData.name} ha sido añadido correctamente.`,
+      });
+
+      // Reset form and close modal
+      resetForm();
+      setOpen(false);
     } catch (error) {
       console.error("Error adding product:", error);
-      setIsSubmitting(false);
-
-      // Show error toast using Sonner
-      toast.error("Error", {
+      toast.error("Error al añadir producto", {
         description: "Ha ocurrido un error al añadir el producto.",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const resetForm = () => {
     setFormData({
       name: "",
-      brand: "",
       description: "",
       price: 0,
-      sizes: [],
-      colors: [],
-      straps: [],
-      image: "/images/placeholder-product.png",
-      inStock: true,
-      categoryId: "",
+      cat_id: 0,
+      stock: 0,
+      colorDetails: [],
+      sizeDetails: [],
+      tallaSizeDetails: [],
+      materialDetails: [],
     });
-    setSizeInput("");
     setColorInput("#000000");
-    setStrapInput("");
+    setSizeInput("");
+    setTallaInput("");
+    setMaterialInput("");
   };
 
   return (
@@ -255,38 +395,23 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-6 py-4">
           <Tabs defaultValue="basicInfo">
-            <TabsList className="grid grid-cols-3 mb-6">
+            <TabsList className="grid grid-cols-2 mb-6">
               <TabsTrigger value="basicInfo">Información Básica</TabsTrigger>
-              <TabsTrigger value="attributes">Atributos</TabsTrigger>
               <TabsTrigger value="variants">Variantes</TabsTrigger>
             </TabsList>
 
             {/* Basic Information Tab */}
             <TabsContent value="basicInfo" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nombre del Producto *</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder="Nombre del producto"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="brand">Marca *</Label>
-                  <Input
-                    id="brand"
-                    name="brand"
-                    value={formData.brand}
-                    onChange={handleInputChange}
-                    placeholder="Marca del producto"
-                    required
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="name">Nombre del Producto *</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="Nombre del producto"
+                  required
+                />
               </div>
 
               <div className="space-y-2">
@@ -302,7 +427,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="price">Precio *</Label>
                   <Input
@@ -319,12 +444,26 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="categoryId">Categoría *</Label>
+                  <Label htmlFor="stock">Stock *</Label>
+                  <Input
+                    id="stock"
+                    name="stock"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formData.stock || ""}
+                    onChange={handleInputChange}
+                    placeholder="0"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cat_id">Categoría *</Label>
                   <Select
-                    name="categoryId"
-                    value={formData.categoryId}
+                    value={formData.cat_id ? formData.cat_id.toString() : ""}
                     onValueChange={(value) =>
-                      handleSelectChange("categoryId", value)
+                      handleSelectChange("cat_id", value)
                     }
                     required
                   >
@@ -333,7 +472,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
+                        <SelectItem
+                          key={category.id_cat}
+                          value={category.id_cat.toString()}
+                        >
                           {category.name}
                         </SelectItem>
                       ))}
@@ -341,89 +483,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                   </Select>
                 </div>
               </div>
-
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="inStock"
-                  checked={formData.inStock}
-                  onCheckedChange={handleSwitchChange}
-                />
-                <Label htmlFor="inStock">En existencia</Label>
-              </div>
-            </TabsContent>
-
-            {/* Attributes Tab */}
-            <TabsContent value="attributes" className="space-y-6">
-              <div className="space-y-4">
-                <Label>Imagen del Producto</Label>
-                <div className="border-2 border-dashed rounded-lg p-6 text-center">
-                  <Upload className="h-10 w-10 mx-auto text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-500 mb-2">
-                    Arrastra una imagen o haz clic para seleccionar
-                  </p>
-                  <Button variant="outline" type="button">
-                    Seleccionar Imagen
-                  </Button>
-                  <p className="text-xs text-gray-400 mt-2">
-                    Formatos permitidos: PNG, JPG, WEBP. Máximo 2MB.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="image">URL de la Imagen</Label>
-                <Input
-                  id="image"
-                  name="image"
-                  value={formData.image}
-                  onChange={handleInputChange}
-                  placeholder="/images/producto.png"
-                />
-                <p className="text-xs text-gray-500">
-                  Si no cargas una imagen, puedes especificar una URL.
-                </p>
-              </div>
             </TabsContent>
 
             {/* Variants Tab */}
             <TabsContent value="variants" className="space-y-6">
-              {/* Sizes */}
-              <div className="space-y-2">
-                <Label>Tallas Disponibles</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={sizeInput}
-                    onChange={(e) => setSizeInput(e.target.value)}
-                    placeholder="Añadir talla (ej: S, M, L, XL)"
-                    className="flex-1"
-                  />
-                  <Button type="button" onClick={addSize} variant="outline">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.sizes.length > 0 ? (
-                    formData.sizes.map((size) => (
-                      <Badge
-                        key={size}
-                        variant="secondary"
-                        className="px-3 py-1"
-                      >
-                        {size}
-                        <X
-                          className="h-3 w-3 ml-1 cursor-pointer"
-                          onClick={() => removeSize(size)}
-                        />
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      No hay tallas añadidas
-                    </p>
-                  )}
-                </div>
-              </div>
-
               {/* Colors */}
               <div className="space-y-2">
                 <Label>Colores Disponibles</Label>
@@ -444,20 +507,20 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.colors.length > 0 ? (
-                    formData.colors.map((color) => (
+                  {formData.colorDetails.length > 0 ? (
+                    formData.colorDetails.map((detail) => (
                       <div
-                        key={color}
+                        key={detail.detail_desc}
                         className="flex items-center gap-1 px-3 py-1 rounded-md border"
                       >
                         <div
                           className="h-4 w-4 rounded-full"
-                          style={{ backgroundColor: color }}
+                          style={{ backgroundColor: detail.detail_desc }}
                         />
-                        <span className="text-sm">{color}</span>
+                        <span className="text-sm">{detail.detail_desc}</span>
                         <X
                           className="h-3 w-3 ml-1 cursor-pointer"
-                          onClick={() => removeColor(color)}
+                          onClick={() => removeColor(detail.detail_desc)}
                         />
                       </div>
                     ))
@@ -469,38 +532,112 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                 </div>
               </div>
 
-              {/* Straps */}
+              {/* Sizes */}
               <div className="space-y-2">
-                <Label>Correas Disponibles</Label>
+                <Label>Tamaños Disponibles</Label>
                 <div className="flex gap-2">
                   <Input
-                    value={strapInput}
-                    onChange={(e) => setStrapInput(e.target.value)}
-                    placeholder="Añadir tipo de correa"
+                    value={sizeInput}
+                    onChange={(e) => setSizeInput(e.target.value)}
+                    placeholder="Añadir tamaño (ej: 10cm x 15cm)"
                     className="flex-1"
                   />
-                  <Button type="button" onClick={addStrap} variant="outline">
+                  <Button type="button" onClick={addSize} variant="outline">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.straps.length > 0 ? (
-                    formData.straps.map((strap) => (
+                  {formData.sizeDetails.length > 0 ? (
+                    formData.sizeDetails.map((detail) => (
                       <Badge
-                        key={strap}
+                        key={detail.detail_desc}
                         variant="secondary"
                         className="px-3 py-1"
                       >
-                        {strap}
+                        {detail.detail_desc}
                         <X
                           className="h-3 w-3 ml-1 cursor-pointer"
-                          onClick={() => removeStrap(strap)}
+                          onClick={() => removeSize(detail.detail_desc)}
                         />
                       </Badge>
                     ))
                   ) : (
                     <p className="text-sm text-gray-500">
-                      No hay correas añadidas
+                      No hay tamaños añadidos
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Tallas */}
+              <div className="space-y-2">
+                <Label>Tallas Disponibles</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={tallaInput}
+                    onChange={(e) => setTallaInput(e.target.value)}
+                    placeholder="Añadir talla (ej: S, M, L, XL)"
+                    className="flex-1"
+                  />
+                  <Button type="button" onClick={addTalla} variant="outline">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.tallaSizeDetails.length > 0 ? (
+                    formData.tallaSizeDetails.map((detail) => (
+                      <Badge
+                        key={detail.detail_desc}
+                        variant="secondary"
+                        className="px-3 py-1"
+                      >
+                        {detail.detail_desc}
+                        <X
+                          className="h-3 w-3 ml-1 cursor-pointer"
+                          onClick={() => removeTalla(detail.detail_desc)}
+                        />
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      No hay tallas añadidas
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Materials */}
+              <div className="space-y-2">
+                <Label>Materiales Disponibles</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={materialInput}
+                    onChange={(e) => setMaterialInput(e.target.value)}
+                    placeholder="Añadir material (ej: Algodón, Poliéster)"
+                    className="flex-1"
+                  />
+                  <Button type="button" onClick={addMaterial} variant="outline">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.materialDetails.length > 0 ? (
+                    formData.materialDetails.map((detail) => (
+                      <Badge
+                        key={detail.detail_desc}
+                        variant="secondary"
+                        className="px-3 py-1"
+                      >
+                        {detail.detail_desc}
+                        <X
+                          className="h-3 w-3 ml-1 cursor-pointer"
+                          onClick={() => removeMaterial(detail.detail_desc)}
+                        />
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      No hay materiales añadidos
                     </p>
                   )}
                 </div>

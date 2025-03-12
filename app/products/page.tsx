@@ -52,23 +52,50 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import AddProductModal from "../components/addProductModal";
 
-interface Product {
-  id: string;
-  name: string;
-  brand: string;
-  description: string;
-  price: number;
-  rating: number;
-  reviews: number;
-  sizes: string[];
-  colors: string[];
-  straps: string[];
-  image: string;
-  inStock: boolean;
+// Actualizado para reflejar la estructura real de la API
+interface ProductDetail {
+  id_pd: number;
+  prod_id: number;
+  detail_name: string;
+  detail_desc: string;
 }
 
-type SortField = "name" | "brand" | "price" | "sizes" | "inStock";
+interface ProductImage {
+  id_image: number;
+  prod_id: number;
+  url_image: string;
+}
+
+interface ProductData {
+  product: {
+    id_prod: number;
+    name: string;
+    description: string;
+    price: number;
+    cat_id: number;
+    stock: number;
+  };
+  product_details: ProductDetail[];
+  product_images: ProductImage[];
+}
+
+// Interface simplificada para usar en la interfaz
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  details: ProductDetail[];
+  images: string[];
+  inStock: boolean;
+  category: number;
+}
+
+type SortField = "name" | "price" | "stock" | "inStock";
 type SortDirection = "asc" | "desc";
+
+const API_BASE_URL = "http://localhost:3001/api";
 
 const ProductDashboard: React.FC = () => {
   const router = useRouter();
@@ -78,7 +105,7 @@ const ProductDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   // Estado para productos seleccionados
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Paginación
@@ -93,58 +120,54 @@ const ProductDashboard: React.FC = () => {
   // Vista
   const [isGridView, setIsGridView] = useState(false);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await fetch("/api/products");
-        const data = await response.json();
+  // Transformar los datos de la API al formato que espera el componente
+  const transformProductData = (data: ProductData[]): Product[] => {
+    return data.map((item) => ({
+      id: item.product.id_prod,
+      name: item.product.name,
+      description: item.product.description,
+      price: item.product.price,
+      stock: item.product.stock,
+      details: item.product_details,
+      images: item.product_images.map((img) => img.url_image),
+      inStock: item.product.stock > 0,
+      category: item.product.cat_id,
+    }));
+  };
 
-        // Agregar campo inStock a los productos si no existe
-        const productsWithStock = data.map((product: any) => ({
-          ...product,
-          inStock:
-            product.inStock !== undefined
-              ? product.inStock
-              : Math.random() > 0.3, // Si no existe, asigna un valor aleatorio
-        }));
-
-        setProducts(productsWithStock);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []);
-
-  const handleRefresh = async () => {
+  // Cargar los productos desde la API
+  const fetchProducts = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/products");
+      const response = await fetch(`${API_BASE_URL}/products/details-images`);
+      if (!response.ok) {
+        throw new Error(`Error fetching products: ${response.statusText}`);
+      }
       const data = await response.json();
-
-      const productsWithStock = data.map((product: any) => ({
-        ...product,
-        inStock:
-          product.inStock !== undefined ? product.inStock : Math.random() > 0.3,
-      }));
-
-      setProducts(productsWithStock);
+      const transformedProducts = transformProductData(data);
+      setProducts(transformedProducts);
     } catch (error) {
-      console.error("Error refreshing products:", error);
+      console.error("Error fetching products:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const handleRefresh = () => {
+    fetchProducts();
+  };
+
   const handleProductAdded = (newProduct: Product) => {
     setProducts([newProduct, ...products]);
+    handleRefresh();
   };
 
   // Manejadores para selección de productos
-  const handleProductSelect = (id: string) => {
+  const handleProductSelect = (id: number) => {
     setSelectedProducts((prev) => {
       if (prev.includes(id)) {
         return prev.filter((productId) => productId !== id);
@@ -172,12 +195,32 @@ const ProductDashboard: React.FC = () => {
   };
 
   // Manejador para eliminar productos
-  const handleDelete = () => {
-    setProducts(
-      products.filter((product) => !selectedProducts.includes(product.id))
-    );
-    setSelectedProducts([]);
-    setDeleteDialogOpen(false);
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/product`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ids: selectedProducts }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error eliminando productos: ${response.statusText}`);
+      }
+
+      // Actualizar la lista de productos después de eliminar
+      setProducts(
+        products.filter((product) => !selectedProducts.includes(product.id))
+      );
+      setSelectedProducts([]);
+    } catch (error) {
+      console.error("Error eliminando productos:", error);
+    } finally {
+      setLoading(false);
+      setDeleteDialogOpen(false);
+    }
   };
 
   // Calcular las cantidades para los filtros
@@ -192,9 +235,9 @@ const ProductDashboard: React.FC = () => {
 
   // Aplicar los filtros por búsqueda y estado
   const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.brand.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = product.name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
 
     // Aplicar filtro por estado
     if (selectedStatus === "En existencia" && !product.inStock) return false;
@@ -209,16 +252,10 @@ const ProductDashboard: React.FC = () => {
       return sortDirection === "asc"
         ? a.name.localeCompare(b.name)
         : b.name.localeCompare(a.name);
-    } else if (sortField === "brand") {
-      return sortDirection === "asc"
-        ? a.brand.localeCompare(b.brand)
-        : b.brand.localeCompare(a.brand);
     } else if (sortField === "price") {
       return sortDirection === "asc" ? a.price - b.price : b.price - a.price;
-    } else if (sortField === "sizes") {
-      return sortDirection === "asc"
-        ? a.sizes.length - b.sizes.length
-        : b.sizes.length - a.sizes.length;
+    } else if (sortField === "stock") {
+      return sortDirection === "asc" ? a.stock - b.stock : b.stock - a.stock;
     } else if (sortField === "inStock") {
       if (sortDirection === "asc") {
         return a.inStock === b.inStock ? 0 : a.inStock ? -1 : 1;
@@ -277,6 +314,12 @@ const ProductDashboard: React.FC = () => {
     ) : (
       <ChevronDown className="ml-1 h-4 w-4" />
     );
+  };
+
+  // Obtener detalles por nombre
+  const getDetailValue = (product: Product, detailName: string) => {
+    const detail = product.details.find((d) => d.detail_name === detailName);
+    return detail ? detail.detail_desc : "N/A";
   };
 
   return (
@@ -456,14 +499,8 @@ const ProductDashboard: React.FC = () => {
                             {renderSortIndicator("name")}
                           </div>
                         </TableHead>
-                        <TableHead
-                          className="cursor-pointer"
-                          onClick={() => handleSort("brand")}
-                        >
-                          <div className="flex items-center">
-                            Marca
-                            {renderSortIndicator("brand")}
-                          </div>
+                        <TableHead>
+                          <div className="flex items-center">Material</div>
                         </TableHead>
                         <TableHead
                           className="cursor-pointer"
@@ -474,14 +511,8 @@ const ProductDashboard: React.FC = () => {
                             {renderSortIndicator("price")}
                           </div>
                         </TableHead>
-                        <TableHead
-                          className="cursor-pointer"
-                          onClick={() => handleSort("sizes")}
-                        >
-                          <div className="flex items-center">
-                            Tallas
-                            {renderSortIndicator("sizes")}
-                          </div>
+                        <TableHead>
+                          <div className="flex items-center">Tamaño</div>
                         </TableHead>
                         <TableHead
                           className="cursor-pointer"
@@ -517,12 +548,18 @@ const ProductDashboard: React.FC = () => {
                             <div className="flex items-center">
                               <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100">
                                 <div className="w-6 h-6 relative">
-                                  <Image
-                                    src={product.image}
-                                    alt={product.name}
-                                    layout="fill"
-                                    objectFit="contain"
-                                  />
+                                  {product.images.length > 0 ? (
+                                    <Image
+                                      src={product.images[0]}
+                                      alt={product.name}
+                                      layout="fill"
+                                      objectFit="contain"
+                                    />
+                                  ) : (
+                                    <div className="w-6 h-6 bg-gray-200 flex items-center justify-center text-xs">
+                                      N/A
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                               <div className="ml-4">
@@ -542,7 +579,7 @@ const ProductDashboard: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <div className="text-sm text-gray-600">
-                              {product.brand}
+                              {getDetailValue(product, "Material")}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -552,21 +589,9 @@ const ProductDashboard: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
-                              {product.sizes.length > 0 ? (
-                                product.sizes.map((size, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="outline"
-                                    className="bg-gray-100"
-                                  >
-                                    {size}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <span className="text-sm text-gray-500">
-                                  N/A
-                                </span>
-                              )}
+                              <Badge variant="outline" className="bg-gray-100">
+                                {getDetailValue(product, "Tamaño")}
+                              </Badge>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -621,12 +646,18 @@ const ProductDashboard: React.FC = () => {
                           />
                           <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-100">
                             <div className="w-8 h-8 relative">
-                              <Image
-                                src={product.image}
-                                alt={product.name}
-                                layout="fill"
-                                objectFit="contain"
-                              />
+                              {product.images.length > 0 ? (
+                                <Image
+                                  src={product.images[0]}
+                                  alt={product.name}
+                                  layout="fill"
+                                  objectFit="contain"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 bg-gray-200 flex items-center justify-center text-xs">
+                                  N/A
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div className="ml-3">
@@ -637,7 +668,7 @@ const ProductDashboard: React.FC = () => {
                               {product.name}
                             </h3>
                             <p className="text-sm text-gray-500">
-                              {product.brand}
+                              {getDetailValue(product, "Material")}
                             </p>
                           </div>
                         </div>
@@ -663,21 +694,9 @@ const ProductDashboard: React.FC = () => {
                         </div>
 
                         <div className="flex flex-wrap gap-1 mb-3">
-                          {product.sizes.length > 0 ? (
-                            product.sizes.map((size, index) => (
-                              <Badge
-                                key={index}
-                                variant="outline"
-                                className="bg-gray-100"
-                              >
-                                {size}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-sm text-gray-500">
-                              No hay tallas
-                            </span>
-                          )}
+                          <Badge variant="outline" className="bg-gray-100">
+                            {getDetailValue(product, "Tamaño")}
+                          </Badge>
                         </div>
                       </CardContent>
                     </Card>
