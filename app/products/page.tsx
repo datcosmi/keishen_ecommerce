@@ -17,6 +17,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import Sidebar from "../components/admins/sidebar";
+import { toast } from "sonner";
 
 // Importaciones de shadcn/ui
 import { Button } from "@/components/ui/button";
@@ -92,6 +93,11 @@ interface Product {
   category: number;
 }
 
+interface Category {
+  id_cat: number;
+  name: string;
+}
+
 type SortField = "name" | "price" | "stock" | "inStock";
 type SortDirection = "asc" | "desc";
 
@@ -102,6 +108,7 @@ const ProductDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("Todos");
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Estado para productos seleccionados
@@ -150,6 +157,20 @@ const ProductDashboard: React.FC = () => {
       console.error("Error fetching products:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/categories`);
+      if (!response.ok) {
+        throw new Error(`Error fetching categories: ${response.statusText}`);
+      }
+      const data = await response.json();
+      setCategories(data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      toast.error("Error al cargar categorías");
     }
   };
 
@@ -500,6 +521,9 @@ const ProductDashboard: React.FC = () => {
                           </div>
                         </TableHead>
                         <TableHead>
+                          <div className="flex items-center">Categoria</div>
+                        </TableHead>
+                        <TableHead>
                           <div className="flex items-center">Material</div>
                         </TableHead>
                         <TableHead
@@ -575,6 +599,11 @@ const ProductDashboard: React.FC = () => {
                                   {product.description}
                                 </div>
                               </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-gray-600">
+                              {getDetailValue(product, "Material")}
                             </div>
                           </TableCell>
                           <TableCell>
