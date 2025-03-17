@@ -536,7 +536,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     value={formData.stock || ""}
                     onChange={handleInputChange}
                     placeholder="0"
-                    required
                   />
                 </div>
 

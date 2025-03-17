@@ -195,6 +195,10 @@ const ProductDashboard: React.FC = () => {
     }
   };
 
+  const handleProductClick = (productId: number) => {
+    router.push(`/products/${productId}`);
+  };
+
   // Manejador para editar el producto seleccionado
   const handleEdit = () => {
     if (selectedProducts.length === 1) {
@@ -609,13 +613,13 @@ const ProductDashboard: React.FC = () => {
                           <div className="flex items-center">Categoria</div>
                         </TableHead>
                         <TableHead>
-                          <div className="flex items-center">Material</div>
+                          <div className="flex items-center">Materiales</div>
                         </TableHead>
                         <TableHead>
-                          <div className="flex items-center">Color</div>
+                          <div className="flex items-center">Colores</div>
                         </TableHead>
                         <TableHead>
-                          <div className="flex items-center">Talla</div>
+                          <div className="flex items-center">Tallas</div>
                         </TableHead>
                         <TableHead
                           className="cursor-pointer"
@@ -627,7 +631,7 @@ const ProductDashboard: React.FC = () => {
                           </div>
                         </TableHead>
                         <TableHead>
-                          <div className="flex items-center">Tamaño</div>
+                          <div className="flex items-center">Tamaños</div>
                         </TableHead>
                         <TableHead
                           className="cursor-pointer"
@@ -680,9 +684,7 @@ const ProductDashboard: React.FC = () => {
                               <div className="ml-4">
                                 <div
                                   className="text-sm font-medium text-gray-900 hover:text-blue-600 cursor-pointer"
-                                  onClick={() =>
-                                    handleProductSelect(product.id)
-                                  }
+                                  onClick={() => handleProductClick(product.id)}
                                 >
                                   {product.name}
                                 </div>
@@ -762,6 +764,8 @@ const ProductDashboard: React.FC = () => {
                           ? "border-blue-300 bg-blue-50"
                           : ""
                       }
+                      onClick={() => handleProductClick(product.id)}
+                      style={{ cursor: "pointer" }}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-center mb-3">
@@ -789,11 +793,10 @@ const ProductDashboard: React.FC = () => {
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-gray-500">
-                              Color:
+                          <div className="ml-2 flex items-center gap-1">
+                            <span className="font-semibold">
+                              {product.name}
                             </span>
-                            {renderColorCircles(getProductColors(product), 3)}
                           </div>
                         </div>
 
@@ -820,7 +823,7 @@ const ProductDashboard: React.FC = () => {
                         <div className="flex flex-wrap gap-2 mb-3">
                           <div className="flex items-center gap-1">
                             <span className="text-xs text-gray-500">
-                              Tamaño:
+                              Tamaños:
                             </span>
                             {renderDetailBadges(
                               getDetailValues(product, "Tamaño"),
@@ -830,7 +833,7 @@ const ProductDashboard: React.FC = () => {
 
                           <div className="flex items-center gap-1">
                             <span className="text-xs text-gray-500">
-                              Talla:
+                              Tallas:
                             </span>
                             {renderDetailBadges(
                               getDetailValues(product, "Talla"),
@@ -840,7 +843,7 @@ const ProductDashboard: React.FC = () => {
 
                           <div className="flex items-center gap-1">
                             <span className="text-xs text-gray-500">
-                              Material:
+                              Materiales:
                             </span>
                             {renderDetailBadges(
                               getDetailValues(product, "Material"),
@@ -850,7 +853,7 @@ const ProductDashboard: React.FC = () => {
 
                           <div className="flex items-center gap-1">
                             <span className="text-xs text-gray-500">
-                              Color:
+                              Colores:
                             </span>
                             {renderColorCircles(getProductColors(product), 3)}
                           </div>
