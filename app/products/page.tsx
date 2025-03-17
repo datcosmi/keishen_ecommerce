@@ -15,10 +15,11 @@ import {
   List,
   Grid,
   RefreshCw,
+  Plus,
 } from "lucide-react";
 import Sidebar from "../components/admins/sidebar";
+import { toast } from "sonner";
 
-// Importaciones de shadcn/ui
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -50,35 +51,69 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import AddProductModal from "../components/addProductModal";
+import ProductFormModal from "../components/productFormModal";
 
-interface Product {
-  id: string;
-  name: string;
-  brand: string;
-  description: string;
-  price: number;
-  rating: number;
-  reviews: number;
-  sizes: string[];
-  colors: string[];
-  straps: string[];
-  image: string;
-  inStock: boolean;
+interface ProductDetail {
+  id_pd: number;
+  prod_id: number;
+  detail_name: string;
+  detail_desc: string;
 }
 
-type SortField = "name" | "brand" | "price" | "sizes" | "inStock";
+interface ProductImage {
+  id_image: number;
+  prod_id: number;
+  url_image: string;
+}
+
+interface Category {
+  id_cat: number;
+  name: string;
+}
+
+interface ProductData {
+  product: {
+    id_prod: number;
+    name: string;
+    description: string;
+    price: number;
+    cat_id: number;
+    stock: number;
+  };
+  product_details: ProductDetail[];
+  product_images: ProductImage[];
+  category: Category;
+}
+
+// Interface simplificada para usar en la interfaz
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  details: ProductDetail[];
+  images: string[];
+  inStock: boolean;
+  category: Category;
+}
+
+type SortField = "name" | "price" | "stock" | "inStock";
 type SortDirection = "asc" | "desc";
+
+const API_BASE_URL = "http://localhost:3001/api";
 
 const ProductDashboard: React.FC = () => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("Todos");
   const [products, setProducts] = useState<Product[]>([]);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   // Estado para productos seleccionados
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Paginación
@@ -93,58 +128,54 @@ const ProductDashboard: React.FC = () => {
   // Vista
   const [isGridView, setIsGridView] = useState(false);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await fetch("/api/products");
-        const data = await response.json();
+  // Transformar los datos de la API al formato que espera el componente
+  const transformProductData = (data: ProductData[]): Product[] => {
+    return data.map((item) => ({
+      id: item.product.id_prod,
+      name: item.product.name,
+      description: item.product.description,
+      price: item.product.price,
+      stock: item.product.stock,
+      details: item.product_details,
+      images: item.product_images.map((img) => img.url_image),
+      inStock: item.product.stock > 0,
+      category: item.category,
+    }));
+  };
 
-        // Agregar campo inStock a los productos si no existe
-        const productsWithStock = data.map((product: any) => ({
-          ...product,
-          inStock:
-            product.inStock !== undefined
-              ? product.inStock
-              : Math.random() > 0.3, // Si no existe, asigna un valor aleatorio
-        }));
-
-        setProducts(productsWithStock);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []);
-
-  const handleRefresh = async () => {
+  // Cargar los productos desde la API
+  const fetchProducts = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/products");
+      const response = await fetch(`${API_BASE_URL}/products/details-images`);
+      if (!response.ok) {
+        throw new Error(`Error fetching products: ${response.statusText}`);
+      }
       const data = await response.json();
-
-      const productsWithStock = data.map((product: any) => ({
-        ...product,
-        inStock:
-          product.inStock !== undefined ? product.inStock : Math.random() > 0.3,
-      }));
-
-      setProducts(productsWithStock);
+      const transformedProducts = transformProductData(data);
+      setProducts(transformedProducts);
     } catch (error) {
-      console.error("Error refreshing products:", error);
+      console.error("Error fetching products:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const handleRefresh = () => {
+    fetchProducts();
+  };
+
   const handleProductAdded = (newProduct: Product) => {
     setProducts([newProduct, ...products]);
+    handleRefresh();
   };
 
   // Manejadores para selección de productos
-  const handleProductSelect = (id: string) => {
+  const handleProductSelect = (id: number) => {
     setSelectedProducts((prev) => {
       if (prev.includes(id)) {
         return prev.filter((productId) => productId !== id);
@@ -164,20 +195,59 @@ const ProductDashboard: React.FC = () => {
     }
   };
 
+  const handleProductClick = (productId: number) => {
+    router.push(`/products/${productId}`);
+  };
+
   // Manejador para editar el producto seleccionado
   const handleEdit = () => {
     if (selectedProducts.length === 1) {
-      router.push(`/products/${selectedProducts[0]}`);
+      const productToEdit = products.find((p) => p.id === selectedProducts[0]);
+      if (productToEdit) {
+        setEditingProduct(productToEdit);
+        setEditModalOpen(true);
+      }
     }
   };
 
-  // Manejador para eliminar productos
-  const handleDelete = () => {
+  const handleProductUpdated = (updatedProduct: Product) => {
     setProducts(
-      products.filter((product) => !selectedProducts.includes(product.id))
+      products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
     );
+    setEditingProduct(null);
+    setEditModalOpen(false);
     setSelectedProducts([]);
-    setDeleteDialogOpen(false);
+    toast.success("Producto actualizado correctamente");
+    handleRefresh();
+  };
+
+  // Manejador para eliminar productos
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/product`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ids: selectedProducts }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error eliminando productos: ${response.statusText}`);
+      }
+
+      // Actualizar la lista de productos después de eliminar
+      setProducts(
+        products.filter((product) => !selectedProducts.includes(product.id))
+      );
+      setSelectedProducts([]);
+    } catch (error) {
+      console.error("Error eliminando productos:", error);
+    } finally {
+      setLoading(false);
+      setDeleteDialogOpen(false);
+    }
   };
 
   // Calcular las cantidades para los filtros
@@ -192,9 +262,9 @@ const ProductDashboard: React.FC = () => {
 
   // Aplicar los filtros por búsqueda y estado
   const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.brand.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = product.name
+      ? product.name.toLowerCase().includes(searchQuery.toLowerCase())
+      : false;
 
     // Aplicar filtro por estado
     if (selectedStatus === "En existencia" && !product.inStock) return false;
@@ -209,16 +279,10 @@ const ProductDashboard: React.FC = () => {
       return sortDirection === "asc"
         ? a.name.localeCompare(b.name)
         : b.name.localeCompare(a.name);
-    } else if (sortField === "brand") {
-      return sortDirection === "asc"
-        ? a.brand.localeCompare(b.brand)
-        : b.brand.localeCompare(a.brand);
     } else if (sortField === "price") {
       return sortDirection === "asc" ? a.price - b.price : b.price - a.price;
-    } else if (sortField === "sizes") {
-      return sortDirection === "asc"
-        ? a.sizes.length - b.sizes.length
-        : b.sizes.length - a.sizes.length;
+    } else if (sortField === "stock") {
+      return sortDirection === "asc" ? a.stock - b.stock : b.stock - a.stock;
     } else if (sortField === "inStock") {
       if (sortDirection === "asc") {
         return a.inStock === b.inStock ? 0 : a.inStock ? -1 : 1;
@@ -276,6 +340,79 @@ const ProductDashboard: React.FC = () => {
       <ChevronUp className="ml-1 h-4 w-4" />
     ) : (
       <ChevronDown className="ml-1 h-4 w-4" />
+    );
+  };
+
+  // Obtener detalles por nombre
+  const getDetailValues = (product: Product, detailName: string) => {
+    const details = product.details.filter((d) => d.detail_name === detailName);
+    if (details.length === 0) return [];
+    return details.map((detail) => detail.detail_desc);
+  };
+
+  // Obtener colores del producto
+  const getProductColors = (product: Product) => {
+    const colorDetails = product.details.filter(
+      (d) => d.detail_name === "Color"
+    );
+    if (colorDetails.length === 0) return [];
+
+    return colorDetails.map((detail) => detail.detail_desc);
+  };
+
+  // Renderizar círculos de colores con límite
+  const renderColorCircles = (colors: string[], limit = 3) => {
+    if (colors.length === 0) return <span className="text-gray-500">N/A</span>;
+
+    const displayColors = colors.slice(0, limit);
+    const hasMore = colors.length > limit;
+
+    return (
+      <div className="flex flex-wrap gap-1 items-center">
+        {displayColors.map((color, index) => (
+          <div
+            key={index}
+            className="w-6 h-6 rounded-full border border-gray-200"
+            style={{ backgroundColor: color }}
+            title={color}
+          ></div>
+        ))}
+        {hasMore && (
+          <div
+            className="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center bg-gray-100 text-xs font-medium"
+            title={colors.slice(limit).join(", ")}
+          >
+            +{colors.length - limit}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Renderizar badges para todos los tipos de detalles
+  const renderDetailBadges = (values: string[], limit = 2) => {
+    if (values.length === 0) return <span className="text-gray-500">N/A</span>;
+
+    const displayValues = values.slice(0, limit);
+    const hasMore = values.length > limit;
+
+    return (
+      <div className="flex flex-wrap gap-1 items-center">
+        {displayValues.map((value, index) => (
+          <Badge key={index} variant="outline" className="bg-gray-100">
+            {value}
+          </Badge>
+        ))}
+        {hasMore && (
+          <Badge
+            variant="outline"
+            className="bg-blue-50 text-blue-600 hover:bg-blue-100 cursor-help"
+            title={values.join(", ")}
+          >
+            +{values.length - limit}
+          </Badge>
+        )}
+      </div>
     );
   };
 
@@ -352,7 +489,23 @@ const ProductDashboard: React.FC = () => {
               </>
             )}
 
-            <AddProductModal onProductAdded={handleProductAdded} />
+            <ProductFormModal
+              onProductAdded={handleProductAdded}
+              onProductUpdated={handleProductUpdated}
+              buttonLabel="Añadir Producto"
+              buttonIcon={<Plus className="h-5 w-5 mr-2" />}
+            />
+
+            {/* Edit Modal */}
+            <ProductFormModal
+              onProductAdded={handleProductAdded}
+              onProductUpdated={handleProductUpdated}
+              product={editingProduct}
+              buttonLabel="Editar Producto"
+              buttonIcon={<Edit className="h-5 w-5 mr-2" />}
+              isOpen={editModalOpen}
+              onOpenChange={setEditModalOpen}
+            />
           </div>
         </div>
 
@@ -456,14 +609,17 @@ const ProductDashboard: React.FC = () => {
                             {renderSortIndicator("name")}
                           </div>
                         </TableHead>
-                        <TableHead
-                          className="cursor-pointer"
-                          onClick={() => handleSort("brand")}
-                        >
-                          <div className="flex items-center">
-                            Marca
-                            {renderSortIndicator("brand")}
-                          </div>
+                        <TableHead>
+                          <div className="flex items-center">Categoria</div>
+                        </TableHead>
+                        <TableHead>
+                          <div className="flex items-center">Materiales</div>
+                        </TableHead>
+                        <TableHead>
+                          <div className="flex items-center">Colores</div>
+                        </TableHead>
+                        <TableHead>
+                          <div className="flex items-center">Tallas</div>
                         </TableHead>
                         <TableHead
                           className="cursor-pointer"
@@ -474,14 +630,8 @@ const ProductDashboard: React.FC = () => {
                             {renderSortIndicator("price")}
                           </div>
                         </TableHead>
-                        <TableHead
-                          className="cursor-pointer"
-                          onClick={() => handleSort("sizes")}
-                        >
-                          <div className="flex items-center">
-                            Tallas
-                            {renderSortIndicator("sizes")}
-                          </div>
+                        <TableHead>
+                          <div className="flex items-center">Tamaños</div>
                         </TableHead>
                         <TableHead
                           className="cursor-pointer"
@@ -517,20 +667,24 @@ const ProductDashboard: React.FC = () => {
                             <div className="flex items-center">
                               <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100">
                                 <div className="w-6 h-6 relative">
-                                  <Image
-                                    src={product.image}
-                                    alt={product.name}
-                                    layout="fill"
-                                    objectFit="contain"
-                                  />
+                                  {product.images.length > 0 ? (
+                                    <Image
+                                      src={product.images[0]}
+                                      alt={product.name}
+                                      layout="fill"
+                                      objectFit="contain"
+                                    />
+                                  ) : (
+                                    <div className="w-6 h-6 flex items-center justify-center text-xs">
+                                      N/A
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                               <div className="ml-4">
                                 <div
                                   className="text-sm font-medium text-gray-900 hover:text-blue-600 cursor-pointer"
-                                  onClick={() =>
-                                    handleProductSelect(product.id)
-                                  }
+                                  onClick={() => handleProductClick(product.id)}
                                 >
                                   {product.name}
                                 </div>
@@ -542,8 +696,23 @@ const ProductDashboard: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <div className="text-sm text-gray-600">
-                              {product.brand}
+                              {product.category.name}
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            {renderDetailBadges(
+                              getDetailValues(product, "Material"),
+                              1
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {renderColorCircles(getProductColors(product), 3)}
+                          </TableCell>
+                          <TableCell>
+                            {renderDetailBadges(
+                              getDetailValues(product, "Talla"),
+                              2
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="text-sm font-medium text-gray-900">
@@ -551,23 +720,10 @@ const ProductDashboard: React.FC = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {product.sizes.length > 0 ? (
-                                product.sizes.map((size, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="outline"
-                                    className="bg-gray-100"
-                                  >
-                                    {size}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <span className="text-sm text-gray-500">
-                                  N/A
-                                </span>
-                              )}
-                            </div>
+                            {renderDetailBadges(
+                              getDetailValues(product, "Tamaño"),
+                              1
+                            )}
                           </TableCell>
                           <TableCell>
                             <Badge
@@ -587,7 +743,7 @@ const ProductDashboard: React.FC = () => {
                       {currentProducts.length === 0 && (
                         <TableRow>
                           <TableCell
-                            colSpan={6}
+                            colSpan={9}
                             className="text-center text-gray-500 h-32"
                           >
                             No se encontraron productos con los filtros actuales
@@ -608,6 +764,8 @@ const ProductDashboard: React.FC = () => {
                           ? "border-blue-300 bg-blue-50"
                           : ""
                       }
+                      onClick={() => handleProductClick(product.id)}
+                      style={{ cursor: "pointer" }}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-center mb-3">
@@ -621,24 +779,24 @@ const ProductDashboard: React.FC = () => {
                           />
                           <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-100">
                             <div className="w-8 h-8 relative">
-                              <Image
-                                src={product.image}
-                                alt={product.name}
-                                layout="fill"
-                                objectFit="contain"
-                              />
+                              {product.images.length > 0 ? (
+                                <Image
+                                  src={product.images[0]}
+                                  alt={product.name}
+                                  layout="fill"
+                                  objectFit="contain"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 flex items-center justify-center text-xs">
+                                  N/A
+                                </div>
+                              )}
                             </div>
                           </div>
-                          <div className="ml-3">
-                            <h3
-                              className="font-medium hover:text-blue-600 cursor-pointer"
-                              onClick={() => handleProductSelect(product.id)}
-                            >
+                          <div className="ml-2 flex items-center gap-1">
+                            <span className="font-semibold">
                               {product.name}
-                            </h3>
-                            <p className="text-sm text-gray-500">
-                              {product.brand}
-                            </p>
+                            </span>
                           </div>
                         </div>
 
@@ -662,22 +820,43 @@ const ProductDashboard: React.FC = () => {
                           </Badge>
                         </div>
 
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          {product.sizes.length > 0 ? (
-                            product.sizes.map((size, index) => (
-                              <Badge
-                                key={index}
-                                variant="outline"
-                                className="bg-gray-100"
-                              >
-                                {size}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-sm text-gray-500">
-                              No hay tallas
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-gray-500">
+                              Tamaños:
                             </span>
-                          )}
+                            {renderDetailBadges(
+                              getDetailValues(product, "Tamaño"),
+                              2
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-gray-500">
+                              Tallas:
+                            </span>
+                            {renderDetailBadges(
+                              getDetailValues(product, "Talla"),
+                              2
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-gray-500">
+                              Materiales:
+                            </span>
+                            {renderDetailBadges(
+                              getDetailValues(product, "Material"),
+                              1
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-gray-500">
+                              Colores:
+                            </span>
+                            {renderColorCircles(getProductColors(product), 3)}
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
