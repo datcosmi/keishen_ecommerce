@@ -257,8 +257,8 @@ const ProductDashboard: React.FC = () => {
   // Aplicar los filtros por búsqueda y estado
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+      ? product.name.toLowerCase().includes(searchQuery.toLowerCase())
+      : false;
 
     // Aplicar filtro por estado
     if (selectedStatus === "En existencia" && !product.inStock) return false;
