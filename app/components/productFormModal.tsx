@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { Plus, X, Upload } from "lucide-react";
 import { toast } from "sonner";
 
-// shadcn/ui components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,7 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -53,15 +51,30 @@ interface ProductFormData {
   materialDetails: ProductDetail[];
 }
 
-interface AddProductModalProps {
+interface ProductFormModalProps {
   onProductAdded: (product: any) => void;
+  onProductUpdated?: (product: any) => void;
+  product?: any;
+  buttonLabel?: string;
+  buttonIcon?: React.ReactNode;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-const AddProductModal: React.FC<AddProductModalProps> = ({
+const ProductFormModal: React.FC<ProductFormModalProps> = ({
   onProductAdded,
+  product = null,
+  onProductUpdated,
+  buttonLabel = "Añadir Producto",
+  buttonIcon = <Plus className="h-5 w-5 mr-2" />,
+  isOpen,
+  onOpenChange,
 }) => {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const controlled = isOpen !== undefined && onOpenChange !== undefined;
+  const open = controlled ? isOpen : internalOpen;
+  const setOpen = controlled ? onOpenChange : setInternalOpen;
   const [categories, setCategories] = useState<Category[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -102,6 +115,30 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    if (product) {
+      setFormData({
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        cat_id: product.category?.id_cat || 0,
+        stock: product.stock,
+        colorDetails: product.details.filter(
+          (d: ProductDetail) => d.detail_name === "Color"
+        ),
+        sizeDetails: product.details.filter(
+          (d: ProductDetail) => d.detail_name === "Tamaño"
+        ),
+        tallaSizeDetails: product.details.filter(
+          (d: ProductDetail) => d.detail_name === "Talla"
+        ),
+        materialDetails: product.details.filter(
+          (d: ProductDetail) => d.detail_name === "Material"
+        ),
+      });
+    }
+  }, [product]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -265,7 +302,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         );
       }
 
-      // Si la respuesta es texto vacío o no es JSON válido, maneja eso
       if (!responseText.trim()) {
         return { success: true };
       }
@@ -287,7 +323,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // 1. Create the product first
       const productData = {
         name: formData.name,
         description: formData.description,
@@ -296,24 +331,48 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         stock: formData.stock,
       };
 
-      const productResponse = await fetch(`${API_BASE_URL}/product`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(productData),
-      });
+      let productId;
 
-      if (!productResponse.ok) {
-        throw new Error(
-          `Error creating product: ${productResponse.statusText}`
+      if (product) {
+        // UPDATE EXISTING PRODUCT
+        productId = product.id;
+        const updateResponse = await fetch(
+          `${API_BASE_URL}/product/${productId}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(productData),
+          }
         );
+
+        if (!updateResponse.ok) {
+          throw new Error(
+            `Error updating product: ${updateResponse.statusText}`
+          );
+        }
+      } else {
+        // CREATE NEW PRODUCT
+        const productResponse = await fetch(`${API_BASE_URL}/product`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(productData),
+        });
+
+        if (!productResponse.ok) {
+          throw new Error(
+            `Error creating product: ${productResponse.statusText}`
+          );
+        }
+
+        const newProduct = await productResponse.json();
+        productId = newProduct.id_prod;
       }
 
-      const newProduct = await productResponse.json();
-      const productId = newProduct.id_prod;
-
-      // 2. Create all product details/variants in one request
+      // Handle product details - this needs special treatment for update
       const allDetails = [
         ...formData.colorDetails,
         ...formData.sizeDetails,
@@ -321,15 +380,26 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         ...formData.materialDetails,
       ];
 
-      // Solo enviar detalles si hay alguno
+      if (product) {
+        const existingDetails = product.details;
+
+        for (const detail of existingDetails) {
+          await fetch(`${API_BASE_URL}/product/${detail.id_pd}/detail`, {
+            method: "DELETE",
+          });
+        }
+      }
+
+      // Only send details if there are any
       if (allDetails.length > 0) {
         await createProductDetails(productId, allDetails);
       }
 
-      // 3. Fetch the complete product with details to pass to the parent component
+      // Fetch the complete updated product
       const completeProductResponse = await fetch(
         `${API_BASE_URL}/product/${productId}/details-images`
       );
+
       if (!completeProductResponse.ok) {
         throw new Error(
           `Error fetching complete product: ${completeProductResponse.statusText}`
@@ -338,22 +408,30 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
       const completeProduct = await completeProductResponse.json();
 
-      // 4. Call the onProductAdded callback with the new product
-      onProductAdded(completeProduct);
-
-      // Show success toast
-      toast.success("Producto añadido", {
-        description: `${formData.name} ha sido añadido correctamente.`,
-      });
+      // Call the appropriate callback
+      if (product) {
+        if (onProductUpdated) onProductUpdated(completeProduct);
+        toast.success("Producto actualizado", {
+          description: `${formData.name} ha sido actualizado correctamente.`,
+        });
+      } else {
+        onProductAdded(completeProduct);
+        toast.success("Producto añadido", {
+          description: `${formData.name} ha sido añadido correctamente.`,
+        });
+      }
 
       // Reset form and close modal
       resetForm();
       setOpen(false);
     } catch (error) {
-      console.error("Error adding product:", error);
-      toast.error("Error al añadir producto", {
-        description: "Ha ocurrido un error al añadir el producto.",
-      });
+      console.error("Error processing product:", error);
+      toast.error(
+        product ? "Error al actualizar producto" : "Error al añadir producto",
+        {
+          description: "Ha ocurrido un error al procesar el producto.",
+        }
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -379,15 +457,19 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-5 w-5 mr-2" />
-          Añadir Producto
-        </Button>
-      </DialogTrigger>
+      {!controlled && (
+        <DialogTrigger asChild>
+          <Button>
+            {buttonIcon}
+            {buttonLabel}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Añadir Nuevo Producto</DialogTitle>
+          <DialogTitle>
+            {product ? "Editar Producto" : "Añadir Nuevo Producto"}
+          </DialogTitle>
           <DialogDescription>
             Completa el formulario para añadir un nuevo producto al catálogo.
           </DialogDescription>
@@ -655,7 +737,13 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Guardando..." : "Guardar Producto"}
+              {isSubmitting
+                ? product
+                  ? "Actualizando..."
+                  : "Guardando..."
+                : product
+                ? "Actualizar Producto"
+                : "Guardar Producto"}
             </Button>
           </DialogFooter>
         </form>
@@ -664,4 +752,4 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   );
 };
 
-export default AddProductModal;
+export default ProductFormModal;

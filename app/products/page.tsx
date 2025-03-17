@@ -15,11 +15,11 @@ import {
   List,
   Grid,
   RefreshCw,
+  Plus,
 } from "lucide-react";
 import Sidebar from "../components/admins/sidebar";
 import { toast } from "sonner";
 
-// Importaciones de shadcn/ui
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -51,9 +51,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import AddProductModal from "../components/addProductModal";
+import ProductFormModal from "../components/productFormModal";
 
-// Actualizado para reflejar la estructura real de la API
 interface ProductDetail {
   id_pd: number;
   prod_id: number;
@@ -109,7 +108,9 @@ const ProductDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("Todos");
   const [products, setProducts] = useState<Product[]>([]);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   // Estado para productos seleccionados
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
@@ -197,8 +198,23 @@ const ProductDashboard: React.FC = () => {
   // Manejador para editar el producto seleccionado
   const handleEdit = () => {
     if (selectedProducts.length === 1) {
-      router.push(`/products/${selectedProducts[0]}`);
+      const productToEdit = products.find((p) => p.id === selectedProducts[0]);
+      if (productToEdit) {
+        setEditingProduct(productToEdit);
+        setEditModalOpen(true);
+      }
     }
+  };
+
+  const handleProductUpdated = (updatedProduct: Product) => {
+    setProducts(
+      products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+    );
+    setEditingProduct(null);
+    setEditModalOpen(false);
+    setSelectedProducts([]);
+    toast.success("Producto actualizado correctamente");
+    handleRefresh();
   };
 
   // Manejador para eliminar productos
@@ -323,14 +339,14 @@ const ProductDashboard: React.FC = () => {
     );
   };
 
-  // Obtener detalles por nombre (actualizado para manejar múltiples valores del mismo tipo)
+  // Obtener detalles por nombre
   const getDetailValues = (product: Product, detailName: string) => {
     const details = product.details.filter((d) => d.detail_name === detailName);
     if (details.length === 0) return [];
     return details.map((detail) => detail.detail_desc);
   };
 
-  // Obtener colores del producto (actualizado para manejar múltiples colores)
+  // Obtener colores del producto
   const getProductColors = (product: Product) => {
     const colorDetails = product.details.filter(
       (d) => d.detail_name === "Color"
@@ -369,7 +385,7 @@ const ProductDashboard: React.FC = () => {
     );
   };
 
-  // Renderizar badges para todos los tipos de detalles (Material, Talla, Tamaño)
+  // Renderizar badges para todos los tipos de detalles
   const renderDetailBadges = (values: string[], limit = 2) => {
     if (values.length === 0) return <span className="text-gray-500">N/A</span>;
 
@@ -469,7 +485,23 @@ const ProductDashboard: React.FC = () => {
               </>
             )}
 
-            <AddProductModal onProductAdded={handleProductAdded} />
+            <ProductFormModal
+              onProductAdded={handleProductAdded}
+              onProductUpdated={handleProductUpdated}
+              buttonLabel="Añadir Producto"
+              buttonIcon={<Plus className="h-5 w-5 mr-2" />}
+            />
+
+            {/* Edit Modal */}
+            <ProductFormModal
+              onProductAdded={handleProductAdded}
+              onProductUpdated={handleProductUpdated}
+              product={editingProduct}
+              buttonLabel="Editar Producto"
+              buttonIcon={<Edit className="h-5 w-5 mr-2" />}
+              isOpen={editModalOpen}
+              onOpenChange={setEditModalOpen}
+            />
           </div>
         </div>
 
