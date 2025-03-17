@@ -67,6 +67,11 @@ interface ProductImage {
   url_image: string;
 }
 
+interface Category {
+  id_cat: number;
+  name: string;
+}
+
 interface ProductData {
   product: {
     id_prod: number;
@@ -78,6 +83,7 @@ interface ProductData {
   };
   product_details: ProductDetail[];
   product_images: ProductImage[];
+  category: Category;
 }
 
 // Interface simplificada para usar en la interfaz
@@ -90,12 +96,7 @@ interface Product {
   details: ProductDetail[];
   images: string[];
   inStock: boolean;
-  category: number;
-}
-
-interface Category {
-  id_cat: number;
-  name: string;
+  category: Category;
 }
 
 type SortField = "name" | "price" | "stock" | "inStock";
@@ -108,7 +109,6 @@ const ProductDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("Todos");
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Estado para productos seleccionados
@@ -138,7 +138,7 @@ const ProductDashboard: React.FC = () => {
       details: item.product_details,
       images: item.product_images.map((img) => img.url_image),
       inStock: item.product.stock > 0,
-      category: item.product.cat_id,
+      category: item.category,
     }));
   };
 
@@ -157,20 +157,6 @@ const ProductDashboard: React.FC = () => {
       console.error("Error fetching products:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/categories`);
-      if (!response.ok) {
-        throw new Error(`Error fetching categories: ${response.statusText}`);
-      }
-      const data = await response.json();
-      setCategories(data);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      toast.error("Error al cargar categorías");
     }
   };
 
@@ -337,10 +323,77 @@ const ProductDashboard: React.FC = () => {
     );
   };
 
-  // Obtener detalles por nombre
-  const getDetailValue = (product: Product, detailName: string) => {
-    const detail = product.details.find((d) => d.detail_name === detailName);
-    return detail ? detail.detail_desc : "N/A";
+  // Obtener detalles por nombre (actualizado para manejar múltiples valores del mismo tipo)
+  const getDetailValues = (product: Product, detailName: string) => {
+    const details = product.details.filter((d) => d.detail_name === detailName);
+    if (details.length === 0) return [];
+    return details.map((detail) => detail.detail_desc);
+  };
+
+  // Obtener colores del producto (actualizado para manejar múltiples colores)
+  const getProductColors = (product: Product) => {
+    const colorDetails = product.details.filter(
+      (d) => d.detail_name === "Color"
+    );
+    if (colorDetails.length === 0) return [];
+
+    return colorDetails.map((detail) => detail.detail_desc);
+  };
+
+  // Renderizar círculos de colores con límite
+  const renderColorCircles = (colors: string[], limit = 3) => {
+    if (colors.length === 0) return <span className="text-gray-500">N/A</span>;
+
+    const displayColors = colors.slice(0, limit);
+    const hasMore = colors.length > limit;
+
+    return (
+      <div className="flex flex-wrap gap-1 items-center">
+        {displayColors.map((color, index) => (
+          <div
+            key={index}
+            className="w-6 h-6 rounded-full border border-gray-200"
+            style={{ backgroundColor: color }}
+            title={color}
+          ></div>
+        ))}
+        {hasMore && (
+          <div
+            className="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center bg-gray-100 text-xs font-medium"
+            title={colors.slice(limit).join(", ")}
+          >
+            +{colors.length - limit}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Renderizar badges para todos los tipos de detalles (Material, Talla, Tamaño)
+  const renderDetailBadges = (values: string[], limit = 2) => {
+    if (values.length === 0) return <span className="text-gray-500">N/A</span>;
+
+    const displayValues = values.slice(0, limit);
+    const hasMore = values.length > limit;
+
+    return (
+      <div className="flex flex-wrap gap-1 items-center">
+        {displayValues.map((value, index) => (
+          <Badge key={index} variant="outline" className="bg-gray-100">
+            {value}
+          </Badge>
+        ))}
+        {hasMore && (
+          <Badge
+            variant="outline"
+            className="bg-blue-50 text-blue-600 hover:bg-blue-100 cursor-help"
+            title={values.join(", ")}
+          >
+            +{values.length - limit}
+          </Badge>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -526,6 +579,12 @@ const ProductDashboard: React.FC = () => {
                         <TableHead>
                           <div className="flex items-center">Material</div>
                         </TableHead>
+                        <TableHead>
+                          <div className="flex items-center">Color</div>
+                        </TableHead>
+                        <TableHead>
+                          <div className="flex items-center">Talla</div>
+                        </TableHead>
                         <TableHead
                           className="cursor-pointer"
                           onClick={() => handleSort("price")}
@@ -580,7 +639,7 @@ const ProductDashboard: React.FC = () => {
                                       objectFit="contain"
                                     />
                                   ) : (
-                                    <div className="w-6 h-6 bg-gray-200 flex items-center justify-center text-xs">
+                                    <div className="w-6 h-6 flex items-center justify-center text-xs">
                                       N/A
                                     </div>
                                   )}
@@ -603,13 +662,23 @@ const ProductDashboard: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <div className="text-sm text-gray-600">
-                              {getDetailValue(product, "Material")}
+                              {product.category.name}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="text-sm text-gray-600">
-                              {getDetailValue(product, "Material")}
-                            </div>
+                            {renderDetailBadges(
+                              getDetailValues(product, "Material"),
+                              1
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {renderColorCircles(getProductColors(product), 3)}
+                          </TableCell>
+                          <TableCell>
+                            {renderDetailBadges(
+                              getDetailValues(product, "Talla"),
+                              2
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="text-sm font-medium text-gray-900">
@@ -617,11 +686,10 @@ const ProductDashboard: React.FC = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              <Badge variant="outline" className="bg-gray-100">
-                                {getDetailValue(product, "Tamaño")}
-                              </Badge>
-                            </div>
+                            {renderDetailBadges(
+                              getDetailValues(product, "Tamaño"),
+                              1
+                            )}
                           </TableCell>
                           <TableCell>
                             <Badge
@@ -641,7 +709,7 @@ const ProductDashboard: React.FC = () => {
                       {currentProducts.length === 0 && (
                         <TableRow>
                           <TableCell
-                            colSpan={6}
+                            colSpan={9}
                             className="text-center text-gray-500 h-32"
                           >
                             No se encontraron productos con los filtros actuales
@@ -683,22 +751,17 @@ const ProductDashboard: React.FC = () => {
                                   objectFit="contain"
                                 />
                               ) : (
-                                <div className="w-8 h-8 bg-gray-200 flex items-center justify-center text-xs">
+                                <div className="w-8 h-8 flex items-center justify-center text-xs">
                                   N/A
                                 </div>
                               )}
                             </div>
                           </div>
-                          <div className="ml-3">
-                            <h3
-                              className="font-medium hover:text-blue-600 cursor-pointer"
-                              onClick={() => handleProductSelect(product.id)}
-                            >
-                              {product.name}
-                            </h3>
-                            <p className="text-sm text-gray-500">
-                              {getDetailValue(product, "Material")}
-                            </p>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-gray-500">
+                              Color:
+                            </span>
+                            {renderColorCircles(getProductColors(product), 3)}
                           </div>
                         </div>
 
@@ -722,10 +785,43 @@ const ProductDashboard: React.FC = () => {
                           </Badge>
                         </div>
 
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          <Badge variant="outline" className="bg-gray-100">
-                            {getDetailValue(product, "Tamaño")}
-                          </Badge>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-gray-500">
+                              Tamaño:
+                            </span>
+                            {renderDetailBadges(
+                              getDetailValues(product, "Tamaño"),
+                              2
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-gray-500">
+                              Talla:
+                            </span>
+                            {renderDetailBadges(
+                              getDetailValues(product, "Talla"),
+                              2
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-gray-500">
+                              Material:
+                            </span>
+                            {renderDetailBadges(
+                              getDetailValues(product, "Material"),
+                              1
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-gray-500">
+                              Color:
+                            </span>
+                            {renderColorCircles(getProductColors(product), 3)}
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
