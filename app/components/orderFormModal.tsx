@@ -13,13 +13,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -43,7 +36,7 @@ interface Product {
 }
 
 interface OrderData {
-  user_id: string | number;
+  user_id?: string | number;
   fecha_pedido: string;
   status: "pendiente" | "enviado" | "finalizado";
   metodo_pago: "efectivo" | "mercado pago" | "paypal";
@@ -56,21 +49,18 @@ interface OrderDetail {
   productName?: string;
 }
 
-interface AddOrderComponentProps {
+interface OrderFormModalProps {
   onOrderAdded?: () => void;
 }
 
 const API_BASE_URL = "http://localhost:3001/api";
 
-const AddOrderComponent: React.FC<AddOrderComponentProps> = ({
-  onOrderAdded,
-}) => {
+const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
 
   // Form data
   const [orderData, setOrderData] = useState<OrderData>({
-    user_id: "",
     fecha_pedido: new Date().toISOString(),
     status: "pendiente",
     metodo_pago: "efectivo",
@@ -201,6 +191,15 @@ const AddOrderComponent: React.FC<AddOrderComponentProps> = ({
     setShowUserDropdown(false);
   };
 
+  // Handle clearing user selection
+  const handleClearUser = () => {
+    setSelectedUser(null);
+    setUserSearch("");
+    // Remove user_id from orderData
+    const { user_id, ...restOrderData } = orderData;
+    setOrderData(restOrderData);
+  };
+
   // Handle product selection
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
@@ -269,10 +268,29 @@ const AddOrderComponent: React.FC<AddOrderComponentProps> = ({
     );
   };
 
+  // Handle payment method selection
+  const handlePaymentMethodSelect = (
+    method: "efectivo" | "mercado pago" | "paypal"
+  ) => {
+    setOrderData({
+      ...orderData,
+      metodo_pago: method,
+    });
+  };
+
+  // Handle status selection
+  const handleStatusSelect = (
+    status: "pendiente" | "enviado" | "finalizado"
+  ) => {
+    setOrderData({
+      ...orderData,
+      status: status,
+    });
+  };
+
   // Reset form
   const resetForm = () => {
     setOrderData({
-      user_id: "",
       fecha_pedido: new Date().toISOString(),
       status: "pendiente",
       metodo_pago: "efectivo",
@@ -292,11 +310,6 @@ const AddOrderComponent: React.FC<AddOrderComponentProps> = ({
   // Submit order
   const handleSubmit = async () => {
     // Validate order
-    if (!orderData.user_id) {
-      alert("Por favor, selecciona un cliente");
-      return;
-    }
-
     if (orderDetails.length === 0) {
       alert("Por favor, agrega al menos un producto al pedido");
       return;
@@ -305,13 +318,16 @@ const AddOrderComponent: React.FC<AddOrderComponentProps> = ({
     setIsSubmitting(true);
 
     try {
+      // Prepare the order data for submission
+      const orderDataToSubmit = { ...orderData };
+
       // Step 1: Create the order
       const orderResponse = await fetch(`${API_BASE_URL}/pedidos`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(orderData),
+        body: JSON.stringify(orderDataToSubmit),
       });
 
       if (!orderResponse.ok) {
@@ -319,7 +335,7 @@ const AddOrderComponent: React.FC<AddOrderComponentProps> = ({
       }
 
       const newOrder = await orderResponse.json();
-      const orderId = newOrder.id || newOrder.pedido_id;
+      const orderId = newOrder.id_pedido || newOrder.pedido_id;
 
       // Step 2: Create order details
       const detailPromises = orderDetails.map((detail) => {
@@ -345,7 +361,7 @@ const AddOrderComponent: React.FC<AddOrderComponentProps> = ({
       onOrderAdded && onOrderAdded();
 
       // Show success message
-      toast.success("Producto actualizado correctamente");
+      toast.success("Pedido creado correctamente");
     } catch (error) {
       console.error("Error submitting order:", error);
       alert(
@@ -385,7 +401,7 @@ const AddOrderComponent: React.FC<AddOrderComponentProps> = ({
                 {/* Cliente (Autocomplete) */}
                 <div className="relative" ref={userDropdownRef}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cliente
+                    Cliente (Opcional)
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -402,6 +418,16 @@ const AddOrderComponent: React.FC<AddOrderComponentProps> = ({
                       }}
                       onFocus={() => setShowUserDropdown(true)}
                     />
+                    {selectedUser && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        onClick={handleClearUser}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
 
                   {/* Dropdown de usuarios */}
@@ -424,50 +450,6 @@ const AddOrderComponent: React.FC<AddOrderComponentProps> = ({
                   )}
                 </div>
 
-                {/* Método de Pago */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Método de Pago
-                  </label>
-                  <Select
-                    value={orderData.metodo_pago}
-                    onValueChange={(
-                      value: "efectivo" | "mercado pago" | "paypal"
-                    ) => setOrderData({ ...orderData, metodo_pago: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un método de pago" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="efectivo">Efectivo</SelectItem>
-                      <SelectItem value="mercado pago">Mercado Pago</SelectItem>
-                      <SelectItem value="paypal">PayPal</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Estado del Pedido */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Estado
-                  </label>
-                  <Select
-                    value={orderData.status}
-                    onValueChange={(
-                      value: "pendiente" | "enviado" | "finalizado"
-                    ) => setOrderData({ ...orderData, status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pendiente">Pendiente</SelectItem>
-                      <SelectItem value="enviado">Enviado</SelectItem>
-                      <SelectItem value="finalizado">Finalizado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 {/* Fecha del Pedido */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -483,6 +465,110 @@ const AddOrderComponent: React.FC<AddOrderComponentProps> = ({
                       })
                     }
                   />
+                </div>
+
+                {/* Método de Pago (Botones) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Método de Pago
+                  </label>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant={
+                        orderData.metodo_pago === "efectivo"
+                          ? "default"
+                          : "outline"
+                      }
+                      onClick={() => handlePaymentMethodSelect("efectivo")}
+                      className={
+                        orderData.metodo_pago === "efectivo"
+                          ? "bg-black hover:bg-gray-800"
+                          : ""
+                      }
+                    >
+                      Efectivo
+                    </Button>
+                    <Button
+                      variant={
+                        orderData.metodo_pago === "mercado pago"
+                          ? "default"
+                          : "outline"
+                      }
+                      onClick={() => handlePaymentMethodSelect("mercado pago")}
+                      className={
+                        orderData.metodo_pago === "mercado pago"
+                          ? "bg-black hover:bg-gray-800"
+                          : ""
+                      }
+                    >
+                      Mercado Pago
+                    </Button>
+                    <Button
+                      variant={
+                        orderData.metodo_pago === "paypal"
+                          ? "default"
+                          : "outline"
+                      }
+                      onClick={() => handlePaymentMethodSelect("paypal")}
+                      className={
+                        orderData.metodo_pago === "paypal"
+                          ? "bg-black hover:bg-gray-800"
+                          : ""
+                      }
+                    >
+                      PayPal
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Estado del Pedido (Botones) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Estado
+                  </label>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant={
+                        orderData.status === "pendiente" ? "default" : "outline"
+                      }
+                      onClick={() => handleStatusSelect("pendiente")}
+                      className={
+                        orderData.status === "pendiente"
+                          ? "bg-black hover:bg-gray-800"
+                          : ""
+                      }
+                    >
+                      Pendiente
+                    </Button>
+                    <Button
+                      variant={
+                        orderData.status === "enviado" ? "default" : "outline"
+                      }
+                      onClick={() => handleStatusSelect("enviado")}
+                      className={
+                        orderData.status === "enviado"
+                          ? "bg-black hover:bg-gray-800"
+                          : ""
+                      }
+                    >
+                      Enviado
+                    </Button>
+                    <Button
+                      variant={
+                        orderData.status === "finalizado"
+                          ? "default"
+                          : "outline"
+                      }
+                      onClick={() => handleStatusSelect("finalizado")}
+                      className={
+                        orderData.status === "finalizado"
+                          ? "bg-black hover:bg-gray-800"
+                          : ""
+                      }
+                    >
+                      Finalizado
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -606,7 +692,7 @@ const AddOrderComponent: React.FC<AddOrderComponentProps> = ({
                             variant="ghost"
                             size="icon"
                             onClick={() => handleRemoveProduct(index)}
-                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            className="h-8 w-8 p-0 text-red-500 bg-red-50 hover:text-red-700 hover:bg-red-100"
                           >
                             <X size={16} />
                           </Button>
@@ -650,9 +736,7 @@ const AddOrderComponent: React.FC<AddOrderComponentProps> = ({
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={
-                isSubmitting || orderDetails.length === 0 || !orderData.user_id
-              }
+              disabled={isSubmitting || orderDetails.length === 0}
               className="bg-black hover:bg-gray-800"
             >
               {isSubmitting ? "Guardando..." : "Guardar Pedido"}
@@ -664,4 +748,4 @@ const AddOrderComponent: React.FC<AddOrderComponentProps> = ({
   );
 };
 
-export default AddOrderComponent;
+export default OrderFormModal;

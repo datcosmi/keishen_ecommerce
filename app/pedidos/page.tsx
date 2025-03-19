@@ -15,6 +15,11 @@ import {
   List,
   Grid,
   RefreshCw,
+  Edit,
+  Trash2,
+  X,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import Sidebar from "../components/admins/sidebar";
 
@@ -41,11 +46,24 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import AddOrderComponent from "../components/orderFormModal";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import OrderFormModal from "../components/orderFormModal";
 
 interface Product {
   producto_id: number;
@@ -79,6 +97,11 @@ const OrderDashboard: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState("Todos");
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Estado para los pedidos seleccionados
+  const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -116,7 +139,70 @@ const OrderDashboard: React.FC = () => {
   }, []);
 
   const handleRefresh = async () => {
+    // Limpiar selección al refrescar
+    setSelectedOrders([]);
     fetchOrders();
+  };
+
+  // Funciones para manejar selección de pedidos
+  const handleSelectOrder = (orderId: number) => {
+    setSelectedOrders((prev) => {
+      // Si ya está seleccionado, lo quitamos
+      if (prev.includes(orderId)) {
+        return prev.filter((id) => id !== orderId);
+      }
+      // Si no está seleccionado, lo añadimos
+      return [...prev, orderId];
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedOrders.length === currentOrders.length) {
+      // Si todos están seleccionados, deseleccionamos todos
+      setSelectedOrders([]);
+    } else {
+      // Si no todos están seleccionados, seleccionamos todos
+      setSelectedOrders(currentOrders.map((order) => order.pedido_id));
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedOrders([]);
+  };
+
+  // Función para eliminar pedidos seleccionados
+  const handleDeleteSelected = async () => {
+    if (selectedOrders.length === 0) return;
+
+    setDeleteLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/pedidos`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ids: selectedOrders }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error deleting orders: ${response.statusText}`);
+      }
+
+      // Eliminar pedidos localmente
+      setOrders((prev) =>
+        prev.filter((order) => !selectedOrders.includes(order.pedido_id))
+      );
+      setSelectedOrders([]);
+      toast.success(
+        `Se han eliminado ${selectedOrders.length} pedido(s) correctamente.`
+      );
+    } catch (error) {
+      console.error("Error deleting orders:", error);
+      toast.error("Error al eliminar los pedidos. Inténtalo de nuevo.");
+    } finally {
+      setDeleteLoading(false);
+      setConfirmDelete(false);
+    }
   };
 
   // Calcular las cantidades para los filtros
@@ -286,6 +372,9 @@ const OrderDashboard: React.FC = () => {
     );
   };
 
+  // Comprobar si hay un único pedido seleccionado para mostrar el botón de editar
+  const singleOrderSelected = selectedOrders.length === 1;
+
   return (
     <div className="flex flex-col md:flex-row gap-2 min-h-screen bg-[#eaeef6]">
       <Sidebar />
@@ -297,7 +386,67 @@ const OrderDashboard: React.FC = () => {
               Gestiona los pedidos de tus clientes
             </p>
           </div>
-          <AddOrderComponent onOrderAdded={handleRefresh} />
+
+          {/* Botones de acción para selección */}
+          <div className="flex gap-2">
+            {selectedOrders.length > 0 && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={handleClearSelection}
+                  className="text-gray-600"
+                >
+                  Cancelar ({selectedOrders.length})
+                </Button>
+                {singleOrderSelected && (
+                  <Button
+                    variant="outline"
+                    className="bg-blue-50 text-blue-600 hover:text-blue-600 border-blue-200 hover:bg-blue-100"
+                  >
+                    <Edit size={16} className="mr-1" />
+                    Editar
+                  </Button>
+                )}
+
+                <AlertDialog
+                  open={confirmDelete}
+                  onOpenChange={setConfirmDelete}
+                >
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="bg-red-50 text-red-600 hover:text-red-600 border-red-200 hover:bg-red-100"
+                    >
+                      <Trash2 size={18} className="mr-1" />
+                      Eliminar
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        ¿Eliminar pedidos seleccionados?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Estás a punto de eliminar {selectedOrders.length}{" "}
+                        pedido(s). Esta acción no se puede deshacer.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeleteSelected}
+                        disabled={deleteLoading}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        {deleteLoading ? "Eliminando..." : "Eliminar"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            )}
+            <OrderFormModal onOrderAdded={handleRefresh} />
+          </div>
         </div>
 
         {/* Filtros */}
@@ -379,6 +528,21 @@ const OrderDashboard: React.FC = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-10">
+                          <div className="flex items-center justify-center">
+                            <button
+                              onClick={handleSelectAll}
+                              className="focus:outline-none"
+                            >
+                              {selectedOrders.length === currentOrders.length &&
+                              currentOrders.length > 0 ? (
+                                <CheckSquare size={18} className="text-black" />
+                              ) : (
+                                <Square size={18} className="text-gray-400" />
+                              )}
+                            </button>
+                          </div>
+                        </TableHead>
                         <TableHead
                           className="cursor-pointer"
                           onClick={() => handleSort("id")}
@@ -425,15 +589,31 @@ const OrderDashboard: React.FC = () => {
                             {renderSortIndicator("total")}
                           </div>
                         </TableHead>
-                        <TableHead>Acciones</TableHead>
+                        <TableHead>Productos totales</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {currentOrders.map((order) => (
                         <TableRow
                           key={order.pedido_id}
-                          className="hover:bg-gray-50"
+                          className={`hover:bg-gray-50 ${
+                            selectedOrders.includes(order.pedido_id)
+                              ? "bg-blue-50"
+                              : ""
+                          }`}
                         >
+                          <TableCell className="p-2 text-center">
+                            <button
+                              onClick={() => handleSelectOrder(order.pedido_id)}
+                              className="focus:outline-none"
+                            >
+                              {selectedOrders.includes(order.pedido_id) ? (
+                                <CheckSquare size={18} className="text-black" />
+                              ) : (
+                                <Square size={18} className="text-gray-400" />
+                              )}
+                            </button>
+                          </TableCell>
                           <TableCell>
                             <div className="font-medium">{order.pedido_id}</div>
                           </TableCell>
@@ -573,29 +753,7 @@ const OrderDashboard: React.FC = () => {
                                   </div>
                                 </DialogContent>
                               </Dialog>
-
-                              {/* Menú para actualizar estado */}
-                              <Select
-                                value={order.status}
-                                onValueChange={(
-                                  value: "pendiente" | "finalizado"
-                                ) => handleUpdateStatus(order.pedido_id, value)}
-                              >
-                                <SelectTrigger className="w-[110px] h-8">
-                                  <SelectValue placeholder="Actualizar" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="pendiente">
-                                    Pendiente
-                                  </SelectItem>
-                                  <SelectItem value="enviado">
-                                    Enviado
-                                  </SelectItem>
-                                  <SelectItem value="finalizado">
-                                    Finalizado
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
+                              {order.detalles.length} productos
                             </div>
                           </TableCell>
                         </TableRow>
@@ -604,7 +762,7 @@ const OrderDashboard: React.FC = () => {
                       {currentOrders.length === 0 && (
                         <TableRow>
                           <TableCell
-                            colSpan={7}
+                            colSpan={8}
                             className="text-center text-gray-500 h-32"
                           >
                             No se encontraron pedidos con los filtros actuales
@@ -618,16 +776,35 @@ const OrderDashboard: React.FC = () => {
                 // Vista de cuadrícula
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                   {currentOrders.map((order) => (
-                    <Card key={order.pedido_id}>
+                    <Card
+                      key={order.pedido_id}
+                      className={
+                        selectedOrders.includes(order.pedido_id)
+                          ? "ring-2 ring-blue-500"
+                          : ""
+                      }
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-3">
-                          <div>
-                            <h3 className="font-medium">
-                              Pedido #{order.pedido_id}
-                            </h3>
-                            <p className="text-sm text-gray-500">
-                              {order.cliente || "No especificado"}
-                            </p>
+                          <div className="flex items-center">
+                            <button
+                              onClick={() => handleSelectOrder(order.pedido_id)}
+                              className="mr-2 focus:outline-none"
+                            >
+                              {selectedOrders.includes(order.pedido_id) ? (
+                                <CheckSquare size={18} className="text-black" />
+                              ) : (
+                                <Square size={18} className="text-gray-400" />
+                              )}
+                            </button>
+                            <div>
+                              <h3 className="font-medium">
+                                Pedido #{order.pedido_id}
+                              </h3>
+                              <p className="text-sm text-gray-500">
+                                {order.cliente || "No especificado"}
+                              </p>
+                            </div>
                           </div>
                           {renderStatusBadge(order.status)}
                         </div>
@@ -772,26 +949,6 @@ const OrderDashboard: React.FC = () => {
                               </div>
                             </DialogContent>
                           </Dialog>
-
-                          <Select
-                            value={order.status}
-                            onValueChange={(
-                              value: "pendiente" | "finalizado"
-                            ) => handleUpdateStatus(order.pedido_id, value)}
-                          >
-                            <SelectTrigger className="flex-1 h-8">
-                              <SelectValue placeholder="Estado" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pendiente">
-                                Pendiente
-                              </SelectItem>
-                              <SelectItem value="enviado">Enviado</SelectItem>
-                              <SelectItem value="finalizado">
-                                Finalizado
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
                         </div>
                       </CardContent>
                     </Card>
