@@ -33,112 +33,117 @@ import {
 } from "lucide-react";
 import Sidebar from "../components/admins/sidebar";
 
-// Define the interfaces
-interface OrderDetail {
-  productId: string;
-  quantity: number;
-  unitPrice: number;
+// Nueva interfaz que se adapta a la estructura de datos proporcionada
+interface ProductoDetalle {
+  producto_id: number;
+  producto_nombre: string;
+  producto_precio: number;
+  producto_imagenes: string[];
 }
 
-interface Order {
-  id: string;
-  userId: string;
-  date: string;
-  status: "pendiente" | "pagado" | "enviado" | "entregado";
-  paymentMethod: "Mercado Pago" | "PayPal" | "En tienda";
-  details: OrderDetail[];
+interface DetallePedido {
+  detalle_id: number;
+  amount: number;
+  unit_price: number;
+  producto: ProductoDetalle;
 }
 
-// Colors for charts
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
+interface Pedido {
+  pedido_id: number;
+  fecha_pedido: string;
+  status: "pendiente" | "enviado" | "finalizado";
+  metodo_pago: "mercado pago" | "paypal" | "efectivo";
+  cliente: string;
+  detalles: DetallePedido[];
+}
+
+// Colores para las gráficas
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28"];
 const STATUS_COLORS = {
-  pendiente: "#FFBB28", // yellow
-  pagado: "#0088FE", // blue
-  enviado: "#00C49F", // green
-  entregado: "#FF8042", // orange
+  pendiente: "#FFBB28",
+  enviado: "#0088FE",
+  finalizado: "#00C49F",
 };
 
+const API_BASE_URL = "http://localhost:3001/api";
+
 const OrdersDashboard = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchOrders = async () => {
+    const fetchPedidos = async () => {
       try {
-        const response = await fetch("/api/orders");
+        const response = await fetch(`${API_BASE_URL}/pedidos/details`);
         if (!response.ok) {
-          throw new Error("Failed to fetch orders");
+          throw new Error("Error al cargar los pedidos");
         }
         const data = await response.json();
-        setOrders(data);
+        setPedidos(data);
       } catch (err) {
-        setError("Error loading orders data");
+        setError("Error al cargar los datos de pedidos");
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchOrders();
+    fetchPedidos();
   }, []);
 
-  // Calculate key metrics
-  const totalRevenue = orders.reduce((sum, order) => {
+  // Calcular métricas clave
+  const totalRevenue = pedidos.reduce((sum, pedido) => {
     return (
       sum +
-      order.details.reduce(
-        (orderSum, detail) => orderSum + detail.quantity * detail.unitPrice,
+      pedido.detalles.reduce(
+        (orderSum, detalle) => orderSum + detalle.amount * detalle.unit_price,
         0
       )
     );
   }, 0);
 
-  const totalOrders = orders.length;
+  const totalOrders = pedidos.length;
 
   const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-  // Prepare data for status chart
+  // Preparar datos para gráfico de estado
   const statusData = [
     {
       name: "Pendiente",
-      value: orders.filter((o) => o.status === "pendiente").length,
-    },
-    {
-      name: "Pagado",
-      value: orders.filter((o) => o.status === "pagado").length,
+      value: pedidos.filter((o) => o.status === "pendiente").length,
     },
     {
       name: "Enviado",
-      value: orders.filter((o) => o.status === "enviado").length,
+      value: pedidos.filter((o) => o.status === "enviado").length,
     },
     {
-      name: "Entregado",
-      value: orders.filter((o) => o.status === "entregado").length,
+      name: "Finalizado",
+      value: pedidos.filter((o) => o.status === "finalizado").length,
     },
   ];
 
-  // Prepare data for payment method chart
+  // Preparar datos para gráfico de método de pago
   const paymentMethodData = [
     {
       name: "Mercado Pago",
-      value: orders.filter((o) => o.paymentMethod === "Mercado Pago").length,
+      value: pedidos.filter((o) => o.metodo_pago === "mercado pago").length,
     },
     {
       name: "PayPal",
-      value: orders.filter((o) => o.paymentMethod === "PayPal").length,
+      value: pedidos.filter((o) => o.metodo_pago === "paypal").length,
     },
     {
       name: "En tienda",
-      value: orders.filter((o) => o.paymentMethod === "En tienda").length,
+      value: pedidos.filter((o) => o.metodo_pago === "efectivo").length,
     },
   ];
 
-  // Prepare daily revenue data
-  const dailyRevenueMap = orders.reduce((acc, order) => {
-    const date = new Date(order.date).toISOString().split("T")[0];
-    const orderTotal = order.details.reduce(
-      (sum, detail) => sum + detail.quantity * detail.unitPrice,
+  // Preparar datos de ingresos diarios
+  const dailyRevenueMap = pedidos.reduce((acc, pedido) => {
+    const date = new Date(pedido.fecha_pedido).toISOString().split("T")[0];
+    const orderTotal = pedido.detalles.reduce(
+      (sum, detalle) => sum + detalle.amount * detalle.unit_price,
       0
     );
 
@@ -150,13 +155,29 @@ const OrdersDashboard = () => {
     .map(([date, revenue]) => ({ date, revenue }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  if (loading)
-    return (
-      <div className="flex justify-center items-center h-64">
-        Loading dashboard data...
-      </div>
-    );
-  if (error) return <div className="text-red-500 p-4">{error}</div>;
+  // Calcular productos más vendidos
+  const productSalesMap = pedidos.reduce((acc, pedido) => {
+    pedido.detalles.forEach((detalle) => {
+      const productoId = detalle.producto.producto_id;
+      const productoNombre = detalle.producto.producto_nombre;
+      const cantidad = detalle.amount;
+
+      if (!acc[productoId]) {
+        acc[productoId] = {
+          name: productoNombre,
+          value: 0,
+        };
+      }
+
+      acc[productoId].value += cantidad;
+    });
+
+    return acc;
+  }, {} as Record<number, { name: string; value: number }>);
+
+  const topProducts = Object.values(productSalesMap)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
 
   return (
     <div className="flex flex-col md:flex-row gap-2 min-h-screen bg-[#eaeef6]">
@@ -171,253 +192,314 @@ const OrdersDashboard = () => {
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {loading ? (
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">
-                Ingresos Totales
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <DollarSign className="mr-2 text-green-500" />
-                <span className="text-2xl font-bold">
-                  ${totalRevenue.toLocaleString()}
-                </span>
-              </div>
+            <CardContent className="p-6 text-center">
+              <p>Cargando estadísticas...</p>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">
-                Órdenes totales
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <ShoppingCart className="mr-2 text-blue-500" />
-                <span className="text-2xl font-bold">{totalOrders}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">
-                Precio Promedio por Órden
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <Package className="mr-2 text-purple-500" />
-                <span className="text-2xl font-bold">
-                  $
-                  {averageOrderValue.toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">
-                Órdenes completadas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <Check className="mr-2 text-orange-500" />
-                <span className="text-2xl font-bold">
-                  {orders.filter((o) => o.status === "entregado").length}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Charts */}
-        <Tabs defaultValue="overview">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">
-              <BarChart4 className="h-4 w-4 mr-2" />
-              Resumen
-            </TabsTrigger>
-            <TabsTrigger value="status">
-              <PieIcon className="h-4 w-4 mr-2" />
-              Estado de Órdenes
-            </TabsTrigger>
-            <TabsTrigger value="revenue">
-              <LineIcon className="h-4 w-4 mr-2" />
-              Ingresos Diarios
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        ) : (
+          <div>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Estado de Órdenes</CardTitle>
-                  <CardDescription>
-                    Distribución de órdenes por estado
-                  </CardDescription>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">
+                    Ingresos Totales
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={statusData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) =>
-                          `${name} ${(percent * 100).toFixed(0)}%`
-                        }
-                      >
-                        {statusData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={
-                              Object.values(STATUS_COLORS)[
-                                index % COLORS.length
-                              ]
-                            }
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <div className="flex items-center">
+                    <DollarSign className="mr-2 text-green-500" />
+                    <span className="text-2xl font-bold">
+                      ${totalRevenue.toLocaleString()}
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle>Métodos de Pago</CardTitle>
-                  <CardDescription>
-                    Distribución de órdenes por método de pago
-                  </CardDescription>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">
+                    Pedidos totales
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={paymentMethodData}>
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="value" name="Orders" fill="#4f46e5" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <div className="flex items-center">
+                    <ShoppingCart className="mr-2 text-blue-500" />
+                    <span className="text-2xl font-bold">{totalOrders}</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">
+                    Precio Promedio por Pedido
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center">
+                    <Package className="mr-2 text-purple-500" />
+                    <span className="text-2xl font-bold">
+                      $
+                      {averageOrderValue.toLocaleString(undefined, {
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">
+                    Pedidos completados
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center">
+                    <Check className="mr-2 text-orange-500" />
+                    <span className="text-2xl font-bold">
+                      {pedidos.filter((o) => o.status === "finalizado").length}
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
 
-          <TabsContent value="status">
-            <Card>
-              <CardHeader>
-                <CardTitle>Distribución por Estado de Órden</CardTitle>
-                <CardDescription>
-                  Vista detallada de órdenes por estado
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-96">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={statusData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={true}
-                      outerRadius={120}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, value, percent }) =>
-                        `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
-                      }
-                    >
-                      {statusData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={
-                            Object.values(STATUS_COLORS)[index % COLORS.length]
+            {/* Charts */}
+            <Tabs defaultValue="overview">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="overview">
+                  <BarChart4 className="h-4 w-4 mr-2" />
+                  Resumen
+                </TabsTrigger>
+                <TabsTrigger value="status">
+                  <PieIcon className="h-4 w-4 mr-2" />
+                  Estado de Pedidos
+                </TabsTrigger>
+                <TabsTrigger value="revenue">
+                  <LineIcon className="h-4 w-4 mr-2" />
+                  Ingresos Diarios
+                </TabsTrigger>
+                <TabsTrigger value="products">
+                  <Package className="h-4 w-4 mr-2" />
+                  Productos
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Estado de Pedidos</CardTitle>
+                      <CardDescription>
+                        Distribución de pedidos por estado
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <PieChart>
+                          <Pie
+                            data={statusData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={100}
+                            fill="#8884d8"
+                            dataKey="value"
+                            label={({ name, percent }) =>
+                              `${name} ${(percent * 100).toFixed(0)}%`
+                            }
+                          >
+                            {statusData.map((entry, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={
+                                  Object.values(STATUS_COLORS)[
+                                    index % COLORS.length
+                                  ]
+                                }
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Métodos de Pago</CardTitle>
+                      <CardDescription>
+                        Distribución de pedidos por método de pago
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={paymentMethodData}>
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip />
+                          <Bar dataKey="value" name="Pedidos" fill="#4f46e5" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="status">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Distribución por Estado de Pedido</CardTitle>
+                    <CardDescription>
+                      Vista detallada de pedidos por estado
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-96">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={statusData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={true}
+                          outerRadius={120}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, value, percent }) =>
+                            `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
                           }
-                        />
+                        >
+                          {statusData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={
+                                Object.values(STATUS_COLORS)[
+                                  index % COLORS.length
+                                ]
+                              }
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                  <CardFooter>
+                    <div className="flex flex-wrap gap-4">
+                      {statusData.map((entry, index) => (
+                        <div key={index} className="flex items-center">
+                          <div
+                            className="w-4 h-4 mr-2"
+                            style={{
+                              backgroundColor:
+                                Object.values(STATUS_COLORS)[
+                                  index % COLORS.length
+                                ],
+                            }}
+                          ></div>
+                          <span>
+                            {entry.name}: {entry.value}
+                          </span>
+                        </div>
                       ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-              <CardFooter>
-                <div className="flex flex-wrap gap-4">
-                  {statusData.map((entry, index) => (
-                    <div key={index} className="flex items-center">
-                      <div
-                        className="w-4 h-4 mr-2"
-                        style={{
-                          backgroundColor:
-                            Object.values(STATUS_COLORS)[index % COLORS.length],
-                        }}
-                      ></div>
-                      <span>
-                        {entry.name}: {entry.value}
-                      </span>
                     </div>
-                  ))}
-                </div>
-              </CardFooter>
-            </Card>
-          </TabsContent>
+                  </CardFooter>
+                </Card>
+              </TabsContent>
 
-          <TabsContent value="revenue">
-            <Card>
-              <CardHeader>
-                <CardTitle>Ingresos Diarios</CardTitle>
-                <CardDescription>Tendencia de ingresos por día</CardDescription>
-              </CardHeader>
-              <CardContent className="h-96">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={dailyRevenueData}>
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`$${value}`, "Revenue"]} />
-                    <Line
-                      type="monotone"
-                      dataKey="revenue"
-                      stroke="#4f46e5"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-              <CardFooter>
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Ingresos diarios máximos: $
-                    {Math.max(
-                      ...dailyRevenueData.map((d) => d.revenue)
-                    ).toLocaleString()}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Promedio de ingresos diarios: $
-                    {(
-                      dailyRevenueData.reduce((sum, d) => sum + d.revenue, 0) /
-                      dailyRevenueData.length
-                    ).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                  </p>
-                </div>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              <TabsContent value="revenue">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Ingresos Diarios</CardTitle>
+                    <CardDescription>
+                      Tendencia de ingresos por día
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-96">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={dailyRevenueData}>
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip
+                          formatter={(value) => [`$${value}`, "Ingresos"]}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="revenue"
+                          stroke="#4f46e5"
+                          strokeWidth={2}
+                          dot={{ r: 4 }}
+                          activeDot={{ r: 6 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                  <CardFooter>
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Ingresos diarios máximos: $
+                        {Math.max(
+                          ...dailyRevenueData.map((d) => d.revenue)
+                        ).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Promedio de ingresos diarios: $
+                        {(
+                          dailyRevenueData.reduce(
+                            (sum, d) => sum + d.revenue,
+                            0
+                          ) / (dailyRevenueData.length || 1)
+                        ).toLocaleString(undefined, {
+                          maximumFractionDigits: 2,
+                        })}
+                      </p>
+                    </div>
+                  </CardFooter>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="products">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Productos Más Vendidos</CardTitle>
+                    <CardDescription>
+                      Los 5 productos con mayor volumen de ventas
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-96">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={topProducts}
+                        layout="vertical"
+                        margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+                      >
+                        <XAxis type="number" />
+                        <YAxis dataKey="name" type="category" width={100} />
+                        <Tooltip
+                          formatter={(value) => [value, "Unidades vendidas"]}
+                        />
+                        <Bar dataKey="value" fill="#8884d8" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                  <CardFooter>
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Total productos diferentes vendidos:{" "}
+                        {Object.keys(productSalesMap).length}
+                      </p>
+                    </div>
+                  </CardFooter>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
       </div>
     </div>
   );
