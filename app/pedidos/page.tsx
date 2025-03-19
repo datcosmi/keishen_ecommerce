@@ -45,6 +45,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import AddOrderComponent from "../components/orderFormModal";
 
 interface Product {
   producto_id: number;
@@ -296,6 +297,7 @@ const OrderDashboard: React.FC = () => {
               Gestiona los pedidos de tus clientes
             </p>
           </div>
+          <AddOrderComponent onOrderAdded={handleRefresh} />
         </div>
 
         {/* Filtros */}
