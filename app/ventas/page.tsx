@@ -33,7 +33,6 @@ import {
 } from "lucide-react";
 import Sidebar from "../components/admins/sidebar";
 
-// Nueva interfaz que se adapta a la estructura de datos proporcionada
 interface ProductoDetalle {
   producto_id: number;
   producto_nombre: string;

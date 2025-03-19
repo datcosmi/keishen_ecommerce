@@ -14,7 +14,6 @@ import {
   List,
   Grid,
   RefreshCw,
-  Check,
 } from "lucide-react";
 import Sidebar from "../components/admins/sidebar";
 import { Button } from "@/components/ui/button";
@@ -62,7 +61,6 @@ const CategoriesDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   // Selección de categorías
@@ -388,9 +386,24 @@ const CategoriesDashboard: React.FC = () => {
               <CategoryModal onCategoryAdded={handleCategoryAdded} />
             </div>
           </div>
+        </div>
 
+        {/* Barra de búsqueda */}
+        <div className="relative mb-6 flex items-center">
+          <div className="relative flex-grow">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400" />
+            </div>
+            <Input
+              type="text"
+              className="pl-10 pr-3 bg-white"
+              placeholder="Buscar categorías..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
           {/* Vista Toggle */}
-          <div className="flex justify-end mt-4 space-x-2">
+          <div className="flex justify-end space-x-2 ml-2">
             <Button
               variant={isGridView ? "outline" : "default"}
               size="icon"
@@ -407,22 +420,6 @@ const CategoriesDashboard: React.FC = () => {
             >
               <Grid className="h-5 w-5" />
             </Button>
-          </div>
-        </div>
-
-        {/* Barra de búsqueda */}
-        <div className="relative mb-6 flex items-center">
-          <div className="relative flex-grow">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
-            <Input
-              type="text"
-              className="pl-10 pr-3 bg-white"
-              placeholder="Buscar categorías..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
           </div>
           <Button
             variant="outline"

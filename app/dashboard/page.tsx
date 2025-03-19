@@ -35,7 +35,6 @@ import {
 } from "lucide-react";
 import Sidebar from "../components/admins/sidebar";
 
-// Define interfaces para los nuevos datos
 interface Producto {
   producto_id: number;
   producto_nombre: string;
@@ -69,7 +68,6 @@ const formatCurrency = (value: number) => {
 
 const API_BASE_URL = "http://localhost:3001/api";
 
-// Componente Dashboard
 export default function DashboardHome() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,7 +77,6 @@ export default function DashboardHome() {
       try {
         setIsLoading(true);
 
-        // Solo necesitamos obtener las órdenes, ya que incluyen los datos de los productos
         const pedidosResponse = await fetch(`${API_BASE_URL}/pedidos/details`);
         const pedidosData = await pedidosResponse.json();
 
@@ -105,7 +102,6 @@ export default function DashboardHome() {
   // Calcular métricas clave
   const totalProductos = productosUnicos.length;
 
-  // Asumimos que todos los productos están en stock ya que no tenemos esa información
   const totalPedidos = pedidos.length;
 
   // Calcular ingresos totales
@@ -210,7 +206,7 @@ export default function DashboardHome() {
         return (
           <Badge
             variant="outline"
-            className="bg-purple-100 text-purple-800 border-purple-200"
+            className="bg-blue-100 text-blue-800 border-blue-200"
           >
             Enviado
           </Badge>

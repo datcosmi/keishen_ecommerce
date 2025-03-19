@@ -63,7 +63,7 @@ interface OrderDetail {
 interface Order {
   pedido_id: number;
   fecha_pedido: string;
-  status: "pendiente" | "finalizado";
+  status: "pendiente" | "enviado" | "finalizado";
   metodo_pago: "mercado pago" | "paypal" | "efectivo";
   cliente: string;
   detalles: OrderDetail[];
@@ -120,6 +120,7 @@ const OrderDashboard: React.FC = () => {
 
   // Calcular las cantidades para los filtros
   const pendienteCount = orders.filter((o) => o.status === "pendiente").length;
+  const enviadoCount = orders.filter((o) => o.status === "enviado").length;
   const finalizadoCount = orders.filter(
     (o) => o.status === "finalizado"
   ).length;
@@ -127,6 +128,7 @@ const OrderDashboard: React.FC = () => {
   const statusOptions = [
     { id: "todos", label: "Todos", count: orders.length },
     { id: "pendiente", label: "Pendiente", count: pendienteCount },
+    { id: "enviado", label: "Enviado", count: enviadoCount },
     { id: "finalizado", label: "Finalizado", count: finalizadoCount },
   ];
 
@@ -234,7 +236,7 @@ const OrderDashboard: React.FC = () => {
   // Actualizar el estado de un pedido
   const handleUpdateStatus = (
     orderId: number,
-    newStatus: "pendiente" | "finalizado"
+    newStatus: "pendiente" | "enviado" | "finalizado"
   ) => {
     setOrders(
       orders.map((order) =>
@@ -265,6 +267,9 @@ const OrderDashboard: React.FC = () => {
     switch (status) {
       case "pendiente":
         colorClass = "bg-yellow-50 text-yellow-600 border-yellow-300";
+        break;
+      case "enviado":
+        colorClass = "bg-blue-50 text-blue-600 border-blue-300";
         break;
       case "finalizado":
         colorClass = "bg-green-50 text-green-600 border-green-300";
@@ -437,7 +442,7 @@ const OrderDashboard: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <div className="text-sm text-gray-600">
-                              {order.cliente}
+                              {order.cliente || "No especificado"}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -483,7 +488,7 @@ const OrderDashboard: React.FC = () => {
                                           Cliente
                                         </p>
                                         <p className="text-sm">
-                                          {order.cliente}
+                                          {order.cliente || "No especificado"}
                                         </p>
                                       </div>
                                       <div>
@@ -581,6 +586,9 @@ const OrderDashboard: React.FC = () => {
                                   <SelectItem value="pendiente">
                                     Pendiente
                                   </SelectItem>
+                                  <SelectItem value="enviado">
+                                    Enviado
+                                  </SelectItem>
                                   <SelectItem value="finalizado">
                                     Finalizado
                                   </SelectItem>
@@ -616,7 +624,7 @@ const OrderDashboard: React.FC = () => {
                               Pedido #{order.pedido_id}
                             </h3>
                             <p className="text-sm text-gray-500">
-                              {order.cliente}
+                              {order.cliente || "No especificado"}
                             </p>
                           </div>
                           {renderStatusBadge(order.status)}
@@ -684,7 +692,9 @@ const OrderDashboard: React.FC = () => {
                                     <p className="text-sm font-medium text-gray-500">
                                       Cliente
                                     </p>
-                                    <p className="text-sm">{order.cliente}</p>
+                                    <p className="text-sm">
+                                      {order.cliente || "No especificado"}
+                                    </p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">
@@ -774,6 +784,7 @@ const OrderDashboard: React.FC = () => {
                               <SelectItem value="pendiente">
                                 Pendiente
                               </SelectItem>
+                              <SelectItem value="enviado">Enviado</SelectItem>
                               <SelectItem value="finalizado">
                                 Finalizado
                               </SelectItem>
