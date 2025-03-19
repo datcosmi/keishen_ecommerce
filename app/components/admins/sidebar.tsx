@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Wallet,
   Layers2,
 } from "lucide-react";
 import {
@@ -35,6 +36,7 @@ const Sidebar = () => {
     { name: "Inicio", icon: Home, href: "/dashboard" },
     { name: "Productos", icon: Archive, href: "/products" },
     { name: "Categorias", icon: Layers2, href: "/categories" },
+    { name: "Descuentos", icon: Wallet, href: "/descuentos" },
     { name: "Pedidos", icon: CreditCard, href: "/pedidos" },
     { name: "Ventas", icon: BarChart2, href: "/ventas" },
     { name: "Administradores", icon: User, href: "/administradores" },

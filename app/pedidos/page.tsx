@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import Sidebar from "../components/admins/sidebar";
 
-// Importaciones de shadcn/ui
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -47,23 +46,32 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+interface Product {
+  producto_id: number;
+  producto_nombre: string;
+  producto_precio: number;
+  producto_imagenes: string[];
+}
+
 interface OrderDetail {
-  productId: string;
-  quantity: number;
-  unitPrice: number;
+  detalle_id: number;
+  amount: number;
+  unit_price: number;
+  producto: Product;
 }
 
 interface Order {
-  id: string;
-  userId: string;
-  date: string;
-  status: "pendiente" | "pagado" | "enviado" | "entregado";
-  paymentMethod: "Mercado Pago" | "PayPal";
-  details: OrderDetail[];
+  pedido_id: number;
+  fecha_pedido: string;
+  status: "pendiente" | "finalizado";
+  metodo_pago: "mercado pago" | "paypal" | "efectivo";
+  cliente: string;
+  detalles: OrderDetail[];
 }
 
 type SortField = "id" | "date" | "status" | "paymentMethod" | "total";
 type SortDirection = "asc" | "desc";
+const API_BASE_URL = "http://localhost:3001/api";
 
 const OrderDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -81,58 +89,51 @@ const OrderDashboard: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   // Vista
-  const [isGridView, setIsGridView] = useState(false);
+  const [isGridView, setIsGridView] = useState(true);
 
   // Modal de detalles
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const response = await fetch("/api/orders");
-        const data = await response.json();
-        setOrders(data);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-        setLoading(false);
-      }
-    };
-
-    fetchOrders();
-  }, []);
-
-  const handleRefresh = async () => {
+  const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/orders");
+      const response = await fetch(`${API_BASE_URL}/pedidos/details`);
+      if (!response.ok) {
+        throw new Error(`Error fetching orders: ${response.statusText}`);
+      }
       const data = await response.json();
       setOrders(data);
     } catch (error) {
-      console.error("Error refreshing orders:", error);
+      console.error("Error fetching orders:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const handleRefresh = async () => {
+    fetchOrders();
+  };
+
   // Calcular las cantidades para los filtros
   const pendienteCount = orders.filter((o) => o.status === "pendiente").length;
-  const pagadoCount = orders.filter((o) => o.status === "pagado").length;
-  const enviadoCount = orders.filter((o) => o.status === "enviado").length;
-  const entregadoCount = orders.filter((o) => o.status === "entregado").length;
+  const finalizadoCount = orders.filter(
+    (o) => o.status === "finalizado"
+  ).length;
 
   const statusOptions = [
     { id: "todos", label: "Todos", count: orders.length },
     { id: "pendiente", label: "Pendiente", count: pendienteCount },
-    { id: "pagado", label: "Pagado", count: pagadoCount },
-    { id: "enviado", label: "Enviado", count: enviadoCount },
-    { id: "entregado", label: "Entregado", count: entregadoCount },
+    { id: "finalizado", label: "Finalizado", count: finalizadoCount },
   ];
 
   // Calcular el total de un pedido
   const calculateOrderTotal = (order: Order): number => {
-    return order.details.reduce(
-      (total, item) => total + item.unitPrice * item.quantity,
+    return order.detalles.reduce(
+      (total, item) => total + item.unit_price * item.amount,
       0
     );
   };
@@ -152,8 +153,9 @@ const OrderDashboard: React.FC = () => {
   // Aplicar los filtros por búsqueda y estado
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.userId.toLowerCase().includes(searchQuery.toLowerCase());
+      order.pedido_id.toString().includes(searchQuery.toString()) ||
+      order.cliente.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.metodo_pago.toLowerCase().includes(searchQuery.toLowerCase());
 
     // Aplicar filtro por estado
     if (
@@ -170,20 +172,22 @@ const OrderDashboard: React.FC = () => {
   const sortedOrders = [...filteredOrders].sort((a, b) => {
     if (sortField === "id") {
       return sortDirection === "asc"
-        ? a.id.localeCompare(b.id)
-        : b.id.localeCompare(a.id);
+        ? a.pedido_id - b.pedido_id
+        : b.pedido_id - a.pedido_id;
     } else if (sortField === "date") {
       return sortDirection === "asc"
-        ? new Date(a.date).getTime() - new Date(b.date).getTime()
-        : new Date(b.date).getTime() - new Date(a.date).getTime();
+        ? new Date(a.fecha_pedido).getTime() -
+            new Date(b.fecha_pedido).getTime()
+        : new Date(b.fecha_pedido).getTime() -
+            new Date(a.fecha_pedido).getTime();
     } else if (sortField === "status") {
       return sortDirection === "asc"
         ? a.status.localeCompare(b.status)
         : b.status.localeCompare(a.status);
     } else if (sortField === "paymentMethod") {
       return sortDirection === "asc"
-        ? a.paymentMethod.localeCompare(b.paymentMethod)
-        : b.paymentMethod.localeCompare(a.paymentMethod);
+        ? a.metodo_pago.localeCompare(b.metodo_pago)
+        : b.metodo_pago.localeCompare(a.metodo_pago);
     } else if (sortField === "total") {
       const totalA = calculateOrderTotal(a);
       const totalB = calculateOrderTotal(b);
@@ -229,12 +233,12 @@ const OrderDashboard: React.FC = () => {
 
   // Actualizar el estado de un pedido
   const handleUpdateStatus = (
-    orderId: string,
-    newStatus: "pendiente" | "pagado" | "enviado" | "entregado"
+    orderId: number,
+    newStatus: "pendiente" | "finalizado"
   ) => {
     setOrders(
       orders.map((order) =>
-        order.id === orderId ? { ...order, status: newStatus } : order
+        order.pedido_id === orderId ? { ...order, status: newStatus } : order
       )
     );
   };
@@ -262,13 +266,7 @@ const OrderDashboard: React.FC = () => {
       case "pendiente":
         colorClass = "bg-yellow-50 text-yellow-600 border-yellow-300";
         break;
-      case "pagado":
-        colorClass = "bg-blue-50 text-blue-600 border-blue-300";
-        break;
-      case "enviado":
-        colorClass = "bg-purple-50 text-purple-600 border-purple-300";
-        break;
-      case "entregado":
+      case "finalizado":
         colorClass = "bg-green-50 text-green-600 border-green-300";
         break;
       default:
@@ -342,7 +340,7 @@ const OrderDashboard: React.FC = () => {
             <Input
               type="text"
               className="pl-10 pr-3 bg-white"
-              placeholder="Buscar productos..."
+              placeholder="Buscar pedidos..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -425,18 +423,21 @@ const OrderDashboard: React.FC = () => {
                     </TableHeader>
                     <TableBody>
                       {currentOrders.map((order) => (
-                        <TableRow key={order.id} className="hover:bg-gray-50">
+                        <TableRow
+                          key={order.pedido_id}
+                          className="hover:bg-gray-50"
+                        >
                           <TableCell>
-                            <div className="font-medium">{order.id}</div>
+                            <div className="font-medium">{order.pedido_id}</div>
                           </TableCell>
                           <TableCell>
                             <div className="text-sm text-gray-600">
-                              {formatDate(order.date)}
+                              {formatDate(order.fecha_pedido)}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="text-sm text-gray-600">
-                              Cliente {order.userId}
+                              {order.cliente}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -444,7 +445,8 @@ const OrderDashboard: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <div className="text-sm text-gray-600">
-                              {order.paymentMethod}
+                              {order.metodo_pago.charAt(0).toUpperCase() +
+                                order.metodo_pago.slice(1)}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -468,7 +470,7 @@ const OrderDashboard: React.FC = () => {
                                 <DialogContent className="sm:max-w-md">
                                   <DialogHeader>
                                     <DialogTitle>
-                                      Detalles del Pedido #{order.id}
+                                      Detalles del Pedido #{order.pedido_id}
                                     </DialogTitle>
                                     <DialogDescription>
                                       Información completa del pedido
@@ -481,7 +483,7 @@ const OrderDashboard: React.FC = () => {
                                           Cliente
                                         </p>
                                         <p className="text-sm">
-                                          Cliente {order.userId}
+                                          {order.cliente}
                                         </p>
                                       </div>
                                       <div>
@@ -489,7 +491,7 @@ const OrderDashboard: React.FC = () => {
                                           Fecha
                                         </p>
                                         <p className="text-sm">
-                                          {formatDate(order.date)}
+                                          {formatDate(order.fecha_pedido)}
                                         </p>
                                       </div>
                                       <div>
@@ -505,7 +507,10 @@ const OrderDashboard: React.FC = () => {
                                           Método de pago
                                         </p>
                                         <p className="text-sm">
-                                          {order.paymentMethod}
+                                          {order.metodo_pago
+                                            .charAt(0)
+                                            .toUpperCase() +
+                                            order.metodo_pago.slice(1)}
                                         </p>
                                       </div>
                                     </div>
@@ -526,22 +531,23 @@ const OrderDashboard: React.FC = () => {
                                           </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                          {order.details.map((item, index) => (
+                                          {order.detalles.map((item, index) => (
                                             <TableRow key={index}>
                                               <TableCell>
-                                                Producto {item.productId}
+                                                Producto{" "}
+                                                {item.producto.producto_nombre}
                                               </TableCell>
                                               <TableCell>
-                                                {item.quantity}
+                                                {item.amount}
                                               </TableCell>
                                               <TableCell>
                                                 $
-                                                {item.unitPrice.toLocaleString()}
+                                                {item.unit_price.toLocaleString()}
                                               </TableCell>
                                               <TableCell>
                                                 $
                                                 {(
-                                                  item.quantity * item.unitPrice
+                                                  item.amount * item.unit_price
                                                 ).toLocaleString()}
                                               </TableCell>
                                             </TableRow>
@@ -565,12 +571,8 @@ const OrderDashboard: React.FC = () => {
                               <Select
                                 value={order.status}
                                 onValueChange={(
-                                  value:
-                                    | "pendiente"
-                                    | "pagado"
-                                    | "enviado"
-                                    | "entregado"
-                                ) => handleUpdateStatus(order.id, value)}
+                                  value: "pendiente" | "finalizado"
+                                ) => handleUpdateStatus(order.pedido_id, value)}
                               >
                                 <SelectTrigger className="w-[110px] h-8">
                                   <SelectValue placeholder="Actualizar" />
@@ -579,12 +581,8 @@ const OrderDashboard: React.FC = () => {
                                   <SelectItem value="pendiente">
                                     Pendiente
                                   </SelectItem>
-                                  <SelectItem value="pagado">Pagado</SelectItem>
-                                  <SelectItem value="enviado">
-                                    Enviado
-                                  </SelectItem>
-                                  <SelectItem value="entregado">
-                                    Entregado
+                                  <SelectItem value="finalizado">
+                                    Finalizado
                                   </SelectItem>
                                 </SelectContent>
                               </Select>
@@ -610,13 +608,15 @@ const OrderDashboard: React.FC = () => {
                 // Vista de cuadrícula
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                   {currentOrders.map((order) => (
-                    <Card key={order.id}>
+                    <Card key={order.pedido_id}>
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div>
-                            <h3 className="font-medium">Pedido #{order.id}</h3>
+                            <h3 className="font-medium">
+                              Pedido #{order.pedido_id}
+                            </h3>
                             <p className="text-sm text-gray-500">
-                              Cliente {order.userId}
+                              {order.cliente}
                             </p>
                           </div>
                           {renderStatusBadge(order.status)}
@@ -628,21 +628,24 @@ const OrderDashboard: React.FC = () => {
                               size={16}
                               className="mr-2 text-gray-400"
                             />
-                            <span>{formatDate(order.date)}</span>
+                            <span>{formatDate(order.fecha_pedido)}</span>
                           </div>
                           <div className="flex items-center text-sm">
                             <CreditCard
                               size={16}
                               className="mr-2 text-gray-400"
                             />
-                            <span>{order.paymentMethod}</span>
+                            <span>
+                              {order.metodo_pago.charAt(0).toUpperCase() +
+                                order.metodo_pago.slice(1)}
+                            </span>
                           </div>
                           <div className="flex items-center text-sm">
                             <ShoppingBag
                               size={16}
                               className="mr-2 text-gray-400"
                             />
-                            <span>{order.details.length} productos</span>
+                            <span>{order.detalles.length} productos</span>
                           </div>
                         </div>
 
@@ -669,7 +672,7 @@ const OrderDashboard: React.FC = () => {
                             <DialogContent className="sm:max-w-md">
                               <DialogHeader>
                                 <DialogTitle>
-                                  Detalles del Pedido #{order.id}
+                                  Detalles del Pedido #{order.pedido_id}
                                 </DialogTitle>
                                 <DialogDescription>
                                   Información completa del pedido
@@ -681,16 +684,14 @@ const OrderDashboard: React.FC = () => {
                                     <p className="text-sm font-medium text-gray-500">
                                       Cliente
                                     </p>
-                                    <p className="text-sm">
-                                      Cliente {order.userId}
-                                    </p>
+                                    <p className="text-sm">{order.cliente}</p>
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium text-gray-500">
                                       Fecha
                                     </p>
                                     <p className="text-sm">
-                                      {formatDate(order.date)}
+                                      {formatDate(order.fecha_pedido)}
                                     </p>
                                   </div>
                                   <div>
@@ -706,7 +707,10 @@ const OrderDashboard: React.FC = () => {
                                       Método de pago
                                     </p>
                                     <p className="text-sm">
-                                      {order.paymentMethod}
+                                      {order.metodo_pago
+                                        .charAt(0)
+                                        .toUpperCase() +
+                                        order.metodo_pago.slice(1)}
                                     </p>
                                   </div>
                                 </div>
@@ -725,19 +729,19 @@ const OrderDashboard: React.FC = () => {
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                      {order.details.map((item, index) => (
+                                      {order.detalles.map((item, index) => (
                                         <TableRow key={index}>
                                           <TableCell>
-                                            Producto {item.productId}
+                                            Producto {item.producto.producto_id}
                                           </TableCell>
-                                          <TableCell>{item.quantity}</TableCell>
+                                          <TableCell>{item.amount}</TableCell>
                                           <TableCell>
-                                            ${item.unitPrice.toLocaleString()}
+                                            ${item.unit_price.toLocaleString()}
                                           </TableCell>
                                           <TableCell>
                                             $
                                             {(
-                                              item.quantity * item.unitPrice
+                                              item.amount * item.unit_price
                                             ).toLocaleString()}
                                           </TableCell>
                                         </TableRow>
@@ -760,12 +764,8 @@ const OrderDashboard: React.FC = () => {
                           <Select
                             value={order.status}
                             onValueChange={(
-                              value:
-                                | "pendiente"
-                                | "pagado"
-                                | "enviado"
-                                | "entregado"
-                            ) => handleUpdateStatus(order.id, value)}
+                              value: "pendiente" | "finalizado"
+                            ) => handleUpdateStatus(order.pedido_id, value)}
                           >
                             <SelectTrigger className="flex-1 h-8">
                               <SelectValue placeholder="Estado" />
@@ -774,10 +774,8 @@ const OrderDashboard: React.FC = () => {
                               <SelectItem value="pendiente">
                                 Pendiente
                               </SelectItem>
-                              <SelectItem value="pagado">Pagado</SelectItem>
-                              <SelectItem value="enviado">Enviado</SelectItem>
-                              <SelectItem value="entregado">
-                                Entregado
+                              <SelectItem value="finalizado">
+                                Finalizado
                               </SelectItem>
                             </SelectContent>
                           </Select>
