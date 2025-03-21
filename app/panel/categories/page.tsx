@@ -83,7 +83,7 @@ const CategoriesDashboard: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   // Vista
-  const [isGridView, setIsGridView] = useState(false);
+  const [isGridView, setIsGridView] = useState(true);
 
   // Diálogo de confirmación para eliminar múltiples
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);

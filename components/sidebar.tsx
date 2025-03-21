@@ -33,15 +33,15 @@ const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
 
   const menuItems = [
-    { name: "Inicio", icon: Home, href: "/dashboard" },
-    { name: "Productos", icon: Archive, href: "/products" },
-    { name: "Categorias", icon: Layers2, href: "/categories" },
-    { name: "Descuentos", icon: Wallet, href: "/descuentos" },
-    { name: "Pedidos", icon: CreditCard, href: "/pedidos" },
-    { name: "Ventas", icon: BarChart2, href: "/ventas" },
-    { name: "Administradores", icon: User, href: "/administradores" },
-    { name: "Vendedores", icon: Users, href: "/vendedores" },
-    { name: "Configuración", icon: Settings, href: "/settings" },
+    { name: "Inicio", icon: Home, href: "/panel/dashboard" },
+    { name: "Productos", icon: Archive, href: "/panel/products" },
+    { name: "Categorias", icon: Layers2, href: "/panel/categories" },
+    { name: "Descuentos", icon: Wallet, href: "/panel/descuentos" },
+    { name: "Pedidos", icon: CreditCard, href: "/panel/pedidos" },
+    { name: "Ventas", icon: BarChart2, href: "/panel/ventas" },
+    { name: "Administradores", icon: User, href: "/panel/administradores" },
+    { name: "Vendedores", icon: Users, href: "/panel/vendedores" },
+    { name: "Configuración", icon: Settings, href: "/panel/settings" },
   ];
 
   // Función mejorada que comprueba si la ruta actual es o comienza con la ruta del enlace

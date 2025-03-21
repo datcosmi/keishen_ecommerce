@@ -16,6 +16,8 @@ import {
   Grid,
   RefreshCw,
   Plus,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import { toast } from "sonner";
@@ -196,7 +198,7 @@ const ProductDashboard: React.FC = () => {
   };
 
   const handleProductClick = (productId: number) => {
-    router.push(`/products/${productId}`);
+    router.push(`/panel/products/${productId}`);
   };
 
   // Manejador para editar el producto seleccionado
@@ -589,16 +591,21 @@ const ProductDashboard: React.FC = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-10">
-                          <Checkbox
-                            checked={
-                              currentProducts.length > 0 &&
-                              currentProducts.every((product) =>
-                                selectedProducts.includes(product.id)
-                              )
-                            }
-                            onCheckedChange={handleSelectAll}
-                            aria-label="Seleccionar todos"
-                          />
+                          <button
+                            onClick={handleSelectAll}
+                            className="focus:outline-none"
+                          >
+                            {selectedProducts.length ===
+                              currentProducts.length &&
+                            currentProducts.length > 0 ? (
+                              <CheckSquare
+                                size={18}
+                                className="text-blue-600"
+                              />
+                            ) : (
+                              <Square size={18} className="text-gray-400" />
+                            )}
+                          </button>
                         </TableHead>
                         <TableHead
                           className="cursor-pointer"
@@ -655,13 +662,19 @@ const ProductDashboard: React.FC = () => {
                           }`}
                         >
                           <TableCell className="p-2">
-                            <Checkbox
-                              checked={selectedProducts.includes(product.id)}
-                              onCheckedChange={() =>
-                                handleProductSelect(product.id)
-                              }
-                              aria-label={`Seleccionar ${product.name}`}
-                            />
+                            <button
+                              onClick={() => handleProductSelect(product.id)}
+                              className="focus:outline-none"
+                            >
+                              {selectedProducts.includes(product.id) ? (
+                                <CheckSquare
+                                  size={18}
+                                  className="text-blue-600"
+                                />
+                              ) : (
+                                <Square size={18} className="text-gray-400" />
+                              )}
+                            </button>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center">
@@ -764,19 +777,23 @@ const ProductDashboard: React.FC = () => {
                           ? "border-blue-300 bg-blue-50"
                           : ""
                       }
-                      onClick={() => handleProductClick(product.id)}
                       style={{ cursor: "pointer" }}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-center mb-3">
-                          <Checkbox
-                            checked={selectedProducts.includes(product.id)}
-                            onCheckedChange={() =>
-                              handleProductSelect(product.id)
-                            }
-                            aria-label={`Seleccionar ${product.name}`}
-                            className="mr-2"
-                          />
+                          <button
+                            onClick={() => handleProductSelect(product.id)}
+                            className="focus:outline-none mr-2"
+                          >
+                            {selectedProducts.includes(product.id) ? (
+                              <CheckSquare
+                                size={18}
+                                className="text-blue-600"
+                              />
+                            ) : (
+                              <Square size={18} className="text-gray-400" />
+                            )}
+                          </button>
                           <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-100">
                             <div className="w-8 h-8 relative">
                               {product.images.length > 0 ? (
@@ -794,7 +811,10 @@ const ProductDashboard: React.FC = () => {
                             </div>
                           </div>
                           <div className="ml-2 flex items-center gap-1">
-                            <span className="font-semibold">
+                            <span
+                              onClick={() => handleProductClick(product.id)}
+                              className="font-semibold hover:text-blue-600 cursor-pointer"
+                            >
                               {product.name}
                             </span>
                           </div>

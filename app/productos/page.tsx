@@ -653,7 +653,7 @@ export default function ProductsPage() {
                 {sortedProducts.map((product) => (
                   <Link
                     key={product.id}
-                    href={`/producto/${product.id}`}
+                    href={`/productos/${product.id}`}
                     className="block"
                   >
                     <Card className="overflow-hidden h-full transition-all duration-300 hover:shadow-md">

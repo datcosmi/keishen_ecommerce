@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import NavbarBlack from "./components/navbarBlack";
+import NavbarBlack from "@/components/navbarBlack";
 import { ChevronLeft, ChevronRight, Tag, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import Footer from "@/components/footer";
@@ -435,7 +435,7 @@ export default function LandingPage() {
                           style={{ flex: "0 0 33.333%" }}
                         >
                           <Link
-                            href={`/producto/${product.id}`}
+                            href={`/productos/${product.id}`}
                             className="block h-full"
                           >
                             <Card className="overflow-hidden h-full transition-all duration-300 hover:shadow-md">
@@ -571,7 +571,7 @@ export default function LandingPage() {
               {newestProducts.slice(0, 8).map((product) => (
                 <Link
                   key={product.id}
-                  href={`/producto/${product.id}`}
+                  href={`/productos/${product.id}`}
                   className="block"
                 >
                   <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg h-full">
@@ -643,7 +643,7 @@ export default function LandingPage() {
               {endingSoonDiscounts.map((product) => (
                 <Link
                   key={product.id}
-                  href={`/producto/${product.id}`}
+                  href={`/productos/${product.id}`}
                   className="block"
                 >
                   <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg relative h-full border-red-200">
@@ -729,7 +729,7 @@ export default function LandingPage() {
               {discountedProducts.map((product) => (
                 <Link
                   key={product.id}
-                  href={`/producto/${product.id}`}
+                  href={`/productos/${product.id}`}
                   className="block"
                 >
                   <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg relative h-full">
@@ -1121,7 +1121,7 @@ export default function LandingPage() {
                           return (
                             <Link
                               key={product.id}
-                              href={`/producto/${product.id}`}
+                              href={`/productos/${product.id}`}
                               className="block"
                             >
                               <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg group">

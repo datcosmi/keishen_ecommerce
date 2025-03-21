@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Plus, Edit } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -24,10 +24,10 @@ interface Category {
 interface CategoryModalProps {
   onCategoryAdded: (category: Category) => void;
   onCategoryUpdated?: (category: Category) => void;
-  category?: Category; // Para modo edición
+  category?: Category;
   isEdit?: boolean;
-  externalOpenState?: boolean; // Estado externo para controlar la apertura
-  onOpenStateChange?: (open: boolean) => void; // Callback para cambios en el estado
+  externalOpenState?: boolean;
+  onOpenStateChange?: (open: boolean) => void;
 }
 
 const CategoryModal: React.FC<CategoryModalProps> = ({
