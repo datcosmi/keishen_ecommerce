@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { ChevronDown, ChevronUp, SlidersHorizontal, Tag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import NavbarWhite from "../components/navbarWhite";
-import Footer from "../components/footer";
+import NavbarWhite from "@/components/navbarWhite";
+import Footer from "@/components/footer";
 
 // Importamos componentes de shadcn UI
 import { Button } from "@/components/ui/button";

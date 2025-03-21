@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import NavbarWhite from "@/app/components/navbarWhite";
+import NavbarWhite from "@/components/navbarWhite";
 
 interface ProductDiscount {
   id: string;

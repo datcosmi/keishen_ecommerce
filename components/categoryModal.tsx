@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { Plus, Edit } from "lucide-react";
 import { toast } from "sonner";
 
-// shadcn/ui components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {

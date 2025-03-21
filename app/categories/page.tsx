@@ -15,7 +15,7 @@ import {
   Grid,
   RefreshCw,
 } from "lucide-react";
-import Sidebar from "../components/admins/sidebar";
+import Sidebar from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -46,7 +46,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import CategoryModal from "../components/categoryModal";
+import CategoryModal from "@/components/categoryModal";
 
 interface Category {
   id_cat: number;

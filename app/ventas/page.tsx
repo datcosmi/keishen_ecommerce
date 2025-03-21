@@ -31,7 +31,7 @@ import {
   Package,
   Check,
 } from "lucide-react";
-import Sidebar from "../components/admins/sidebar";
+import Sidebar from "@/components/sidebar";
 
 interface ProductoDetalle {
   producto_id: number;

@@ -17,7 +17,7 @@ import {
   RefreshCw,
   Plus,
 } from "lucide-react";
-import Sidebar from "../components/admins/sidebar";
+import Sidebar from "@/components/sidebar";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -51,7 +51,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import ProductFormModal from "../components/productFormModal";
+import ProductFormModal from "@/components/productFormModal";
 
 interface ProductDetail {
   id_pd: number;

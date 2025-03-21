@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import {
   Card,
@@ -33,7 +32,7 @@ import {
   Truck,
   CheckCircle,
 } from "lucide-react";
-import Sidebar from "../components/admins/sidebar";
+import Sidebar from "@/components/sidebar";
 
 interface Producto {
   producto_id: number;
