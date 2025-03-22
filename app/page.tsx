@@ -372,7 +372,9 @@ export default function LandingPage() {
                           alt={product.name}
                           fill
                           className="object-cover p-4 transition-transform duration-300 hover:scale-105"
+                          sizes="(max-width: 768px) 100vw, 50vw"
                         />
+
                         <div className="absolute top-4 left-4 z-10">
                           <Badge className="bg-blue-600 text-white">
                             Nuevo
@@ -457,6 +459,7 @@ export default function LandingPage() {
                           alt={product.name}
                           fill
                           className="object-cover p-4 transition-transform duration-300 hover:scale-105"
+                          sizes="(max-width: 768px) 100vw, 50vw"
                         />
                       </div>
                       <div className="p-4">
@@ -535,6 +538,7 @@ export default function LandingPage() {
                           alt={product.name}
                           fill
                           className="object-cover p-4 transition-transform duration-300 hover:scale-105"
+                          sizes="(max-width: 768px) 100vw, 50vw"
                         />
                       </div>
                       <div className="p-4">
@@ -918,8 +922,10 @@ export default function LandingPage() {
                                       src={product.image}
                                       alt={product.name}
                                       fill
-                                      className="object-cover p-3 transition-transform duration-300 group-hover:scale-105"
+                                      className="object-cover p-4 transition-transform duration-300 hover:scale-105"
+                                      sizes="(max-width: 768px) 100vw, 50vw"
                                     />
+
                                     {discountPercentage > 0 && (
                                       <div className="absolute top-3 right-3 z-10">
                                         <Badge className="bg-red-600 text-white">

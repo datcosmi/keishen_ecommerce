@@ -6,11 +6,7 @@ import { Badge, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent } from "./ui/card";
-import {
-  Product,
-  ProductDiscount,
-  CategoryDiscount,
-} from "@/app/types/indexTypes";
+import { Product, ProductDiscount, CategoryDiscount } from "@/types/indexTypes";
 
 interface ProductsSectionProps {
   allProducts?: Product[];
@@ -145,8 +141,10 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({
                                   src={product.image}
                                   alt={product.name}
                                   fill
-                                  className="object-cover p-6 transition-transform duration-300 group-hover:scale-105"
+                                  className="object-cover p-4 transition-transform duration-300 hover:scale-105"
+                                  sizes="(max-width: 768px) 100vw, 50vw"
                                 />
+
                                 {discountPercentage > 0 && (
                                   <div className="absolute top-4 right-4 z-10">
                                     <Badge className="bg-red-600 text-white">
