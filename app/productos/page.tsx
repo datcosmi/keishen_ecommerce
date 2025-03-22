@@ -7,7 +7,6 @@ import Link from "next/link";
 import NavbarWhite from "@/components/navbarWhite";
 import Footer from "@/components/footer";
 
-// Importamos componentes de shadcn UI
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,7 +37,6 @@ interface Product {
   inStock: boolean;
   categoryId: string;
   addedDate: string;
-  // Added properties for discount handling
   discountedPrice?: number;
   discountPercentage?: number;
   isDiscounted?: boolean;

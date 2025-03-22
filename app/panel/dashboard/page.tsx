@@ -33,29 +33,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import Sidebar from "@/components/sidebar";
-
-interface Producto {
-  producto_id: number;
-  producto_nombre: string;
-  producto_precio: number;
-  producto_imagenes: string[];
-}
-
-interface DetallePedido {
-  detalle_id: number;
-  amount: number;
-  unit_price: number;
-  producto: Producto;
-}
-
-interface Pedido {
-  pedido_id: number;
-  fecha_pedido: string;
-  status: "pendiente" | "enviado" | "finalizado";
-  metodo_pago: "mercado pago" | "paypal" | "efectivo";
-  cliente: string;
-  detalles: DetallePedido[];
-}
+import { Order } from "@/app/types/orderTypes";
 
 // Función para formatear moneda
 const formatCurrency = (value: number) => {
@@ -68,7 +46,7 @@ const formatCurrency = (value: number) => {
 const API_BASE_URL = "http://localhost:3001/api";
 
 export default function DashboardHome() {
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [pedidos, setPedidos] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -190,7 +168,7 @@ export default function DashboardHome() {
     )
     .slice(0, 5);
 
-  const getBadgeEstado = (status: Pedido["status"]) => {
+  const getBadgeEstado = (status: Order["status"]) => {
     switch (status) {
       case "pendiente":
         return (

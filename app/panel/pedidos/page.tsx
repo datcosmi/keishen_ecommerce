@@ -63,29 +63,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import OrderFormModal from "@/components/orderFormModal";
-
-interface Product {
-  producto_id: number;
-  producto_nombre: string;
-  producto_precio: number;
-  producto_imagenes: string[];
-}
-
-interface OrderDetail {
-  detalle_id: number;
-  amount: number;
-  unit_price: number;
-  producto: Product;
-}
-
-interface Order {
-  pedido_id: number;
-  fecha_pedido: string;
-  status: "pendiente" | "enviado" | "finalizado";
-  metodo_pago: "mercado pago" | "paypal" | "efectivo";
-  cliente: string;
-  detalles: OrderDetail[];
-}
+import { Order } from "@/app/types/orderTypes";
 
 type SortField = "id" | "date" | "status" | "paymentMethod" | "total";
 type SortDirection = "asc" | "desc";

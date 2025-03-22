@@ -52,53 +52,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import ProductFormModal from "@/components/productFormModal";
-
-interface ProductDetail {
-  id_pd: number;
-  prod_id: number;
-  detail_name: string;
-  detail_desc: string;
-}
-
-interface ProductImage {
-  id_image: number;
-  prod_id: number;
-  url_image: string;
-}
-
-interface Category {
-  id_cat: number;
-  name: string;
-}
-
-interface ProductData {
-  product: {
-    id_prod: number;
-    name: string;
-    description: string;
-    price: number;
-    cat_id: number;
-    stock: number;
-  };
-  product_details: ProductDetail[];
-  product_images: ProductImage[];
-  category: Category;
-}
-
-// Interface simplificada para usar en la interfaz
-interface Product {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  stock: number;
-  details: ProductDetail[];
-  images: string[];
-  inStock: boolean;
-  category: Category;
-}
+import { Product, ProductData } from "@/app/types/productTypes";
 
 type SortField = "name" | "price" | "stock" | "inStock";
 type SortDirection = "asc" | "desc";

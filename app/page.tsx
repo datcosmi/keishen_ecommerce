@@ -3,52 +3,20 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import NavbarBlack from "@/components/navbarBlack";
-import { ChevronLeft, ChevronRight, Tag, Clock } from "lucide-react";
-import { motion } from "framer-motion";
+import { ChevronRight, Tag, Clock } from "lucide-react";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import HeroSection from "@/components/heroSection";
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  brand?: string;
-  colors?: string[];
-  inStock?: boolean;
-  categoryId?: string;
-  addedDate?: string;
-}
-
-interface Category {
-  id: string;
-  name: string;
-}
-
-interface ProductDiscount {
-  id: string;
-  productId: string;
-  discountPercentage: number;
-  startDate: string;
-  endDate: string;
-}
-
-interface CategoryDiscount {
-  id: string;
-  categoryId: string;
-  discountPercentage: number;
-  startDate: string;
-  endDate: string;
-}
-
-interface DiscountedProduct extends Product {
-  discountPercentage: number;
-  originalPrice: number;
-  endDate?: string;
-}
+import ProductsSection from "@/components/productsSection";
+import {
+  Product,
+  Category,
+  ProductDiscount,
+  CategoryDiscount,
+  DiscountedProduct,
+} from "./types/indexTypes";
 
 export default function LandingPage() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -60,7 +28,6 @@ export default function LandingPage() {
   const [discountedCategories, setDiscountedCategories] = useState<
     { category: Category; discountPercentage: number }[]
   >([]);
-  const [currentPage, setCurrentPage] = useState(0);
   const [productDiscounts, setProductDiscounts] = useState<ProductDiscount[]>(
     []
   );
@@ -73,10 +40,8 @@ export default function LandingPage() {
   const [endingSoonDiscounts, setEndingSoonDiscounts] = useState<
     DiscountedProduct[]
   >([]);
-  const productsPerPage = 3;
 
-  // Fetch products
-  useEffect(() => {
+  const fetchProducts = async () => {
     fetch("/api/products")
       .then((res) => res.json())
       .then((data) => {
@@ -113,16 +78,21 @@ export default function LandingPage() {
         setNewestProducts(sortedByDate.slice(0, 8));
       })
       .catch((err) => console.error(err));
-  }, []);
+  };
 
-  // Fetch categories
-  useEffect(() => {
+  const fetchCategories = async () => {
     fetch("/api/categories")
       .then((res) => res.json())
       .then((data) => {
         setCategories(data);
       })
       .catch((err) => console.error("Error fetching categories:", err));
+  };
+
+  // Fetch products and categories
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
   }, []);
 
   useEffect(() => {
@@ -299,20 +269,6 @@ export default function LandingPage() {
     }
   }, [categories, categoryDiscounts]);
 
-  const totalPages = Math.ceil(displayProducts.length / productsPerPage);
-
-  const nextPage = () => {
-    if (currentPage < totalPages - 1) {
-      setCurrentPage((prev) => prev + 1);
-    }
-  };
-
-  const prevPage = () => {
-    if (currentPage > 0) {
-      setCurrentPage((prev) => prev - 1);
-    }
-  };
-
   const formatPrice = (price: number) => {
     return `$${price.toLocaleString("es-MX")}`;
   };
@@ -333,12 +289,6 @@ export default function LandingPage() {
       return `${diffHours}h`;
     }
   };
-
-  // Calcular productos a mostrar en la página actual
-  const currentProducts = displayProducts.slice(
-    currentPage * productsPerPage,
-    (currentPage + 1) * productsPerPage
-  );
 
   return (
     <div className="min-h-screen bg-black">
@@ -363,187 +313,12 @@ export default function LandingPage() {
       </div>
 
       {/* Products Section */}
-      <section className="py-16 px-8 bg-white relative z-30">
-        <div className="max-w-6xl mx-auto relative">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold text-black">VISTE CON ESTILO</h2>
-            <p className="text-gray-500">
-              Mostrando {displayProducts.length} productos en existencia
-            </p>
-          </div>
+      <ProductsSection
+        allProducts={allProducts.filter((p) => p.inStock !== false)}
+        newestProducts={newestProducts.filter((p) => p.inStock !== false)}
+      />
 
-          {displayProducts.length > 0 ? (
-            <>
-              <Button
-                onClick={prevPage}
-                disabled={currentPage === 0}
-                variant="outline"
-                size="icon"
-                className="absolute left-[-60px] top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow-lg disabled:opacity-0"
-              >
-                <ChevronLeft className="h-6 w-6 text-gray-500" />
-              </Button>
-
-              {/* Carrusel de productos */}
-              <div className="overflow-hidden w-full relative">
-                <motion.div
-                  className="flex"
-                  animate={{ x: `-${currentPage * 100}%` }}
-                  transition={{ duration: 0.5, ease: "easeInOut" }}
-                >
-                  <div className="flex w-full">
-                    {currentProducts.map((product) => {
-                      // Calculate if product has an active discount
-                      const productDiscount = productDiscounts.find(
-                        (d) =>
-                          d.productId === product.id &&
-                          new Date() >= new Date(d.startDate) &&
-                          new Date() <= new Date(d.endDate)
-                      );
-
-                      const categoryDiscount = categoryDiscounts.find(
-                        (d) =>
-                          d.categoryId === product.categoryId &&
-                          new Date() >= new Date(d.startDate) &&
-                          new Date() <= new Date(d.endDate)
-                      );
-
-                      // Apply discount if exists
-                      let displayPrice = product.price;
-                      let originalPrice = null;
-                      let discountPercentage = 0;
-
-                      if (productDiscount) {
-                        originalPrice = product.price;
-                        displayPrice =
-                          product.price *
-                          (1 - productDiscount.discountPercentage / 100);
-                        discountPercentage = productDiscount.discountPercentage;
-                      } else if (categoryDiscount) {
-                        originalPrice = product.price;
-                        displayPrice =
-                          product.price *
-                          (1 - categoryDiscount.discountPercentage / 100);
-                        discountPercentage =
-                          categoryDiscount.discountPercentage;
-                      }
-
-                      return (
-                        <div
-                          key={product.id}
-                          className="w-1/3 px-4"
-                          style={{ flex: "0 0 33.333%" }}
-                        >
-                          <Link
-                            href={`/productos/${product.id}`}
-                            className="block h-full"
-                          >
-                            <Card className="overflow-hidden h-full transition-all duration-300 hover:shadow-md">
-                              <CardContent className="p-0">
-                                <div className="relative aspect-square bg-gray-100">
-                                  <Image
-                                    src={product.image}
-                                    alt={product.name}
-                                    fill
-                                    className="object-cover p-6 transition-transform duration-300 group-hover:scale-105"
-                                  />
-                                  {discountPercentage > 0 && (
-                                    <div className="absolute top-4 right-4 z-10">
-                                      <Badge className="bg-red-600 text-white">
-                                        {discountPercentage}% OFF
-                                      </Badge>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="p-3">
-                                  <div className="flex items-start justify-between">
-                                    <div>
-                                      <p className="text-sm text-gray-600 mb-1">
-                                        {product.brand}
-                                      </p>
-                                      <h3 className="text-base font-semibold">
-                                        {product.name}
-                                      </h3>
-                                    </div>
-                                    <div className="text-right">
-                                      {originalPrice ? (
-                                        <>
-                                          <span className="text-base font-bold text-red-600 block">
-                                            {formatPrice(displayPrice)}
-                                          </span>
-                                          <span className="text-sm text-gray-500 line-through">
-                                            {formatPrice(originalPrice)}
-                                          </span>
-                                        </>
-                                      ) : (
-                                        <span className="text-base font-bold">
-                                          {formatPrice(displayPrice)}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  {product.colors && (
-                                    <div className="mt-2 flex items-center justify-between">
-                                      <p className="text-xs text-gray-500">
-                                        {product.colors.length}{" "}
-                                        {product.colors.length === 1
-                                          ? "color"
-                                          : "colores"}
-                                      </p>
-                                      <div className="flex gap-1">
-                                        {product.colors
-                                          .slice(0, 3)
-                                          .map((color, index) => (
-                                            <div
-                                              key={index}
-                                              className="h-3 w-3 rounded-full border border-gray-300"
-                                              style={{ backgroundColor: color }}
-                                            />
-                                          ))}
-                                        {product.colors.length > 3 && (
-                                          <div className="text-xs text-gray-500">
-                                            +{product.colors.length - 3}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </Link>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </motion.div>
-              </div>
-
-              <Button
-                onClick={nextPage}
-                disabled={currentPage === totalPages - 1}
-                variant="outline"
-                size="icon"
-                className="absolute right-[-60px] top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow-lg disabled:opacity-0"
-              >
-                <ChevronRight className="h-6 w-6 text-gray-500" />
-              </Button>
-            </>
-          ) : (
-            <div className="text-center py-12">
-              <h3 className="text-lg font-medium mb-2">
-                No hay productos en existencia
-              </h3>
-              <p className="text-gray-500">
-                Intenta consultar más tarde o contacta con nosotros para más
-                información.
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* NEW SECTION: Newest Products */}
+      {/* Newest Products */}
       <section className="py-16 px-8 bg-white relative z-30">
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-12">
@@ -618,7 +393,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* NEW SECTION: Ending Soon Discounts */}
+      {/* Ending Soon Discounts */}
       <section className="py-16 px-8 bg-red-50 relative z-30">
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-12">
@@ -704,7 +479,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* NEW SECTION: Individual Product Discounts */}
+      {/* Individual Product Discounts */}
       <section className="py-16 px-8 bg-gray-100 relative z-30">
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-12">
@@ -781,7 +556,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* NEW SECTION: Category Discounts */}
+      {/* Category Discounts */}
       <section className="py-16 px-8 bg-black text-white relative z-30">
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-12">
@@ -821,7 +596,6 @@ export default function LandingPage() {
                       </Badge>
                     </div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      {/* Placeholder for category image - using a fallback icon */}
                       <div className="text-8xl text-gray-500 opacity-20">
                         {category.name === "Camisas" && "👕"}
                         {category.name === "Pantalones" && "👖"}
@@ -860,7 +634,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* NEW SECTION: Categories Showcase */}
+      {/* Categories Showcase */}
       <section className="py-16 px-8 bg-gray-100 relative z-30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
@@ -887,7 +661,6 @@ export default function LandingPage() {
                         className="bg-gray-100 rounded-lg overflow-hidden h-full"
                       >
                         <div className="relative aspect-[3/4] rounded-lg overflow-hidden">
-                          {/* Category image with emoji placeholder */}
                           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-50"></div>
                           <div className="absolute inset-0 flex items-center justify-center">
                             <div className="text-9xl text-gray-300">
@@ -1082,7 +855,6 @@ export default function LandingPage() {
                         .filter((product) => product.categoryId === category.id)
                         .slice(0, 4)
                         .map((product) => {
-                          // Calculate if product has an active discount
                           const productDiscount = productDiscounts.find(
                             (d) =>
                               d.productId === product.id &&
