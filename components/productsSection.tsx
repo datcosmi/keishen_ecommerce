@@ -2,20 +2,25 @@
 import { motion } from "framer-motion";
 import React, { useEffect, useState } from "react";
 import { Button } from "./ui/button";
-import { Badge, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent } from "./ui/card";
 import { Product, ProductDiscount, CategoryDiscount } from "@/types/indexTypes";
+import { Badge } from "./ui/badge";
 
 interface ProductsSectionProps {
   allProducts?: Product[];
   newestProducts?: Product[];
+  productDiscountsData?: ProductDiscount[];
+  categoryDiscountsData?: CategoryDiscount[];
 }
 
 const ProductsSection: React.FC<ProductsSectionProps> = ({
   allProducts,
   newestProducts,
+  productDiscountsData,
+  categoryDiscountsData,
 }) => {
   const [displayProducts, setDisplayProducts] = useState<Product[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
@@ -32,10 +37,20 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({
   useEffect(() => {
     if (allProducts && allProducts.length > 0) {
       setDisplayProducts(allProducts);
-    } else if (newestProducts && newestProducts.length > 0) {
+    }
+    if (newestProducts && newestProducts.length > 0) {
       setDisplayProducts(newestProducts);
     }
   }, [allProducts, newestProducts]);
+
+  useEffect(() => {
+    if (productDiscountsData && productDiscountsData.length > 0) {
+      setProductDiscounts(productDiscountsData);
+    }
+    if (categoryDiscountsData && categoryDiscountsData.length > 0) {
+      setCategoryDiscounts(categoryDiscountsData);
+    }
+  }, [productDiscountsData, categoryDiscountsData]);
 
   const nextPage = () => {
     if (currentPage < totalPages - 1) {

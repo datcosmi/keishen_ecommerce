@@ -18,6 +18,7 @@ import {
   CategoryDiscount,
   DiscountedProduct,
 } from "@/types/indexTypes";
+import NewestProductsSection from "@/components/newestProductsSection";
 
 export default function LandingPage() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -104,10 +105,25 @@ export default function LandingPage() {
     }
   };
 
-  // Fetch products and categories
+  const fetchDiscounts = async () => {
+    try {
+      const response = await fetch("/api/discounts");
+      if (!response.ok) {
+        throw new Error("Failed to fetch discounts");
+      }
+      const data = await response.json();
+      setProductDiscounts(data.products);
+      setCategoryDiscounts(data.categories);
+    } catch (error) {
+      console.error("Error fetching discounts:", error);
+    }
+  };
+
+  // Fetch products, categories and discounts
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    fetchDiscounts();
   }, []);
 
   useEffect(() => {
@@ -194,17 +210,6 @@ export default function LandingPage() {
       setCategoryProducts(filteredProducts);
     }
   }, [selectedCategory, allProducts, productDiscounts, categoryDiscounts]);
-
-  // Fetch discounts
-  useEffect(() => {
-    fetch("/api/discounts")
-      .then((res) => res.json())
-      .then((data) => {
-        setProductDiscounts(data.products);
-        setCategoryDiscounts(data.categories);
-      })
-      .catch((err) => console.error("Error fetching discounts:", err));
-  }, []);
 
   // Process discounted products when both products and discounts are loaded
   useEffect(() => {
@@ -331,84 +336,15 @@ export default function LandingPage() {
       <ProductsSection
         allProducts={allProducts.filter((p) => p.inStock !== false)}
         newestProducts={newestProducts.filter((p) => p.inStock !== false)}
+        productDiscountsData={productDiscounts}
+        categoryDiscountsData={categoryDiscounts}
       />
 
       {/* Newest Products */}
-      <section className="py-16 px-8 bg-white relative z-30">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex justify-between items-center mb-12">
-            <div>
-              <Badge
-                variant="outline"
-                className="bg-blue-100 text-blue-600 mb-3"
-              >
-                Recién llegados
-              </Badge>
-              <h2 className="text-3xl font-bold text-black">
-                NUEVOS PRODUCTOS
-              </h2>
-            </div>
-            <Button variant="outline" className="rounded-full" asChild>
-              <Link href="/nuevos" className="flex items-center gap-2">
-                <span>Ver todos los nuevos</span>
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-
-          {newestProducts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {newestProducts.slice(0, 8).map((product) => (
-                <Link
-                  key={product.id}
-                  href={`/productos/${product.id}`}
-                  className="block"
-                >
-                  <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg h-full">
-                    <CardContent className="p-0">
-                      <div className="relative aspect-square bg-gray-50">
-                        <Image
-                          src={product.image}
-                          alt={product.name}
-                          fill
-                          className="object-cover p-4 transition-transform duration-300 hover:scale-105"
-                          sizes="(max-width: 768px) 100vw, 50vw"
-                        />
-
-                        <div className="absolute top-4 left-4 z-10">
-                          <Badge className="bg-blue-600 text-white">
-                            Nuevo
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="p-4">
-                        <p className="text-sm text-gray-600 mb-1">
-                          {product.brand}
-                        </p>
-                        <h3 className="text-lg font-semibold mb-2">
-                          {product.name}
-                        </h3>
-                        <span className="text-lg font-bold">
-                          {formatPrice(product.price)}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16 bg-white rounded-lg shadow-sm">
-              <h3 className="text-xl font-medium mb-2">
-                No hay productos nuevos disponibles
-              </h3>
-              <p className="text-gray-500 mb-4">
-                Vuelve pronto para descubrir nuestras novedades.
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
+      <NewestProductsSection
+        allProductsData={allProducts.filter((p) => p.inStock !== false)}
+        newestProductsData={newestProducts.filter((p) => p.inStock !== false)}
+      />
 
       {/* Ending Soon Discounts */}
       <section className="py-16 px-8 bg-red-50 relative z-30">
