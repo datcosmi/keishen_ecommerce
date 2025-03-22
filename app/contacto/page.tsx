@@ -6,10 +6,10 @@ import {
   EnvelopeIcon,
 } from "@heroicons/react/24/solid";
 import { Facebook } from "lucide-react";
-import NavbarBlack from "../components/navbarBlack";
+import NavbarBlack from "@/components/navbarBlack";
 import { useInView } from "react-intersection-observer";
 import { useRef } from "react";
-import Footer from "../components/footer";
+import Footer from "@/components/footer";
 
 const Contacto = () => {
   const [ref5, inView5] = useInView({

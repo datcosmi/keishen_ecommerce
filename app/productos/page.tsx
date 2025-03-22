@@ -4,10 +4,9 @@ import { useState, useEffect } from "react";
 import { ChevronDown, ChevronUp, SlidersHorizontal, Tag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import NavbarWhite from "../components/navbarWhite";
-import Footer from "../components/footer";
+import NavbarWhite from "@/components/navbarWhite";
+import Footer from "@/components/footer";
 
-// Importamos componentes de shadcn UI
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,7 +37,6 @@ interface Product {
   inStock: boolean;
   categoryId: string;
   addedDate: string;
-  // Added properties for discount handling
   discountedPrice?: number;
   discountPercentage?: number;
   isDiscounted?: boolean;
@@ -653,7 +651,7 @@ export default function ProductsPage() {
                 {sortedProducts.map((product) => (
                   <Link
                     key={product.id}
-                    href={`/producto/${product.id}`}
+                    href={`/productos/${product.id}`}
                     className="block"
                   >
                     <Card className="overflow-hidden h-full transition-all duration-300 hover:shadow-md">

@@ -31,30 +31,8 @@ import {
   Package,
   Check,
 } from "lucide-react";
-import Sidebar from "../components/admins/sidebar";
-
-interface ProductoDetalle {
-  producto_id: number;
-  producto_nombre: string;
-  producto_precio: number;
-  producto_imagenes: string[];
-}
-
-interface DetallePedido {
-  detalle_id: number;
-  amount: number;
-  unit_price: number;
-  producto: ProductoDetalle;
-}
-
-interface Pedido {
-  pedido_id: number;
-  fecha_pedido: string;
-  status: "pendiente" | "enviado" | "finalizado";
-  metodo_pago: "mercado pago" | "paypal" | "efectivo";
-  cliente: string;
-  detalles: DetallePedido[];
-}
+import Sidebar from "@/components/sidebar";
+import { Order } from "@/app/types/orderTypes";
 
 // Colores para las gráficas
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28"];
@@ -67,7 +45,7 @@ const STATUS_COLORS = {
 const API_BASE_URL = "http://localhost:3001/api";
 
 const OrdersDashboard = () => {
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [pedidos, setPedidos] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

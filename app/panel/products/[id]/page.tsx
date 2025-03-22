@@ -3,15 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import {
-  ChevronLeft,
-  Edit,
-  Trash2,
-  RefreshCw,
-  AlertTriangle,
-  Archive,
-} from "lucide-react";
-import Sidebar from "../../components/admins/sidebar";
+import { ChevronLeft, RefreshCw, AlertTriangle } from "lucide-react";
+import Sidebar from "@/components/sidebar";
 import {
   Card,
   CardContent,
@@ -21,7 +14,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,

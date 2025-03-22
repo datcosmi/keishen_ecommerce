@@ -1,4 +1,4 @@
-import { Youtube, Facebook } from "lucide-react";
+import { Facebook } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface Category {

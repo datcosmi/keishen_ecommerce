@@ -21,7 +21,7 @@ import {
   CheckSquare,
   Square,
 } from "lucide-react";
-import Sidebar from "../components/admins/sidebar";
+import Sidebar from "@/components/sidebar";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +46,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -63,30 +62,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import OrderFormModal from "../components/orderFormModal";
-
-interface Product {
-  producto_id: number;
-  producto_nombre: string;
-  producto_precio: number;
-  producto_imagenes: string[];
-}
-
-interface OrderDetail {
-  detalle_id: number;
-  amount: number;
-  unit_price: number;
-  producto: Product;
-}
-
-interface Order {
-  pedido_id: number;
-  fecha_pedido: string;
-  status: "pendiente" | "enviado" | "finalizado";
-  metodo_pago: "mercado pago" | "paypal" | "efectivo";
-  cliente: string;
-  detalles: OrderDetail[];
-}
+import OrderFormModal from "@/components/orderFormModal";
+import { Order } from "@/app/types/orderTypes";
 
 type SortField = "id" | "date" | "status" | "paymentMethod" | "total";
 type SortDirection = "asc" | "desc";
@@ -536,7 +513,10 @@ const OrderDashboard: React.FC = () => {
                             >
                               {selectedOrders.length === currentOrders.length &&
                               currentOrders.length > 0 ? (
-                                <CheckSquare size={18} className="text-black" />
+                                <CheckSquare
+                                  size={18}
+                                  className="text-blue-600"
+                                />
                               ) : (
                                 <Square size={18} className="text-gray-400" />
                               )}
@@ -608,7 +588,10 @@ const OrderDashboard: React.FC = () => {
                               className="focus:outline-none"
                             >
                               {selectedOrders.includes(order.pedido_id) ? (
-                                <CheckSquare size={18} className="text-black" />
+                                <CheckSquare
+                                  size={18}
+                                  className="text-blue-600"
+                                />
                               ) : (
                                 <Square size={18} className="text-gray-400" />
                               )}
@@ -792,7 +775,10 @@ const OrderDashboard: React.FC = () => {
                               className="mr-2 focus:outline-none"
                             >
                               {selectedOrders.includes(order.pedido_id) ? (
-                                <CheckSquare size={18} className="text-black" />
+                                <CheckSquare
+                                  size={18}
+                                  className="text-blue-600"
+                                />
                               ) : (
                                 <Square size={18} className="text-gray-400" />
                               )}

@@ -102,7 +102,7 @@ export default function Login() {
             </div>
 
             <div className="mt-8">
-              <Link href={"/dashboard"}>
+              <Link href={"panel/dashboard"}>
                 <button
                   type="submit"
                   className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-lg transition duration-200"

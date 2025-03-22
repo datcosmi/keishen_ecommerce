@@ -15,7 +15,7 @@ import {
   Grid,
   RefreshCw,
 } from "lucide-react";
-import Sidebar from "../components/admins/sidebar";
+import Sidebar from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -46,12 +46,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import CategoryModal from "../components/categoryModal";
-
-interface Category {
-  id_cat: number;
-  name: string;
-}
+import CategoryModal from "@/components/categoryModal";
+import { Category } from "@/app/types/categoryTypes";
 
 type SortField = "id_cat" | "name";
 type SortDirection = "asc" | "desc";
@@ -83,7 +79,7 @@ const CategoriesDashboard: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   // Vista
-  const [isGridView, setIsGridView] = useState(false);
+  const [isGridView, setIsGridView] = useState(true);
 
   // Diálogo de confirmación para eliminar múltiples
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
