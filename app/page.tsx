@@ -12,11 +12,12 @@ import HeroSection from "@/components/heroSection";
 import ProductsSection from "@/components/productsSection";
 import {
   Product,
+  ProductData,
   Category,
   ProductDiscount,
   CategoryDiscount,
   DiscountedProduct,
-} from "./types/indexTypes";
+} from "@/types/indexTypes";
 
 export default function LandingPage() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -40,53 +41,67 @@ export default function LandingPage() {
   const [endingSoonDiscounts, setEndingSoonDiscounts] = useState<
     DiscountedProduct[]
   >([]);
+  const [loading, setLoading] = useState(true);
+
+  // Asegurarse de que todos los productos tengan las propiedades necesarias
+  const enhancedProducts = (data: ProductData[]): Product[] => {
+    return data.map((product) => ({
+      ...product,
+      brand: product.brand || "KEISHEN",
+      colors: product.colors || ["#000000", "#FFFFFF", "#808080"],
+      inStock: product.inStock !== undefined ? product.inStock : true,
+      categoryId:
+        product.categoryId || Math.floor(Math.random() * 5 + 1).toString(),
+      addedDate:
+        product.addedDate ||
+        new Date(
+          Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000
+        ).toISOString(),
+    }));
+  };
 
   const fetchProducts = async () => {
-    fetch("/api/products")
-      .then((res) => res.json())
-      .then((data) => {
-        // Asegurarse de que todos los productos tengan las propiedades necesarias
-        const enhancedProducts = data.map((product: Product) => ({
-          ...product,
-          brand: product.brand || "KEISHEN",
-          colors: product.colors || ["#000000", "#FFFFFF", "#808080"],
-          inStock: product.inStock !== undefined ? product.inStock : true,
-          // Assign random categoryId if not present (for demo purposes)
-          categoryId:
-            product.categoryId || Math.floor(Math.random() * 5 + 1).toString(),
-          // Set a random addedDate if not present (for demo purposes)
-          addedDate:
-            product.addedDate ||
-            new Date(
-              Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000
-            ).toISOString(),
-        }));
-        setAllProducts(enhancedProducts);
+    setLoading(true);
+    try {
+      const response = await fetch("/api/products");
+      if (!response.ok) {
+        throw new Error("Failed to fetch products");
+      }
+      const data = await response.json();
+      const enhancedData = enhancedProducts(data);
+      setAllProducts(enhancedData);
 
-        // Filtrar solo productos en existencia
-        const inStockProducts = enhancedProducts.filter(
-          (product: Product) => product.inStock !== false
-        );
-        setDisplayProducts(inStockProducts);
+      // Filtrar productos en existencia
+      const inStockProducts = enhancedData.filter(
+        (product: Product) => product.inStock !== false
+      );
+      setDisplayProducts(inStockProducts);
 
-        // Get newest products
-        const sortedByDate = [...inStockProducts].sort(
-          (a, b) =>
-            new Date(b.addedDate || "").getTime() -
-            new Date(a.addedDate || "").getTime()
-        );
-        setNewestProducts(sortedByDate.slice(0, 8));
-      })
-      .catch((err) => console.error(err));
+      // Obtener productos más recientes
+      const sortedByDate = [...inStockProducts].sort(
+        (a, b) =>
+          new Date(b.addedDate || "").getTime() -
+          new Date(a.addedDate || "").getTime()
+      );
+      setNewestProducts(sortedByDate.slice(0, 8));
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchCategories = async () => {
-    fetch("/api/categories")
-      .then((res) => res.json())
-      .then((data) => {
-        setCategories(data);
-      })
-      .catch((err) => console.error("Error fetching categories:", err));
+    try {
+      const response = await fetch("/api/categories");
+      if (!response.ok) {
+        throw new Error("Failed to fetch categories");
+      }
+      const data = await response.json();
+      setCategories(data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
   };
 
   // Fetch products and categories

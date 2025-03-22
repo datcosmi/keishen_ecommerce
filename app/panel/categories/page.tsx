@@ -47,7 +47,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import CategoryModal from "@/components/categoryModal";
-import { Category } from "@/app/types/categoryTypes";
+import { Category } from "@/types/categoryTypes";
 
 type SortField = "id_cat" | "name";
 type SortDirection = "asc" | "desc";

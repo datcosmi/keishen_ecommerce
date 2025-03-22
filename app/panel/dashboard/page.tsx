@@ -33,7 +33,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import Sidebar from "@/components/sidebar";
-import { Order } from "@/app/types/orderTypes";
+import { Order } from "@/types/orderTypes";
 
 // Función para formatear moneda
 const formatCurrency = (value: number) => {

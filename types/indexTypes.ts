@@ -1,3 +1,20 @@
+export interface ProductData {
+  id: string;
+  name: string;
+  brand: string;
+  description: string;
+  price: number;
+  rating: number;
+  reviews: number;
+  sizes: string[];
+  colors: string[];
+  straps: string[];
+  image: string;
+  inStock: boolean;
+  categoryId: string;
+  addedDate: string;
+}
+
 export interface Product {
   id: string;
   name: string;
