@@ -1,4 +1,4 @@
-import { ProductDiscount, CategoryDiscount } from "./indexTypes";
+import { ProductDiscount, CategoryDiscount } from "./discountTypes";
 
 export interface ProductDetail {
   product_detail_id: number;
@@ -25,7 +25,7 @@ export interface ProductData {
   discount_category: CategoryDiscount[];
 }
 
-// Interface simplificada para usar en la interfaz
+// For use in the products panel
 export interface Product {
   id: number;
   name: string;
