@@ -102,8 +102,9 @@ const HeroSection = () => {
               <Image
                 src="/watch.png"
                 alt="Fashion Model"
-                layout="fill"
-                objectFit="contain"
+                fill
+                style={{ objectFit: "contain" }}
+                sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
           </motion.div>

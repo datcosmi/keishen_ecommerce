@@ -32,7 +32,7 @@ import {
   Check,
 } from "lucide-react";
 import Sidebar from "@/components/sidebar";
-import { Order } from "@/app/types/orderTypes";
+import { Order } from "@/types/orderTypes";
 
 // Colores para las gráficas
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28"];

@@ -14,7 +14,7 @@ interface Product {
   image: string;
   inStock: boolean;
   categoryId: string;
-  addedDate: string; // New field for the addition date
+  addedDate: string;
 }
 
 const mockProducts: Product[] = [
@@ -33,7 +33,7 @@ const mockProducts: Product[] = [
     image: "/images/reloj-hombre.png",
     inStock: true,
     categoryId: "4",
-    addedDate: "2025-03-01", // Example addition date
+    addedDate: "2025-03-01",
   },
   {
     id: "2",
@@ -49,7 +49,7 @@ const mockProducts: Product[] = [
     image: "/images/otro-reloj.png",
     inStock: false,
     categoryId: "4",
-    addedDate: "2025-03-01", // Example addition date
+    addedDate: "2025-03-01",
   },
   {
     id: "3",
@@ -66,7 +66,7 @@ const mockProducts: Product[] = [
     image: "/images/gorra-nike.png",
     inStock: true,
     categoryId: "3",
-    addedDate: "2025-03-01", // Example addition date
+    addedDate: "2025-03-01",
   },
   {
     id: "4",
@@ -83,7 +83,7 @@ const mockProducts: Product[] = [
     image: "/images/pulsera-plata.png",
     inStock: true,
     categoryId: "4",
-    addedDate: "2025-03-01", // Example addition date
+    addedDate: "2025-03-01",
   },
   {
     id: "5",
@@ -99,7 +99,7 @@ const mockProducts: Product[] = [
     image: "/images/camiseta-adidas.png",
     inStock: false,
     categoryId: "1",
-    addedDate: "2025-03-01", // Example addition date
+    addedDate: "2025-03-01",
   },
   {
     id: "6",
@@ -116,7 +116,7 @@ const mockProducts: Product[] = [
     image: "/images/anillo-oro.png",
     inStock: true,
     categoryId: "4",
-    addedDate: "2025-03-01", // Example addition date
+    addedDate: "2025-03-01",
   },
 ];
 

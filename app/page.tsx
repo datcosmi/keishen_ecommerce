@@ -3,90 +3,153 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import NavbarBlack from "@/components/navbarBlack";
-import { ChevronRight, Tag, Clock } from "lucide-react";
+import { ChevronRight, Tag } from "lucide-react";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import HeroSection from "@/components/heroSection";
 import ProductsSection from "@/components/productsSection";
-import {
-  Product,
-  Category,
-  ProductDiscount,
-  CategoryDiscount,
-  DiscountedProduct,
-} from "./types/indexTypes";
+import { ProductData } from "@/types/productTypes";
+import { Category } from "@/types/categoryTypes";
+import { DisplayProduct } from "@/types/productTypes";
+import CategoriesShowcaseSection from "@/components/categoriesShowcaseSection";
+
+const API_BASE_URL = "http://localhost:3001/api";
 
 export default function LandingPage() {
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [displayProducts, setDisplayProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<DisplayProduct[]>([]);
+  const [displayProducts, setDisplayProducts] = useState<DisplayProduct[]>([]);
   const [discountedProducts, setDiscountedProducts] = useState<
-    DiscountedProduct[]
+    DisplayProduct[]
   >([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [discountedCategories, setDiscountedCategories] = useState<
     { category: Category; discountPercentage: number }[]
   >([]);
-  const [productDiscounts, setProductDiscounts] = useState<ProductDiscount[]>(
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [categoryProducts, setCategoryProducts] = useState<DisplayProduct[]>(
     []
   );
-  const [categoryDiscounts, setCategoryDiscounts] = useState<
-    CategoryDiscount[]
-  >([]);
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [categoryProducts, setCategoryProducts] = useState<Product[]>([]);
-  const [newestProducts, setNewestProducts] = useState<Product[]>([]);
-  const [endingSoonDiscounts, setEndingSoonDiscounts] = useState<
-    DiscountedProduct[]
-  >([]);
+  const [loading, setLoading] = useState(true);
+
+  // Transform ProductData to DisplayProduct
+  const mapProductData = (data: ProductData[]): DisplayProduct[] => {
+    return data.map((product) => ({
+      id: product.id_product,
+      name: product.product_name,
+      description: product.description,
+      price: product.price,
+      stock: product.stock,
+      category: product.category,
+      details: product.product_details,
+      images: product.product_images.map((img) => img.image_url),
+      inStock: product.stock > 0,
+      // Default image if none available
+      image:
+        product.product_images.length > 0
+          ? product.product_images[0].image_url
+          : "/images/placeholder.png",
+    }));
+  };
 
   const fetchProducts = async () => {
-    fetch("/api/products")
-      .then((res) => res.json())
-      .then((data) => {
-        // Asegurarse de que todos los productos tengan las propiedades necesarias
-        const enhancedProducts = data.map((product: Product) => ({
-          ...product,
-          brand: product.brand || "KEISHEN",
-          colors: product.colors || ["#000000", "#FFFFFF", "#808080"],
-          inStock: product.inStock !== undefined ? product.inStock : true,
-          // Assign random categoryId if not present (for demo purposes)
-          categoryId:
-            product.categoryId || Math.floor(Math.random() * 5 + 1).toString(),
-          // Set a random addedDate if not present (for demo purposes)
-          addedDate:
-            product.addedDate ||
-            new Date(
-              Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000
-            ).toISOString(),
-        }));
-        setAllProducts(enhancedProducts);
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/products/full-details`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch products");
+      }
+      const data = await response.json();
+      const mappedProducts = mapProductData(data);
+      setAllProducts(mappedProducts);
 
-        // Filtrar solo productos en existencia
-        const inStockProducts = enhancedProducts.filter(
-          (product: Product) => product.inStock !== false
-        );
-        setDisplayProducts(inStockProducts);
+      // Filter products in stock
+      const inStockProducts = mappedProducts.filter(
+        (product: DisplayProduct) => product.inStock
+      );
+      setDisplayProducts(inStockProducts);
 
-        // Get newest products
-        const sortedByDate = [...inStockProducts].sort(
-          (a, b) =>
-            new Date(b.addedDate || "").getTime() -
-            new Date(a.addedDate || "").getTime()
-        );
-        setNewestProducts(sortedByDate.slice(0, 8));
-      })
-      .catch((err) => console.error(err));
+      // Find and process discounted products
+      processDiscountedProducts(mappedProducts);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchCategories = async () => {
-    fetch("/api/categories")
-      .then((res) => res.json())
-      .then((data) => {
-        setCategories(data);
-      })
-      .catch((err) => console.error("Error fetching categories:", err));
+    try {
+      const response = await fetch(`${API_BASE_URL}/categories`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch categories");
+      }
+      const data = await response.json();
+      setCategories(data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
+  // Process products to find those with active discounts
+  const processDiscountedProducts = (products: DisplayProduct[]) => {
+    const now = new Date();
+    const discounted: DisplayProduct[] = [];
+
+    products.forEach((product) => {
+      // Find original ProductData to access discount info
+      const originalData = (allProducts as any).find(
+        (p: any) => p.id_product === product.id || p.id === product.id
+      );
+
+      if (!originalData) return;
+
+      // Check product discounts
+      const productDiscount = originalData.discount_product?.find(
+        (discount: any) => {
+          const startDate = new Date(discount.start_date_discount);
+          const endDate = new Date(discount.end_date_discount);
+          return now >= startDate && now <= endDate;
+        }
+      );
+
+      // Check category discounts
+      const categoryDiscount = originalData.discount_category?.find(
+        (discount: any) => {
+          const startDate = new Date(discount.start_date_discount);
+          const endDate = new Date(discount.end_date_discount);
+          return now >= startDate && now <= endDate;
+        }
+      );
+
+      // Apply the higher discount if both exist
+      if (productDiscount || categoryDiscount) {
+        const productDiscountValue = productDiscount?.percent_discount || 0;
+        const categoryDiscountValue = categoryDiscount?.percent_discount || 0;
+
+        // Use the higher discount
+        if (productDiscountValue >= categoryDiscountValue) {
+          discounted.push({
+            ...product,
+            originalPrice: product.price,
+            price: product.price * (1 - productDiscountValue / 100),
+            discountPercentage: productDiscountValue,
+            endDate: productDiscount.end_date_discount,
+          });
+        } else {
+          discounted.push({
+            ...product,
+            originalPrice: product.price,
+            price: product.price * (1 - categoryDiscountValue / 100),
+            discountPercentage: categoryDiscountValue,
+            endDate: categoryDiscount.end_date_discount,
+          });
+        }
+      }
+    });
+
+    setDiscountedProducts(discounted);
   };
 
   // Fetch products and categories
@@ -96,198 +159,82 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-    if (categories.length > 0 && !selectedCategory) {
+    if (categories.length > 0 && selectedCategory === null) {
       // Set the first category as selected by default when categories load
-      setSelectedCategory(categories[0]?.id || "");
+      setSelectedCategory(categories[0]?.id_cat || null);
     }
-  }, [categories]);
+  }, [categories, selectedCategory]);
 
+  // Process discounted categories
+  useEffect(() => {
+    if (categories.length > 0 && allProducts.length > 0) {
+      const now = new Date();
+      const discountedCats: {
+        category: Category;
+        discountPercentage: number;
+      }[] = [];
+
+      // For each category, find if it has an active discount
+      categories.forEach((category) => {
+        // Find a product in this category
+        const productInCategory = allProducts.find(
+          (p) =>
+            (p as any).category_id === category.id_cat ||
+            (p as any).category === category.name
+        );
+
+        if (!productInCategory) return;
+
+        // Check if the original data has category discounts
+        const originalData = (allProducts as any).find(
+          (p: any) =>
+            p.id_product === productInCategory.id ||
+            p.id === productInCategory.id
+        );
+
+        if (!originalData || !originalData.discount_category) return;
+
+        // Find active discount
+        const activeDiscount = originalData.discount_category.find(
+          (discount: any) => {
+            const startDate = new Date(discount.start_date_discount);
+            const endDate = new Date(discount.end_date_discount);
+            return now >= startDate && now <= endDate;
+          }
+        );
+
+        if (activeDiscount) {
+          discountedCats.push({
+            category,
+            discountPercentage: activeDiscount.percent_discount,
+          });
+        }
+      });
+
+      setDiscountedCategories(discountedCats);
+    }
+  }, [categories, allProducts]);
+
+  // Filter products by category
   useEffect(() => {
     if (selectedCategory && allProducts.length > 0) {
       // Filter products by the selected category
-      let filteredProducts = allProducts.filter(
-        (product) =>
-          product.categoryId === selectedCategory && product.inStock !== false
-      );
-
-      // Apply any active discounts to these products
-      if (productDiscounts.length > 0 || categoryDiscounts.length > 0) {
-        const now = new Date();
-
-        // Process product-specific discounts
-        const activeProductDiscounts = productDiscounts.filter((discount) => {
-          const startDate = new Date(discount.startDate);
-          const endDate = new Date(discount.endDate);
-          return now >= startDate && now <= endDate;
-        });
-
-        // Process category discounts
-        const activeCategoryDiscount = categoryDiscounts.find((discount) => {
-          const startDate = new Date(discount.startDate);
-          const endDate = new Date(discount.endDate);
-          return (
-            discount.categoryId === selectedCategory &&
-            now >= startDate &&
-            now <= endDate
-          );
-        });
-
-        // Apply discounts to products
-        filteredProducts = filteredProducts.map((product) => {
-          // Check for product-specific discount
-          const productDiscount = activeProductDiscounts.find(
-            (d) => d.productId === product.id
-          );
-
-          if (productDiscount) {
-            return {
-              ...product,
-              originalPrice: product.price,
-              price:
-                product.price * (1 - productDiscount.discountPercentage / 100),
-              discountPercentage: productDiscount.discountPercentage,
-              endDate: productDiscount.endDate,
-            };
-          }
-          // Check for category discount
-          else if (activeCategoryDiscount) {
-            return {
-              ...product,
-              originalPrice: product.price,
-              price:
-                product.price *
-                (1 - activeCategoryDiscount.discountPercentage / 100),
-              discountPercentage: activeCategoryDiscount.discountPercentage,
-              endDate: activeCategoryDiscount.endDate,
-            };
-          }
-
-          // No discount
-          return {
-            ...product,
-            discountPercentage: 0,
-          };
-        });
-      } else {
-        // If no discounts, ensure each product has a discountPercentage property of 0
-        filteredProducts = filteredProducts.map((product) => ({
-          ...product,
-          discountPercentage: 0,
-        }));
-      }
+      const filteredProducts = allProducts.filter((product) => {
+        const categoryId = (product as any).category_id || null;
+        return (
+          (categoryId === selectedCategory ||
+            product.category ===
+              categories.find((c) => c.id_cat === selectedCategory)?.name) &&
+          product.inStock
+        );
+      });
 
       setCategoryProducts(filteredProducts);
     }
-  }, [selectedCategory, allProducts, productDiscounts, categoryDiscounts]);
-
-  // Fetch discounts
-  useEffect(() => {
-    fetch("/api/discounts")
-      .then((res) => res.json())
-      .then((data) => {
-        setProductDiscounts(data.products);
-        setCategoryDiscounts(data.categories);
-      })
-      .catch((err) => console.error("Error fetching discounts:", err));
-  }, []);
-
-  // Process discounted products when both products and discounts are loaded
-  useEffect(() => {
-    if (allProducts.length > 0 && productDiscounts.length > 0) {
-      const now = new Date();
-
-      // Filter active discounts by date
-      const activeDiscounts = productDiscounts.filter((discount) => {
-        const startDate = new Date(discount.startDate);
-        const endDate = new Date(discount.endDate);
-        return now >= startDate && now <= endDate;
-      });
-
-      // Create an array of discounted products by finding matching product IDs
-      const productsWithDiscounts: DiscountedProduct[] = [];
-
-      activeDiscounts.forEach((discount) => {
-        const product = allProducts.find((p) => p.id === discount.productId);
-        if (product && product.inStock !== false) {
-          productsWithDiscounts.push({
-            ...product,
-            discountPercentage: discount.discountPercentage,
-            originalPrice: product.price,
-            price: product.price * (1 - discount.discountPercentage / 100),
-            endDate: discount.endDate,
-          });
-        }
-      });
-
-      setDiscountedProducts(productsWithDiscounts);
-
-      // Process discounts ending soon
-      const sevenDaysFromNow = new Date();
-      sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-
-      const endingSoon = productsWithDiscounts
-        .filter((product) => {
-          const endDate = new Date(product.endDate || "");
-          return endDate > now && endDate < sevenDaysFromNow;
-        })
-        .sort((a, b) => {
-          const dateA = new Date(a.endDate || "");
-          const dateB = new Date(b.endDate || "");
-          return dateA.getTime() - dateB.getTime();
-        });
-
-      setEndingSoonDiscounts(endingSoon.slice(0, 4));
-    }
-  }, [allProducts, productDiscounts]);
-
-  // Process discounted categories when both categories and discounts are loaded
-  useEffect(() => {
-    if (categories.length > 0 && categoryDiscounts.length > 0) {
-      const now = new Date();
-
-      // Filter active category discounts by date
-      const activeDiscounts = categoryDiscounts.filter((discount) => {
-        const startDate = new Date(discount.startDate);
-        const endDate = new Date(discount.endDate);
-        return now >= startDate && now <= endDate;
-      });
-
-      // Map categories with discounts
-      const categoriesWithDiscounts = [];
-
-      for (const discount of activeDiscounts) {
-        const category = categories.find((c) => c.id === discount.categoryId);
-        if (category) {
-          categoriesWithDiscounts.push({
-            category,
-            discountPercentage: discount.discountPercentage,
-          });
-        }
-      }
-
-      setDiscountedCategories(categoriesWithDiscounts);
-    }
-  }, [categories, categoryDiscounts]);
+  }, [selectedCategory, allProducts, categories]);
 
   const formatPrice = (price: number) => {
     return `$${price.toLocaleString("es-MX")}`;
-  };
-
-  // Format remaining time from now to endDate
-  const formatRemainingTime = (endDate: string) => {
-    const end = new Date(endDate);
-    const now = new Date();
-    const diffTime = Math.abs(end.getTime() - now.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor(
-      (diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-    );
-
-    if (diffDays > 0) {
-      return `${diffDays}d ${diffHours}h`;
-    } else {
-      return `${diffHours}h`;
-    }
   };
 
   return (
@@ -313,96 +260,18 @@ export default function LandingPage() {
       </div>
 
       {/* Products Section */}
-      <ProductsSection
-        allProducts={allProducts.filter((p) => p.inStock !== false)}
-        newestProducts={newestProducts.filter((p) => p.inStock !== false)}
-      />
-
-      {/* Newest Products */}
-      <section className="py-16 px-8 bg-white relative z-30">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex justify-between items-center mb-12">
-            <div>
-              <Badge
-                variant="outline"
-                className="bg-blue-100 text-blue-600 mb-3"
-              >
-                Recién llegados
-              </Badge>
-              <h2 className="text-3xl font-bold text-black">
-                NUEVOS PRODUCTOS
-              </h2>
-            </div>
-            <Button variant="outline" className="rounded-full" asChild>
-              <Link href="/nuevos" className="flex items-center gap-2">
-                <span>Ver todos los nuevos</span>
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-
-          {newestProducts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {newestProducts.slice(0, 8).map((product) => (
-                <Link
-                  key={product.id}
-                  href={`/productos/${product.id}`}
-                  className="block"
-                >
-                  <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg h-full">
-                    <CardContent className="p-0">
-                      <div className="relative aspect-square bg-gray-50">
-                        <Image
-                          src={product.image}
-                          alt={product.name}
-                          fill
-                          className="object-cover p-4 transition-transform duration-300 hover:scale-105"
-                        />
-                        <div className="absolute top-4 left-4 z-10">
-                          <Badge className="bg-blue-600 text-white">
-                            Nuevo
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="p-4">
-                        <p className="text-sm text-gray-600 mb-1">
-                          {product.brand}
-                        </p>
-                        <h3 className="text-lg font-semibold mb-2">
-                          {product.name}
-                        </h3>
-                        <span className="text-lg font-bold">
-                          {formatPrice(product.price)}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16 bg-white rounded-lg shadow-sm">
-              <h3 className="text-xl font-medium mb-2">
-                No hay productos nuevos disponibles
-              </h3>
-              <p className="text-gray-500 mb-4">
-                Vuelve pronto para descubrir nuestras novedades.
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
+      <ProductsSection allProducts={displayProducts} />
 
       {/* Ending Soon Discounts */}
-      <section className="py-16 px-8 bg-red-50 relative z-30">
+      <section className="py-16 px-8 bg-gray-100 relative z-30">
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-12">
             <div>
               <Badge variant="outline" className="bg-red-100 text-red-600 mb-3">
-                <Clock className="h-4 w-4 mr-2" /> ¡Últimas horas!
+                <Tag className="h-4 w-4 mr-2" /> Ofertas por Terminar
               </Badge>
               <h2 className="text-3xl font-bold text-black">
-                OFERTAS A PUNTO DE FINALIZAR
+                ¡APROVECHA ANTES DE QUE ACABEN!
               </h2>
             </div>
             <Button variant="outline" className="rounded-full" asChild>
@@ -413,66 +282,72 @@ export default function LandingPage() {
             </Button>
           </div>
 
-          {endingSoonDiscounts.length > 0 ? (
+          {discountedProducts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {endingSoonDiscounts.map((product) => (
-                <Link
-                  key={product.id}
-                  href={`/productos/${product.id}`}
-                  className="block"
-                >
-                  <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg relative h-full border-red-200">
-                    <CardContent className="p-0">
-                      <div className="absolute top-4 right-4 z-10">
-                        <Badge className="bg-red-600 text-white">
-                          {product.discountPercentage}% OFF
-                        </Badge>
-                      </div>
-                      <div className="absolute top-4 left-4 z-10">
-                        <Badge className="bg-black text-white flex items-center gap-1">
-                          <Clock className="h-3 w-3" />{" "}
-                          {product.endDate
-                            ? formatRemainingTime(product.endDate)
-                            : ""}
-                        </Badge>
-                      </div>
-                      <div className="relative aspect-square bg-white">
-                        <Image
-                          src={product.image}
-                          alt={product.name}
-                          fill
-                          className="object-cover p-4 transition-transform duration-300 hover:scale-105"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <p className="text-sm text-gray-600 mb-1">
-                          {product.brand}
-                        </p>
-                        <h3 className="text-lg font-semibold mb-2">
-                          {product.name}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-red-600">
-                            {formatPrice(product.price)}
-                          </span>
-                          <span className="text-sm text-gray-500 line-through">
-                            {formatPrice(product.originalPrice)}
-                          </span>
+              {discountedProducts
+                .sort((a, b) => {
+                  const dateA = new Date(a.endDate || "");
+                  const dateB = new Date(b.endDate || "");
+                  return dateA.getTime() - dateB.getTime();
+                })
+                .slice(0, 4)
+                .map((product) => (
+                  <Link
+                    key={product.id}
+                    href={`/productos/${product.id}`}
+                    className="block"
+                  >
+                    <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg relative h-full">
+                      <CardContent className="p-0">
+                        <div className="absolute top-4 right-4 z-10">
+                          <Badge className="bg-red-600 text-white">
+                            {product.discountPercentage}% OFF
+                          </Badge>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+                        <div className="relative aspect-square bg-gray-50">
+                          <Image
+                            src={product.images[0]}
+                            alt={product.name}
+                            fill
+                            priority
+                            className="object-cover p-4 transition-transform duration-300 hover:scale-105"
+                            sizes="(max-width: 768px) 100vw, 50vw"
+                          />
+                        </div>
+                        <div className="p-4">
+                          <p className="text-sm text-gray-600 mb-1">
+                            {product.category}
+                          </p>
+                          <h3 className="text-lg font-semibold mb-2">
+                            {product.name}
+                          </h3>
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg font-bold text-red-600">
+                              {formatPrice(product.price)}
+                            </span>
+                            <span className="text-sm text-gray-500 line-through">
+                              {formatPrice(product.originalPrice || 0)}
+                            </span>
+                          </div>
+                          {product.endDate && (
+                            <p className="text-xs text-gray-500 mt-2">
+                              Termina:{" "}
+                              {new Date(product.endDate).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
             </div>
           ) : (
             <div className="text-center py-16 bg-white rounded-lg shadow-sm">
               <h3 className="text-xl font-medium mb-2">
-                No hay ofertas por finalizar pronto
+                No hay ofertas próximas a terminar
               </h3>
               <p className="text-gray-500 mb-4">
-                Por el momento no tenemos ofertas a punto de terminar. ¡Revisa
-                nuestras ofertas regulares!
+                Vuelve pronto para disfrutar de nuestros descuentos exclusivos.
               </p>
             </div>
           )}
@@ -501,47 +376,54 @@ export default function LandingPage() {
 
           {discountedProducts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {discountedProducts.map((product) => (
-                <Link
-                  key={product.id}
-                  href={`/productos/${product.id}`}
-                  className="block"
-                >
-                  <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg relative h-full">
-                    <CardContent className="p-0">
-                      <div className="absolute top-4 right-4 z-10">
-                        <Badge className="bg-red-600 text-white">
-                          {product.discountPercentage}% OFF
-                        </Badge>
-                      </div>
-                      <div className="relative aspect-square bg-gray-50">
-                        <Image
-                          src={product.image}
-                          alt={product.name}
-                          fill
-                          className="object-cover p-4 transition-transform duration-300 hover:scale-105"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <p className="text-sm text-gray-600 mb-1">
-                          {product.brand}
-                        </p>
-                        <h3 className="text-lg font-semibold mb-2">
-                          {product.name}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-red-600">
-                            {formatPrice(product.price)}
-                          </span>
-                          <span className="text-sm text-gray-500 line-through">
-                            {formatPrice(product.originalPrice)}
-                          </span>
+              {discountedProducts
+                .sort(
+                  (a, b) =>
+                    (b.discountPercentage || 0) - (a.discountPercentage || 0)
+                )
+                .slice(0, 4)
+                .map((product) => (
+                  <Link
+                    key={product.id}
+                    href={`/productos/${product.id}`}
+                    className="block"
+                  >
+                    <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg relative h-full">
+                      <CardContent className="p-0">
+                        <div className="absolute top-4 right-4 z-10">
+                          <Badge className="bg-red-600 text-white">
+                            {product.discountPercentage}% OFF
+                          </Badge>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+                        <div className="relative aspect-square bg-gray-50">
+                          <Image
+                            src={product.images[0]}
+                            alt={product.name}
+                            fill
+                            className="object-cover p-4 transition-transform duration-300 hover:scale-105"
+                            sizes="(max-width: 768px) 100vw, 50vw"
+                          />
+                        </div>
+                        <div className="p-4">
+                          <p className="text-sm text-gray-600 mb-1">
+                            {product.category}
+                          </p>
+                          <h3 className="text-lg font-semibold mb-2">
+                            {product.name}
+                          </h3>
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg font-bold text-red-600">
+                              {formatPrice(product.price)}
+                            </span>
+                            <span className="text-sm text-gray-500 line-through">
+                              {formatPrice(product.originalPrice || 0)}
+                            </span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
             </div>
           ) : (
             <div className="text-center py-16 bg-white rounded-lg shadow-sm">
@@ -584,8 +466,8 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {discountedCategories.map(({ category, discountPercentage }) => (
                 <Link
-                  key={category.id}
-                  href={`/categoria/${category.id}`}
+                  key={category.id_cat}
+                  href={`/categoria/${category.id_cat}`}
                   className="block"
                 >
                   <div className="group relative overflow-hidden rounded-lg bg-gray-900 aspect-[4/3]">
@@ -635,343 +517,10 @@ export default function LandingPage() {
       </section>
 
       {/* Categories Showcase */}
-      <section className="py-16 px-8 bg-gray-100 relative z-30">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-black mb-4">
-              CATEGORÍAS DE MODA
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Descubre nuestras colecciones y encuentra tu estilo único entre
-              nuestras diferentes categorías.
-            </p>
-          </div>
-
-          {/* Category Layout - Left image, Right categories */}
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <div className="flex flex-col md:flex-row gap-8">
-              {/* Left Side - Category Image */}
-              <div className="md:w-1/2 lg:w-2/5">
-                {selectedCategory &&
-                  categories
-                    .filter((cat) => cat.id === selectedCategory)
-                    .map((category) => (
-                      <div
-                        key={category.id}
-                        className="bg-gray-100 rounded-lg overflow-hidden h-full"
-                      >
-                        <div className="relative aspect-[3/4] rounded-lg overflow-hidden">
-                          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black opacity-50"></div>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="text-9xl text-gray-300">
-                              {category.name === "Camisas" && "👕"}
-                              {category.name === "Pantalones" && "👖"}
-                              {category.name === "Gorras" && "🧢"}
-                              {category.name === "Joyeria" && "💍"}
-                              {category.name === "Otros" && "🛍️"}
-                            </div>
-                          </div>
-                          <div className="absolute bottom-0 left-0 p-6">
-                            <h3 className="text-3xl font-bold text-white mb-2">
-                              {category.name.toUpperCase()}
-                            </h3>
-                            <p className="text-gray-200 mb-4">
-                              Descubre nuestra colección de{" "}
-                              {category.name.toLowerCase()} diseñados con los
-                              mejores materiales y última tendencia.
-                            </p>
-                            <Button
-                              className="bg-yellow-300 text-black hover:bg-yellow-400 rounded-full"
-                              size="lg"
-                              asChild
-                            >
-                              <Link
-                                href={`/categoria/${category.id}`}
-                                className="flex items-center gap-2"
-                              >
-                                <span>Explorar {category.name}</span>
-                                <ChevronRight className="h-4 w-4" />
-                              </Link>
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-              </div>
-
-              {/* Right Side - Category Buttons */}
-              <div className="md:w-1/2 lg:w-3/5">
-                <div className="flex flex-col gap-4 h-full justify-center">
-                  {categories.map((category, index) => (
-                    <button
-                      key={category.id}
-                      onClick={() => setSelectedCategory(category.id)}
-                      className={`relative overflow-hidden rounded-lg transition-all duration-300 text-left ${
-                        selectedCategory === category.id
-                          ? "bg-yellow-300 text-black"
-                          : "bg-black text-white hover:bg-gray-800"
-                      }`}
-                    >
-                      <div className="px-6 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div
-                            className={`w-10 h-10 rounded-full ${
-                              selectedCategory === category.id
-                                ? "bg-black text-yellow-300"
-                                : "bg-yellow-300 text-black"
-                            } flex items-center justify-center transition-colors duration-300`}
-                          >
-                            {category.name === "Camisas" && (
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
-                              </svg>
-                            )}
-                            {category.name === "Pantalones" && (
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M5.5 5H19a2 2 0 0 1 1.6 3.2L8.7 22H6l-4-7.5" />
-                                <path d="M5.5 5C4.6 5 4 5.8 4 6.5V11h2" />
-                              </svg>
-                            )}
-                            {category.name === "Gorras" && (
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <circle cx="12" cy="9" r="7" />
-                                <path d="M19 19.5c.4.6.8 1.2 1 2" />
-                                <path d="M5 19.5a17.9 17.9 0 0 1 1 2" />
-                                <path d="M12 19c0 1.1.9 3 3 4" />
-                                <path d="M12 19c0 1.1-.9 3-3 4" />
-                              </svg>
-                            )}
-                            {category.name === "Joyeria" && (
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z" />
-                                <path d="M6 12h12" />
-                                <path d="M12 18V6" />
-                              </svg>
-                            )}
-                            {category.name === "Otros" && (
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <circle cx="12" cy="12" r="10" />
-                                <path d="M12 16v-4" />
-                                <path d="M12 8h.01" />
-                              </svg>
-                            )}
-                          </div>
-                          <h3 className="text-lg font-semibold">
-                            {category.name.toUpperCase()}
-                          </h3>
-                        </div>
-
-                        {selectedCategory === category.id && (
-                          <ChevronRight className="h-5 w-5" />
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Products Section Below */}
-          {selectedCategory && (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              {categories
-                .filter((cat) => cat.id === selectedCategory)
-                .map((category) => (
-                  <div key={category.id}>
-                    {/* Featured Products Header */}
-                    <div className="flex items-center justify-between mb-6">
-                      <h4 className="text-xl font-semibold">
-                        Productos destacados
-                      </h4>
-                      <Button
-                        variant="ghost"
-                        className="text-gray-600 hover:text-black"
-                        asChild
-                      >
-                        <Link
-                          href={`/categoria/${category.id}`}
-                          className="flex items-center gap-1"
-                        >
-                          <span>Ver todos</span>
-                          <ChevronRight className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </div>
-
-                    {/* Products Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {displayProducts
-                        .filter((product) => product.categoryId === category.id)
-                        .slice(0, 4)
-                        .map((product) => {
-                          const productDiscount = productDiscounts.find(
-                            (d) =>
-                              d.productId === product.id &&
-                              new Date() >= new Date(d.startDate) &&
-                              new Date() <= new Date(d.endDate)
-                          );
-
-                          const categoryDiscount = categoryDiscounts.find(
-                            (d) =>
-                              d.categoryId === product.categoryId &&
-                              new Date() >= new Date(d.startDate) &&
-                              new Date() <= new Date(d.endDate)
-                          );
-
-                          // Apply discount if exists
-                          let displayPrice = product.price;
-                          let originalPrice = null;
-                          let discountPercentage = 0;
-
-                          if (productDiscount) {
-                            originalPrice = product.price;
-                            displayPrice =
-                              product.price *
-                              (1 - productDiscount.discountPercentage / 100);
-                            discountPercentage =
-                              productDiscount.discountPercentage;
-                          } else if (categoryDiscount) {
-                            originalPrice = product.price;
-                            displayPrice =
-                              product.price *
-                              (1 - categoryDiscount.discountPercentage / 100);
-                            discountPercentage =
-                              categoryDiscount.discountPercentage;
-                          }
-
-                          return (
-                            <Link
-                              key={product.id}
-                              href={`/productos/${product.id}`}
-                              className="block"
-                            >
-                              <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg group">
-                                <CardContent className="p-0">
-                                  <div className="relative aspect-square bg-gray-50">
-                                    <Image
-                                      src={product.image}
-                                      alt={product.name}
-                                      fill
-                                      className="object-cover p-3 transition-transform duration-300 group-hover:scale-105"
-                                    />
-                                    {discountPercentage > 0 && (
-                                      <div className="absolute top-3 right-3 z-10">
-                                        <Badge className="bg-red-600 text-white">
-                                          {discountPercentage}% OFF
-                                        </Badge>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="p-3">
-                                    <p className="text-sm text-gray-600 mb-1">
-                                      {product.brand}
-                                    </p>
-                                    <h3 className="text-base font-semibold mb-1 line-clamp-1">
-                                      {product.name}
-                                    </h3>
-                                    <div className="flex justify-between items-center">
-                                      <div>
-                                        {originalPrice ? (
-                                          <>
-                                            <span className="text-base font-bold text-red-600 block">
-                                              {formatPrice(displayPrice)}
-                                            </span>
-                                            <span className="text-xs text-gray-500 line-through">
-                                              {formatPrice(originalPrice)}
-                                            </span>
-                                          </>
-                                        ) : (
-                                          <span className="text-base font-bold">
-                                            {formatPrice(displayPrice)}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="rounded-full p-0 w-8 h-8"
-                                      >
-                                        <ChevronRight className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </Link>
-                          );
-                        })}
-                    </div>
-
-                    {displayProducts.filter(
-                      (product) => product.categoryId === category.id
-                    ).length === 0 && (
-                      <div className="text-center py-12 bg-gray-50 rounded-lg">
-                        <h3 className="text-lg font-medium mb-2">
-                          No hay productos disponibles
-                        </h3>
-                        <p className="text-gray-500">
-                          No hemos encontrado productos en esta categoría. Por
-                          favor, intenta más tarde.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-      </section>
+      <CategoriesShowcaseSection
+        allProducts={displayProducts}
+        categoriesData={categories}
+      />
 
       <Footer />
     </div>
