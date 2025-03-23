@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
@@ -22,38 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-interface ProductDetail {
-  id_pd: number;
-  prod_id: number;
-  detail_name: string;
-  detail_desc: string;
-}
-
-interface ProductImage {
-  id_image: number;
-  prod_id?: number;
-  url_image: string;
-}
-
-interface Category {
-  id_cat: number;
-  name: string;
-}
-
-interface ProductData {
-  product: {
-    id_prod: number;
-    name: string;
-    description: string;
-    price: number;
-    cat_id: number;
-    stock: number;
-  };
-  product_details?: ProductDetail[];
-  product_images?: ProductImage[];
-  category?: Category;
-}
+import { ProductDetail, ProductData } from "@/types/productTypes";
 
 // Group details by name
 const groupDetailsByName = (details: ProductDetail[]) => {
@@ -85,7 +53,7 @@ const AdminProductDetailPage: React.FC = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:3001/api/product/${params.id}/details-images`
+        `http://localhost:3001/api/product/${params.id}/full-details`
       );
 
       if (!response.ok) {
@@ -136,7 +104,7 @@ const AdminProductDetailPage: React.FC = () => {
     );
   }
 
-  if (error || !productData || !productData.product) {
+  if (error || !productData) {
     return (
       <div className="flex flex-col md:flex-row gap-2 min-h-screen bg-[#eaeef6]">
         <Sidebar />
@@ -168,8 +136,7 @@ const AdminProductDetailPage: React.FC = () => {
   }
 
   // Use default empty arrays if properties are undefined
-  const { product } = productData;
-  const category = productData.category || { id_cat: 0, name: "Sin categoría" };
+  const product = productData;
   const product_details = productData.product_details || [];
   const product_images = productData.product_images || [];
   const groupedDetails = groupDetailsByName(product_details);
@@ -221,9 +188,11 @@ const AdminProductDetailPage: React.FC = () => {
               <div className="relative aspect-square w-full bg-gray-100">
                 {product_images.length > 0 ? (
                   <Image
-                    src={product_images[selectedImage].url_image}
-                    alt={product.name}
+                    src={product_images[selectedImage].image_url}
+                    alt={product.product_name}
                     fill
+                    sizes="20vw"
+                    priority
                     className="object-contain p-4"
                   />
                 ) : (
@@ -247,9 +216,11 @@ const AdminProductDetailPage: React.FC = () => {
                       onClick={() => setSelectedImage(index)}
                     >
                       <Image
-                        src={image.url_image}
-                        alt={`${product.name} - vista ${index + 1}`}
+                        src={image.image_url}
+                        alt={`${product.product_name} - vista ${index + 1}`}
                         fill
+                        sizes="5vw"
+                        priority
                         className="object-cover"
                       />
                     </div>
@@ -280,10 +251,10 @@ const AdminProductDetailPage: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex flex-wrap gap-2 mb-2">
                   <Badge variant="outline" className="bg-gray-100">
-                    ID: {product.id_prod}
+                    ID: {product.id_product}
                   </Badge>
                   <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                    {category.name}
+                    {product.category}
                   </Badge>
                   <Badge
                     variant="outline"
@@ -300,7 +271,7 @@ const AdminProductDetailPage: React.FC = () => {
                       <TableCell className="font-medium w-1/3">
                         Nombre
                       </TableCell>
-                      <TableCell>{product.name}</TableCell>
+                      <TableCell>{product.product_name}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell className="font-medium">Precio</TableCell>
@@ -308,7 +279,7 @@ const AdminProductDetailPage: React.FC = () => {
                     </TableRow>
                     <TableRow>
                       <TableCell className="font-medium">Categoría</TableCell>
-                      <TableCell>{category.name}</TableCell>
+                      <TableCell>{product.category}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell className="font-medium">Inventario</TableCell>

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import NavbarBlack from "@/components/navbarBlack";
-import { ChevronRight, Tag, Clock } from "lucide-react";
+import { ChevronRight, Tag } from "lucide-react";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +19,7 @@ import {
   DiscountedProduct,
 } from "@/types/indexTypes";
 import NewestProductsSection from "@/components/newestProductsSection";
+import EndingSoonDiscountsSection from "@/components/EndingSoonDiscountsSection";
 
 export default function LandingPage() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -39,9 +40,6 @@ export default function LandingPage() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [categoryProducts, setCategoryProducts] = useState<Product[]>([]);
   const [newestProducts, setNewestProducts] = useState<Product[]>([]);
-  const [endingSoonDiscounts, setEndingSoonDiscounts] = useState<
-    DiscountedProduct[]
-  >([]);
   const [loading, setLoading] = useState(true);
 
   // Asegurarse de que todos los productos tengan las propiedades necesarias
@@ -211,55 +209,6 @@ export default function LandingPage() {
     }
   }, [selectedCategory, allProducts, productDiscounts, categoryDiscounts]);
 
-  // Process discounted products when both products and discounts are loaded
-  useEffect(() => {
-    if (allProducts.length > 0 && productDiscounts.length > 0) {
-      const now = new Date();
-
-      // Filter active discounts by date
-      const activeDiscounts = productDiscounts.filter((discount) => {
-        const startDate = new Date(discount.startDate);
-        const endDate = new Date(discount.endDate);
-        return now >= startDate && now <= endDate;
-      });
-
-      // Create an array of discounted products by finding matching product IDs
-      const productsWithDiscounts: DiscountedProduct[] = [];
-
-      activeDiscounts.forEach((discount) => {
-        const product = allProducts.find((p) => p.id === discount.productId);
-        if (product && product.inStock !== false) {
-          productsWithDiscounts.push({
-            ...product,
-            discountPercentage: discount.discountPercentage,
-            originalPrice: product.price,
-            price: product.price * (1 - discount.discountPercentage / 100),
-            endDate: discount.endDate,
-          });
-        }
-      });
-
-      setDiscountedProducts(productsWithDiscounts);
-
-      // Process discounts ending soon
-      const sevenDaysFromNow = new Date();
-      sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-
-      const endingSoon = productsWithDiscounts
-        .filter((product) => {
-          const endDate = new Date(product.endDate || "");
-          return endDate > now && endDate < sevenDaysFromNow;
-        })
-        .sort((a, b) => {
-          const dateA = new Date(a.endDate || "");
-          const dateB = new Date(b.endDate || "");
-          return dateA.getTime() - dateB.getTime();
-        });
-
-      setEndingSoonDiscounts(endingSoon.slice(0, 4));
-    }
-  }, [allProducts, productDiscounts]);
-
   // Process discounted categories when both categories and discounts are loaded
   useEffect(() => {
     if (categories.length > 0 && categoryDiscounts.length > 0) {
@@ -291,23 +240,6 @@ export default function LandingPage() {
 
   const formatPrice = (price: number) => {
     return `$${price.toLocaleString("es-MX")}`;
-  };
-
-  // Format remaining time from now to endDate
-  const formatRemainingTime = (endDate: string) => {
-    const end = new Date(endDate);
-    const now = new Date();
-    const diffTime = Math.abs(end.getTime() - now.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor(
-      (diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-    );
-
-    if (diffDays > 0) {
-      return `${diffDays}d ${diffHours}h`;
-    } else {
-      return `${diffHours}h`;
-    }
   };
 
   return (
@@ -347,91 +279,10 @@ export default function LandingPage() {
       />
 
       {/* Ending Soon Discounts */}
-      <section className="py-16 px-8 bg-red-50 relative z-30">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex justify-between items-center mb-12">
-            <div>
-              <Badge variant="outline" className="bg-red-100 text-red-600 mb-3">
-                <Clock className="h-4 w-4 mr-2" /> ¡Últimas horas!
-              </Badge>
-              <h2 className="text-3xl font-bold text-black">
-                OFERTAS A PUNTO DE FINALIZAR
-              </h2>
-            </div>
-            <Button variant="outline" className="rounded-full" asChild>
-              <Link href="/ofertas" className="flex items-center gap-2">
-                <span>Ver todas las ofertas</span>
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-
-          {endingSoonDiscounts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {endingSoonDiscounts.map((product) => (
-                <Link
-                  key={product.id}
-                  href={`/productos/${product.id}`}
-                  className="block"
-                >
-                  <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg relative h-full border-red-200">
-                    <CardContent className="p-0">
-                      <div className="absolute top-4 right-4 z-10">
-                        <Badge className="bg-red-600 text-white">
-                          {product.discountPercentage}% OFF
-                        </Badge>
-                      </div>
-                      <div className="absolute top-4 left-4 z-10">
-                        <Badge className="bg-black text-white flex items-center gap-1">
-                          <Clock className="h-3 w-3" />{" "}
-                          {product.endDate
-                            ? formatRemainingTime(product.endDate)
-                            : ""}
-                        </Badge>
-                      </div>
-                      <div className="relative aspect-square bg-white">
-                        <Image
-                          src={product.image}
-                          alt={product.name}
-                          fill
-                          className="object-cover p-4 transition-transform duration-300 hover:scale-105"
-                          sizes="(max-width: 768px) 100vw, 50vw"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <p className="text-sm text-gray-600 mb-1">
-                          {product.brand}
-                        </p>
-                        <h3 className="text-lg font-semibold mb-2">
-                          {product.name}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-red-600">
-                            {formatPrice(product.price)}
-                          </span>
-                          <span className="text-sm text-gray-500 line-through">
-                            {formatPrice(product.originalPrice)}
-                          </span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16 bg-white rounded-lg shadow-sm">
-              <h3 className="text-xl font-medium mb-2">
-                No hay ofertas por finalizar pronto
-              </h3>
-              <p className="text-gray-500 mb-4">
-                Por el momento no tenemos ofertas a punto de terminar. ¡Revisa
-                nuestras ofertas regulares!
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
+      <EndingSoonDiscountsSection
+        allProductsData={allProducts.filter((p) => p.inStock !== false)}
+        productDiscountsData={productDiscounts}
+      />
 
       {/* Individual Product Discounts */}
       <section className="py-16 px-8 bg-gray-100 relative z-30">

@@ -88,15 +88,15 @@ const ProductDashboard: React.FC = () => {
   // Transformar los datos de la API al formato que espera el componente
   const transformProductData = (data: ProductData[]): Product[] => {
     return data.map((item) => ({
-      id: item.product.id_prod,
-      name: item.product.name,
-      description: item.product.description,
-      price: item.product.price,
-      stock: item.product.stock,
-      details: item.product_details,
-      images: item.product_images.map((img) => img.url_image),
-      inStock: item.product.stock > 0,
+      id: item.id_product,
+      name: item.product_name,
+      description: item.description,
+      price: item.price,
+      stock: item.stock,
       category: item.category,
+      details: item.product_details,
+      images: item.product_images.map((img) => img.image_url),
+      inStock: item.stock > 0,
     }));
   };
 
@@ -104,7 +104,7 @@ const ProductDashboard: React.FC = () => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/products/details-images`);
+      const response = await fetch(`${API_BASE_URL}/products/full-details`);
       if (!response.ok) {
         throw new Error(`Error fetching products: ${response.statusText}`);
       }
@@ -221,7 +221,7 @@ const ProductDashboard: React.FC = () => {
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.name.toLowerCase().includes(searchQuery.toLowerCase());
+      product.category.toLowerCase().includes(searchQuery.toLowerCase());
 
     // Aplicar filtro por estado
     if (selectedStatus === "En existencia" && !product.inStock) return false;
@@ -639,8 +639,9 @@ const ProductDashboard: React.FC = () => {
                                     <Image
                                       src={product.images[0]}
                                       alt={product.name}
-                                      layout="fill"
-                                      objectFit="contain"
+                                      fill
+                                      style={{ objectFit: "contain" }}
+                                      sizes="30px"
                                     />
                                   ) : (
                                     <div className="w-6 h-6 flex items-center justify-center text-xs">
@@ -664,7 +665,7 @@ const ProductDashboard: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <div className="text-sm text-gray-600">
-                              {product.category.name}
+                              {product.category}
                             </div>
                           </TableCell>
                           <TableCell>

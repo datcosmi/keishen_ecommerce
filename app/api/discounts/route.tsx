@@ -29,7 +29,7 @@ const mockProductDiscounts: ProductDiscount[] = [
     productId: "5",
     discountPercentage: 10,
     startDate: "2025-03-05",
-    endDate: "2025-03-20",
+    endDate: "2025-03-23",
   },
 ];
 
