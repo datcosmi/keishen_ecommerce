@@ -6,7 +6,7 @@ export interface ProductDetail {
   detail_desc: string;
 }
 
-interface ProductImage {
+export interface ProductImage {
   image_id: number;
   image_url: string;
 }
@@ -36,4 +36,11 @@ export interface Product {
   details: ProductDetail[];
   images: string[];
   inStock: boolean;
+}
+
+export interface DisplayProduct extends Product {
+  originalPrice?: number;
+  discountPercentage?: number;
+  endDate?: string;
+  image: string;
 }
