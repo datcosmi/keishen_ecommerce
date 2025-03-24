@@ -36,7 +36,7 @@ const Sidebar = () => {
     { name: "Inicio", icon: Home, href: "/panel/dashboard" },
     { name: "Productos", icon: Archive, href: "/panel/products" },
     { name: "Categorias", icon: Layers2, href: "/panel/categories" },
-    { name: "Descuentos", icon: Wallet, href: "/panel/descuentos" },
+    { name: "Descuentos", icon: Wallet, href: "/panel/discounts" },
     { name: "Pedidos", icon: CreditCard, href: "/panel/pedidos" },
     { name: "Ventas", icon: BarChart2, href: "/panel/ventas" },
     { name: "Administradores", icon: User, href: "/panel/administradores" },

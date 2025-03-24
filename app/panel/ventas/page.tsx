@@ -247,7 +247,7 @@ const OrdersDashboard = () => {
 
             {/* Charts */}
             <Tabs defaultValue="overview">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-4 mt-2">
                 <TabsTrigger value="overview">
                   <BarChart4 className="h-4 w-4 mr-2" />
                   Resumen
