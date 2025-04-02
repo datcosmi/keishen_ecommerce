@@ -122,7 +122,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         name: product.name,
         description: product.description,
         price: product.price,
-        cat_id: product.category?.id_cat || 0,
+        cat_id: product.id_cat || 0,
         stock: product.stock,
         colorDetails: product.details.filter(
           (d: ProductDetail) => d.detail_name === "Color"
@@ -137,6 +137,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           (d: ProductDetail) => d.detail_name === "Material"
         ),
       });
+      console.log("product:", product);
     }
   }, [product]);
 

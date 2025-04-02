@@ -91,6 +91,7 @@ const ProductDashboard: React.FC = () => {
       id: item.id_product,
       name: item.product_name,
       description: item.description,
+      id_cat: item.category_id,
       price: item.price,
       stock: item.stock,
       category: item.category,
