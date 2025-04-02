@@ -9,47 +9,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import NavbarWhite from "@/components/navbarWhite";
+import { ProductData } from "@/types/productTypes";
 
 const API_BASE_URL = "http://localhost:3001/api";
-
-interface ProductDiscount {
-  id_discount: number;
-  percent_discount: number;
-  start_date_discount: string;
-  end_date_discount: string;
-}
-
-interface CategoryDiscount {
-  id_discount: number;
-  percent_discount: number;
-  start_date_discount: string;
-  end_date_discount: string;
-}
-
-interface ProductDetail {
-  product_detail_id: number;
-  detail_name: string;
-  detail_desc: string;
-}
-
-interface ProductImage {
-  image_id: number;
-  image_url: string;
-}
-
-interface ProductData {
-  id_product: number;
-  product_name: string;
-  description: string;
-  price: number;
-  category_id: number;
-  category: string;
-  stock: number;
-  product_details: ProductDetail[];
-  product_images: ProductImage[];
-  discount_product: ProductDiscount[];
-  discount_category: CategoryDiscount[];
-}
 
 export default function ProductPage() {
   const { id } = useParams();
