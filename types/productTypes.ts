@@ -30,6 +30,7 @@ export interface Product {
   id: number;
   name: string;
   description: string;
+  id_cat?: number;
   price: number;
   stock: number;
   category: string;

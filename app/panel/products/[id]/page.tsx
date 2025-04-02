@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { ChevronLeft, RefreshCw, AlertTriangle, Tag } from "lucide-react";
+import { ChevronLeft, RefreshCw, AlertTriangle, Tag, Edit } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import {
   Card,
@@ -21,7 +21,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ProductDetail, ProductData } from "@/types/productTypes";
+import { toast } from "sonner";
+import { ProductDetail, ProductData, Product } from "@/types/productTypes";
+import ProductFormModal from "@/components/productFormModal";
 
 // Group details by name
 const groupDetailsByName = (details: ProductDetail[]) => {
@@ -112,6 +114,8 @@ const AdminProductDetailPage: React.FC = () => {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [productData, setProductData] = useState<ProductData | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -163,8 +167,43 @@ const AdminProductDetailPage: React.FC = () => {
     }
   }, [params.id]);
 
+  const handleRefresh = () => {
+    fetchProductDetails();
+  };
+
+  const transformProductData = (data: ProductData): Product => {
+    return {
+      id: data.id_product,
+      name: data.product_name,
+      description: data.description,
+      id_cat: data.category_id,
+      price: data.price,
+      stock: data.stock,
+      category: data.category,
+      details: data.product_details,
+      images: data.product_images.map((img) => img.image_url),
+      inStock: data.stock > 0,
+    };
+  };
+
+  const handleProductAdded = () => {
+    console.log("Product added successfully!");
+  };
+
   const handleEdit = () => {
-    alert("Implementation pending");
+    const productToEdit = transformProductData(productData!);
+    if (productToEdit) {
+      setEditingProduct(productToEdit);
+      setEditModalOpen(true);
+    }
+  };
+
+  const handleProductUpdated = (updatedProduct: ProductData) => {
+    setProductData(updatedProduct);
+    setEditingProduct(null);
+    setEditModalOpen(false);
+    toast.success("Producto actualizado correctamente");
+    handleRefresh();
   };
 
   const handleDelete = () => {
@@ -257,6 +296,25 @@ const AdminProductDetailPage: React.FC = () => {
             </Button>
             <h1 className="text-2xl font-bold ml-2">Detalle de Producto</h1>
           </div>
+          <Button
+            variant="outline"
+            onClick={handleEdit}
+            className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+          >
+            <Edit size={16} className="mr-1" />
+            Editar
+          </Button>
+
+          {/* Edit Modal */}
+          <ProductFormModal
+            onProductAdded={handleProductAdded}
+            onProductUpdated={handleProductUpdated}
+            product={editingProduct}
+            buttonLabel="Editar Producto"
+            buttonIcon={<Edit className="h-5 w-5 mr-2" />}
+            isOpen={editModalOpen}
+            onOpenChange={setEditModalOpen}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
