@@ -8,6 +8,7 @@ import {
   UserIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
+import Image from "next/image";
 
 interface Category {
   id: number;
@@ -78,8 +79,17 @@ export default function NavbarBlack() {
       }`}
     >
       {/* Logo */}
-      <div className="w-1/3 flex justify-start">
-        <Link href="/">
+      <div className="w-1/3 flex items-center space-x-3">
+        <Link href="/" className="flex items-center space-x-2">
+          <Image
+            src={"/logo-collapsed.png"}
+            alt="Logo"
+            width={40}
+            height={40}
+            priority
+            className="object-cover transition-transform duration-300 hover:scale-105 mr-2"
+            sizes="(max-width: 768px) 100vw, 50vw"
+          />
           <span className="text-2xl font-bold text-white tracking-widest">
             KEISHEN
           </span>

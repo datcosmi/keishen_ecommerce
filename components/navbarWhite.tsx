@@ -7,8 +7,8 @@ import {
   ShoppingCartIcon,
   UserIcon,
   MagnifyingGlassIcon,
-  ChevronDownIcon,
 } from "@heroicons/react/24/outline";
+import Image from "next/image";
 
 interface Category {
   id: number;
@@ -74,9 +74,18 @@ export default function NavbarWhite() {
   return (
     <nav className="sticky top-0 w-full bg-white z-50 transition-all duration-300 shadow-md">
       {/* Logo */}
-      <div className={`flex justify-center py-4`}>
-        <Link href="/">
-          <span className="text-3xl font-bold tracking-widest text-black">
+      <div className={`flex justify-center items-center space-x-3 py-4`}>
+        <Link href="/" className="flex items-center space-x-2">
+          <Image
+            src={"/logo-collapsed.png"}
+            alt="Logo"
+            width={40}
+            height={40}
+            priority
+            className="object-cover transition-transform duration-300 hover:scale-105 mr-2"
+            sizes="(max-width: 768px) 100vw, 50vw"
+          />
+          <span className="text-3xl font-bold tracking-widest text-black text-gray-800">
             KEISHEN
           </span>
         </Link>

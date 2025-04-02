@@ -704,7 +704,6 @@ const OrderDashboard: React.FC = () => {
                                           {order.detalles.map((item, index) => (
                                             <TableRow key={index}>
                                               <TableCell>
-                                                Producto{" "}
                                                 {item.producto.producto_nombre}
                                               </TableCell>
                                               <TableCell>
@@ -736,7 +735,10 @@ const OrderDashboard: React.FC = () => {
                                   </div>
                                 </DialogContent>
                               </Dialog>
-                              {order.detalles.length} productos
+                              {order.detalles.length}{" "}
+                              {order.detalles.length === 1
+                                ? "producto"
+                                : "productos"}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -818,7 +820,12 @@ const OrderDashboard: React.FC = () => {
                               size={16}
                               className="mr-2 text-gray-400"
                             />
-                            <span>{order.detalles.length} productos</span>
+                            <span>
+                              {order.detalles.length}{" "}
+                              {order.detalles.length === 1
+                                ? "producto"
+                                : "productos"}
+                            </span>
                           </div>
                         </div>
 
@@ -907,7 +914,7 @@ const OrderDashboard: React.FC = () => {
                                       {order.detalles.map((item, index) => (
                                         <TableRow key={index}>
                                           <TableCell>
-                                            Producto {item.producto.producto_id}
+                                            {item.producto.producto_nombre}
                                           </TableCell>
                                           <TableCell>{item.amount}</TableCell>
                                           <TableCell>

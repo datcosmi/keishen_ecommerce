@@ -8,117 +8,111 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import NavbarWhite from "@/components/navbarWhite";
 
+const API_BASE_URL = "http://localhost:3001/api";
+
 interface ProductDiscount {
-  id: string;
-  productId: string;
-  discountPercentage: number;
-  startDate: string;
-  endDate: string;
+  id_discount: number;
+  percent_discount: number;
+  start_date_discount: string;
+  end_date_discount: string;
 }
 
 interface CategoryDiscount {
-  id: string;
-  categoryId: string;
-  discountPercentage: number;
-  startDate: string;
-  endDate: string;
+  id_discount: number;
+  percent_discount: number;
+  start_date_discount: string;
+  end_date_discount: string;
 }
 
-interface Discounts {
-  categories: CategoryDiscount[];
-  products: ProductDiscount[];
+interface ProductDetail {
+  product_detail_id: number;
+  detail_name: string;
+  detail_desc: string;
 }
 
-interface Product {
-  id: string;
-  name: string;
-  brand: string;
+interface ProductImage {
+  image_id: number;
+  image_url: string;
+}
+
+interface ProductData {
+  id_product: number;
+  product_name: string;
   description: string;
   price: number;
-  rating: number;
-  reviews: number;
-  sizes: string[];
-  colors: string[];
-  straps: string[];
-  image: string;
-  inStock: boolean;
-  categoryId: string;
-  addedDate: string;
+  category_id: number;
+  category: string;
+  stock: number;
+  product_details: ProductDetail[];
+  product_images: ProductImage[];
+  discount_product: ProductDiscount[];
+  discount_category: CategoryDiscount[];
 }
 
 export default function ProductPage() {
   const { id } = useParams();
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<ProductData | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState<string>("");
-  const [selectedColor, setSelectedColor] = useState<string>("");
-  const [selectedStrap, setSelectedStrap] = useState<string>("");
-  const [discounts, setDiscounts] = useState<Discounts | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [selectedDetails, setSelectedDetails] = useState<
+    Record<string, string>
+  >({});
   const [activeDiscount, setActiveDiscount] = useState<number>(0);
   const [originalPrice, setOriginalPrice] = useState<number>(0);
   const [discountedPrice, setDiscountedPrice] = useState<number>(0);
   const router = useRouter();
 
+  // Default rating values since not implemented yet
+  const defaultRating = 4.5;
+  const defaultReviews = 18;
+
   useEffect(() => {
     if (id) {
       // Fetch product data
-      fetch(`/api/products/${id}`)
+      fetch(`${API_BASE_URL}/product/${id}/full-details`)
         .then((res) => res.json())
-        .then((data) => {
+        .then((data: ProductData) => {
           setProduct(data);
           setOriginalPrice(data.price);
-          if (data.sizes.length > 0) setSelectedSize(data.sizes[0]);
-          if (data.colors.length > 0) setSelectedColor(data.colors[0]);
-          if (data.straps.length > 0) setSelectedStrap(data.straps[0]);
+
+          // Initialize selected details
+          const initialDetails: Record<string, string> = {};
+          data.product_details.forEach((detail) => {
+            initialDetails[detail.detail_name] = detail.detail_desc;
+          });
+          setSelectedDetails(initialDetails);
         })
         .catch((err) => console.error(err));
-
-      // Fetch discounts data
-      fetch("/api/discounts")
-        .then((res) => res.json())
-        .then((discountData) => {
-          setDiscounts(discountData);
-        })
-        .catch((err) => console.error("Error fetching discounts:", err));
     }
   }, [id]);
 
   // Calculate applicable discount
   useEffect(() => {
-    if (product && discounts) {
-      const currentDate = new Date().toISOString().split("T")[0];
+    if (product) {
+      const currentDate = new Date().toISOString();
       let highestDiscount = 0;
 
       // Check product specific discounts
-      discounts.products.forEach((discount) => {
+      product.discount_product.forEach((discount) => {
         if (
-          discount.productId === product.id &&
-          discount.startDate <= currentDate &&
-          discount.endDate >= currentDate &&
-          discount.discountPercentage > highestDiscount
+          discount.start_date_discount <= currentDate &&
+          discount.end_date_discount >= currentDate &&
+          discount.percent_discount > highestDiscount
         ) {
-          highestDiscount = discount.discountPercentage;
+          highestDiscount = discount.percent_discount;
         }
       });
 
       // Check category discounts
-      discounts.categories.forEach((discount) => {
+      product.discount_category.forEach((discount) => {
         if (
-          discount.categoryId === product.categoryId &&
-          discount.startDate <= currentDate &&
-          discount.endDate >= currentDate &&
-          discount.discountPercentage > highestDiscount
+          discount.start_date_discount <= currentDate &&
+          discount.end_date_discount >= currentDate &&
+          discount.percent_discount > highestDiscount
         ) {
-          highestDiscount = discount.discountPercentage;
+          highestDiscount = discount.percent_discount;
         }
       });
 
@@ -131,7 +125,36 @@ export default function ProductPage() {
         setDiscountedPrice(0);
       }
     }
-  }, [product, discounts]);
+  }, [product]);
+
+  const nextImage = () => {
+    if (product && product.product_images.length > 0) {
+      setCurrentImageIndex((prevIndex) =>
+        prevIndex === product.product_images.length - 1 ? 0 : prevIndex + 1
+      );
+    }
+  };
+
+  const prevImage = () => {
+    if (product && product.product_images.length > 0) {
+      setCurrentImageIndex((prevIndex) =>
+        prevIndex === 0 ? product.product_images.length - 1 : prevIndex - 1
+      );
+    }
+  };
+
+  // Helper function to determine if a detail is a color
+  const isColorDetail = (detailName: string): boolean => {
+    return detailName.toLowerCase() === "color";
+  };
+
+  // Handle detail selection
+  const handleDetailSelection = (detailName: string, value: string) => {
+    setSelectedDetails((prev) => ({
+      ...prev,
+      [detailName]: value,
+    }));
+  };
 
   if (!product) {
     return (
@@ -140,6 +163,17 @@ export default function ProductPage() {
       </div>
     );
   }
+
+  // Group details by their names for display
+  const detailsByName: Record<string, string[]> = {};
+  product.product_details.forEach((detail) => {
+    if (!detailsByName[detail.detail_name]) {
+      detailsByName[detail.detail_name] = [];
+    }
+    if (!detailsByName[detail.detail_name].includes(detail.detail_desc)) {
+      detailsByName[detail.detail_name].push(detail.detail_desc);
+    }
+  });
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -151,6 +185,8 @@ export default function ProductPage() {
             variant="outline"
             size="icon"
             className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full h-10 w-10"
+            onClick={prevImage}
+            disabled={product.product_images.length <= 1}
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
@@ -158,16 +194,20 @@ export default function ProductPage() {
             variant="outline"
             size="icon"
             className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full h-10 w-10"
+            onClick={nextImage}
+            disabled={product.product_images.length <= 1}
           >
             <ChevronRight className="h-5 w-5" />
           </Button>
-          <Image
-            src={product.image}
-            alt={product.name}
-            width={500}
-            height={500}
-            className="p-8"
-          />
+          {product.product_images.length > 0 && (
+            <Image
+              src={product.product_images[currentImageIndex].image_url}
+              alt={product.product_name}
+              width={500}
+              height={500}
+              className="p-8"
+            />
+          )}
 
           {/* Discount badge if applicable */}
           {activeDiscount > 0 && (
@@ -190,7 +230,7 @@ export default function ProductPage() {
             </Link>
           </Button>
 
-          <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
+          <h1 className="text-3xl font-bold mb-2">{product.product_name}</h1>
 
           <div className="flex items-center gap-2 mb-4">
             <div className="flex items-center">
@@ -198,7 +238,7 @@ export default function ProductPage() {
                 <Star
                   key={i}
                   className={`h-5 w-5 ${
-                    i < product.rating
+                    i < defaultRating
                       ? "fill-yellow-400 text-yellow-400"
                       : "fill-gray-200 text-gray-200"
                   }`}
@@ -206,92 +246,70 @@ export default function ProductPage() {
               ))}
             </div>
             <span className="text-gray-500">
-              {product.rating.toFixed(1)} ({product.reviews} calificaciones)
+              {defaultRating.toFixed(1)} ({defaultReviews} calificaciones)
             </span>
           </div>
 
           <div className="mb-6">
-            {product.brand && (
+            <div className="flex items-center gap-4">
               <Badge variant="outline" className="mb-2">
-                {product.brand}
+                {product.category}
               </Badge>
-            )}
+              {/* Stock information */}
+              <Badge
+                variant={product.stock > 0 ? "outline" : "destructive"}
+                className="mb-2"
+              >
+                {product.stock > 0 ? "En stock" : "Agotado"}
+              </Badge>
+            </div>
             <p className="text-gray-600">{product.description}</p>
           </div>
 
-          {!product.sizes.length &&
-          !product.colors.length &&
-          !product.straps.length ? null : (
+          {Object.keys(detailsByName).length > 0 && (
             <Separator className="my-6" />
           )}
 
           <div className="space-y-6">
-            {product.sizes.length > 0 && (
-              <div>
-                <h3 className="font-medium mb-3">Talla</h3>
-                <Select value={selectedSize} onValueChange={setSelectedSize}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="Seleccionar talla" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {product.sizes.map((size) => (
-                      <SelectItem key={size} value={size}>
-                        {size}
-                      </SelectItem>
+            {Object.entries(detailsByName).map(([detailName, values]) => (
+              <div key={detailName}>
+                <h3 className="font-medium mb-3">{detailName}</h3>
+                {isColorDetail(detailName) ? (
+                  <div className="flex gap-3">
+                    {values.map((color) => (
+                      <Button
+                        key={color}
+                        variant="outline"
+                        className={`w-8 h-8 rounded-full p-0 ${
+                          selectedDetails[detailName] === color
+                            ? "ring-2 ring-black ring-offset-2"
+                            : ""
+                        }`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => handleDetailSelection(detailName, color)}
+                      />
                     ))}
-                  </SelectContent>
-                </Select>
+                  </div>
+                ) : (
+                  <div className="flex gap-3 flex-wrap">
+                    {values.map((value) => (
+                      <Button
+                        key={value}
+                        variant={
+                          selectedDetails[detailName] === value
+                            ? "default"
+                            : "outline"
+                        }
+                        className="rounded-full"
+                        onClick={() => handleDetailSelection(detailName, value)}
+                      >
+                        {value}
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-
-            {product.colors.length > 0 && (
-              <div>
-                <h3 className="font-medium mb-3">Color</h3>
-                <div className="flex gap-3">
-                  {product.colors.map((color) => (
-                    <Button
-                      key={color}
-                      variant="outline"
-                      className={`w-8 h-8 rounded-full p-0 ${
-                        selectedColor === color
-                          ? "ring-2 ring-black ring-offset-2"
-                          : ""
-                      }`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setSelectedColor(color)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {product.straps.length > 0 && (
-              <div>
-                <h3 className="font-medium mb-3">Correa</h3>
-                <div className="flex gap-3 flex-wrap">
-                  {product.straps.map((strap) => (
-                    <Button
-                      key={strap}
-                      variant={selectedStrap === strap ? "default" : "outline"}
-                      className="rounded-full"
-                      onClick={() => setSelectedStrap(strap)}
-                    >
-                      {strap}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Stock information */}
-          <div className="mt-6">
-            <Badge
-              variant={product.inStock ? "outline" : "destructive"}
-              className="mb-2"
-            >
-              {product.inStock ? "En stock" : "Agotado"}
-            </Badge>
+            ))}
           </div>
 
           {/* Price and buttons */}
@@ -305,7 +323,7 @@ export default function ProductPage() {
                       size="icon"
                       className="rounded-r-none"
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      disabled={!product.inStock}
+                      disabled={product.stock <= 0}
                     >
                       -
                     </Button>
@@ -314,8 +332,10 @@ export default function ProductPage() {
                       variant="ghost"
                       size="icon"
                       className="rounded-l-none"
-                      onClick={() => setQuantity(quantity + 1)}
-                      disabled={!product.inStock}
+                      onClick={() =>
+                        setQuantity(Math.min(product.stock, quantity + 1))
+                      }
+                      disabled={product.stock <= 0}
                     >
                       +
                     </Button>
@@ -339,9 +359,9 @@ export default function ProductPage() {
                 </div>
                 <Button
                   className="bg-black hover:bg-gray-800"
-                  disabled={!product.inStock}
+                  disabled={product.stock <= 0}
                 >
-                  {product.inStock ? "Añadir al carrito" : "Agotado"}
+                  {product.stock > 0 ? "Añadir al carrito" : "Agotado"}
                 </Button>
               </div>
             </CardContent>

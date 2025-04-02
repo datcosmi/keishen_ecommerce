@@ -341,6 +341,17 @@ const AdminProductDetailPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
+              className="ml-2"
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              <RefreshCw
+                className={`h-5 w-5 ${loading ? "animate-spin" : ""}`}
+              />
+              <span className="ml-2">Actualizar</span>
+            </Button>
+            <Button
+              variant="outline"
               onClick={handleEdit}
               className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
             >
