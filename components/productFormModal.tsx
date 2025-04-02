@@ -98,21 +98,21 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [materialInput, setMaterialInput] = useState("");
 
   // Fetch categories on component mount
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/categories`);
-        if (!response.ok) {
-          throw new Error(`Error fetching categories: ${response.statusText}`);
-        }
-        const data = await response.json();
-        setCategories(data);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-        toast.error("Error al cargar categorías");
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/categories`);
+      if (!response.ok) {
+        throw new Error(`Error fetching categories: ${response.statusText}`);
       }
-    };
+      const data = await response.json();
+      setCategories(data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      toast.error("Error al cargar categorías");
+    }
+  };
 
+  useEffect(() => {
     fetchCategories();
   }, []);
 
@@ -412,14 +412,10 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       // Call the appropriate callback
       if (product) {
         if (onProductUpdated) onProductUpdated(completeProduct);
-        toast.success("Producto actualizado", {
-          description: `${formData.name} ha sido actualizado correctamente.`,
-        });
+        toast.success(`${formData.name} ha sido actualizado correctamente`);
       } else {
         onProductAdded(completeProduct);
-        toast.success("Producto añadido", {
-          description: `${formData.name} ha sido añadido correctamente.`,
-        });
+        toast.success(`${formData.name} ha sido añadido correctamente`);
       }
 
       // Reset form and close modal
@@ -428,10 +424,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     } catch (error) {
       console.error("Error processing product:", error);
       toast.error(
-        product ? "Error al actualizar producto" : "Error al añadir producto",
-        {
-          description: "Ha ocurrido un error al procesar el producto.",
-        }
+        product ? "Error al actualizar producto" : "Error al añadir producto"
       );
     } finally {
       setIsSubmitting(false);

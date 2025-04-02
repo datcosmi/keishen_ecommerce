@@ -175,7 +175,6 @@ const ProductDashboard: React.FC = () => {
     setEditingProduct(null);
     setEditModalOpen(false);
     setSelectedProducts([]);
-    toast.success("Producto actualizado correctamente");
     handleRefresh();
   };
 
@@ -200,8 +199,18 @@ const ProductDashboard: React.FC = () => {
         products.filter((product) => !selectedProducts.includes(product.id))
       );
       setSelectedProducts([]);
+      toast.success(
+        selectedProducts.length > 1
+          ? "Productos eliminados correctamente"
+          : "Producto eliminado correctamente"
+      );
     } catch (error) {
       console.error("Error eliminando productos:", error);
+      toast.error(
+        selectedProducts.length > 1
+          ? "Error al eliminar productos"
+          : "Error al eliminar el producto"
+      );
     } finally {
       setLoading(false);
       setDeleteDialogOpen(false);
@@ -221,8 +230,8 @@ const ProductDashboard: React.FC = () => {
   // Aplicar los filtros por búsqueda y estado
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase());
+      product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.category?.toLowerCase().includes(searchQuery.toLowerCase());
 
     // Aplicar filtro por estado
     if (selectedStatus === "En existencia" && !product.inStock) return false;

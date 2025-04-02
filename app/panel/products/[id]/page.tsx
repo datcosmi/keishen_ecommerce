@@ -2,7 +2,14 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { ChevronLeft, RefreshCw, AlertTriangle, Tag, Edit } from "lucide-react";
+import {
+  ChevronLeft,
+  RefreshCw,
+  AlertTriangle,
+  Tag,
+  Edit,
+  Trash2,
+} from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import {
   Card,
@@ -24,6 +31,19 @@ import {
 import { toast } from "sonner";
 import { ProductDetail, ProductData, Product } from "@/types/productTypes";
 import ProductFormModal from "@/components/productFormModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+const API_BASE_URL = "http://localhost:3001/api";
 
 // Group details by name
 const groupDetailsByName = (details: ProductDetail[]) => {
@@ -116,6 +136,7 @@ const AdminProductDetailPage: React.FC = () => {
   const [productData, setProductData] = useState<ProductData | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +151,7 @@ const AdminProductDetailPage: React.FC = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:3001/api/product/${params.id}/full-details`
+        `${API_BASE_URL}/product/${params.id}/full-details`
       );
 
       if (!response.ok) {
@@ -206,10 +227,6 @@ const AdminProductDetailPage: React.FC = () => {
     handleRefresh();
   };
 
-  const handleDelete = () => {
-    alert("Implementation pending");
-  };
-
   if (loading) {
     return (
       <div className="flex flex-col md:flex-row gap-2 min-h-screen bg-[#eaeef6]">
@@ -261,6 +278,31 @@ const AdminProductDetailPage: React.FC = () => {
   const product_images = productData.product_images || [];
   const groupedDetails = groupDetailsByName(product_details);
 
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/product`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ids: [product.id_product] }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error eliminando producto: ${response.statusText}`);
+      }
+      toast.success("Producto eliminado correctamente");
+    } catch (error) {
+      console.error("Error eliminando productos:", error);
+      toast.error("Error al eliminar el producto");
+    } finally {
+      setLoading(false);
+      setDeleteDialogOpen(false);
+      router.push(`/panel/products`);
+    }
+  };
+
   const stockStatus = () => {
     if (product.stock <= 0) {
       return {
@@ -296,14 +338,50 @@ const AdminProductDetailPage: React.FC = () => {
             </Button>
             <h1 className="text-2xl font-bold ml-2">Detalle de Producto</h1>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleEdit}
-            className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
-          >
-            <Edit size={16} className="mr-1" />
-            Editar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleEdit}
+              className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+            >
+              <Edit size={16} className="mr-1" />
+              Editar
+            </Button>
+
+            <AlertDialog
+              open={deleteDialogOpen}
+              onOpenChange={setDeleteDialogOpen}
+            >
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                >
+                  <Trash2 size={16} className="mr-1" />
+                  Eliminar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmar eliminación</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    ¿Estás seguro de que deseas eliminar este producto? Esta
+                    acción no se puede deshacer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    className="bg-red-600 hover:bg-red-700"
+                    disabled={loading}
+                  >
+                    {loading ? "Eliminando..." : "Eliminar"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
 
           {/* Edit Modal */}
           <ProductFormModal
