@@ -97,6 +97,11 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [tallaInput, setTallaInput] = useState("");
   const [materialInput, setMaterialInput] = useState("");
 
+  // Image states
+  const [images, setImages] = useState<File[]>([]);
+  const [productImages, setProductImages] = useState<any[]>([]);
+  const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
+
   // Fetch categories on component mount
   const fetchCategories = async () => {
     try {
@@ -138,8 +143,31 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         ),
       });
       console.log("product:", product);
+      if (product.images && product.images.length > 0) {
+        setProductImages(product.images);
+        console.log("product.images:", product.images);
+      }
     }
   }, [product]);
+
+  // Manejador para seleccionar imágenes
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setImages((prev) => [...prev, ...newFiles]);
+    }
+  };
+
+  // Manejador para eliminar una imagen seleccionada (no subida aún)
+  const removeSelectedImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Manejador para marcar imágenes existentes para eliminar
+  const handleImageDelete = (imageId: number) => {
+    setImagesToDelete((prev) => [...prev, imageId]);
+    setProductImages((prev) => prev.filter((img) => img.id !== imageId));
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -396,6 +424,30 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         await createProductDetails(productId, allDetails);
       }
 
+      // Si hay imágenes para eliminar
+      if (imagesToDelete.length > 0) {
+        await fetch(`${API_BASE_URL}/images`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ imageIds: imagesToDelete }),
+        });
+      }
+
+      // Si hay nuevas imágenes para subir
+      if (images.length > 0) {
+        const formData = new FormData();
+        images.forEach((image) => {
+          formData.append("images", image);
+        });
+
+        await fetch(`${API_BASE_URL}/images/upload-multiple/${productId}`, {
+          method: "POST",
+          body: formData,
+        });
+      }
+
       // Fetch the complete updated product
       const completeProductResponse = await fetch(
         `${API_BASE_URL}/product/${productId}/details-images`
@@ -447,6 +499,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     setSizeInput("");
     setTallaInput("");
     setMaterialInput("");
+    setImages([]);
+    setProductImages([]);
+    setImagesToDelete([]);
   };
 
   return (
@@ -471,8 +526,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-6 py-4">
           <Tabs defaultValue="basicInfo">
-            <TabsList className="grid grid-cols-2 mb-6">
+            <TabsList className="grid grid-cols-3 mb-6">
               <TabsTrigger value="basicInfo">Información Básica</TabsTrigger>
+              <TabsTrigger value="images">Imágenes</TabsTrigger>
               <TabsTrigger value="variants">Variantes</TabsTrigger>
             </TabsList>
 
@@ -557,6 +613,102 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="images" className="space-y-4">
+              <div className="space-y-4">
+                <Label>Imágenes del Producto</Label>
+
+                {/* Área para cargar nuevas imágenes */}
+                <div className="border-2 border-dashed rounded-md p-6 text-center cursor-pointer hover:bg-gray-50 transition-colors">
+                  <Input
+                    type="file"
+                    id="product-images"
+                    className="hidden"
+                    onChange={handleFileChange}
+                    multiple
+                    accept="image/*"
+                  />
+                  <Label
+                    htmlFor="product-images"
+                    className="cursor-pointer flex flex-col items-center"
+                  >
+                    <Upload className="h-8 w-8 mb-2 text-gray-400" />
+                    <span className="text-sm font-medium">
+                      Haz clic para seleccionar imágenes
+                    </span>
+                    <span className="text-xs text-gray-500 mt-1">
+                      o arrastra y suelta tus archivos aquí
+                    </span>
+                  </Label>
+                </div>
+
+                {/* Vista previa de imágenes nuevas */}
+                {images.length > 0 && (
+                  <div className="mt-4">
+                    <Label className="mb-2 block">
+                      Imágenes nuevas seleccionadas
+                    </Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {images.map((image, idx) => (
+                        <div
+                          key={idx}
+                          className="relative rounded-md overflow-hidden h-32 bg-gray-100"
+                        >
+                          <img
+                            src={URL.createObjectURL(image)}
+                            alt={`Preview ${idx}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-1 right-1 h-6 w-6 rounded-full"
+                            onClick={() => removeSelectedImage(idx)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Imágenes existentes del producto (para modo edición) */}
+                {productImages.length > 0 && (
+                  <div className="mt-6">
+                    <Label className="mb-2 block">
+                      Imágenes actuales del producto
+                    </Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {productImages.map((image) => (
+                        <div
+                          key={image.id || image.id_img}
+                          className="relative rounded-md overflow-hidden h-32 bg-gray-100"
+                        >
+                          <img
+                            src={`http://localhost:3001${image}`}
+                            alt={`Image not found`}
+                            className="w-full h-full object-cover"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-1 right-1 h-6 w-6 rounded-full"
+                            onClick={() =>
+                              handleImageDelete(image.id || image.id_img)
+                            }
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </TabsContent>
 

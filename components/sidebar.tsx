@@ -93,7 +93,7 @@ const Sidebar = () => {
             collapsed ? "py-4" : "p-4"
           )}
         >
-          <Link href="/dashboard" className="flex justify-center">
+          <Link href="/panel/dashboard" className="flex justify-center">
             {collapsed ? (
               <span className="text-2xl font-bold text-black">K</span>
             ) : (

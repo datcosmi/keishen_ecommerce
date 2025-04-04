@@ -445,7 +445,7 @@ const AdminProductDetailPage: React.FC = () => {
                       onClick={() => setSelectedImage(index)}
                     >
                       <Image
-                        src={image.image_url}
+                        src={`http://localhost:3001${image.image_url}`}
                         alt={`http://localhost:3001${
                           product.product_name
                         } - vista ${index + 1}`}
