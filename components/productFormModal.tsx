@@ -26,6 +26,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Image from "next/image";
 
 const API_BASE_URL = "http://localhost:3001/api";
 
@@ -142,10 +143,8 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           (d: ProductDetail) => d.detail_name === "Material"
         ),
       });
-      console.log("product:", product);
       if (product.images && product.images.length > 0) {
         setProductImages(product.images);
-        console.log("product.images:", product.images);
       }
     }
   }, [product]);
@@ -656,9 +655,11 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                           key={idx}
                           className="relative rounded-md overflow-hidden h-32 bg-gray-100"
                         >
-                          <img
+                          <Image
                             src={URL.createObjectURL(image)}
                             alt={`Preview ${idx}`}
+                            width={500}
+                            height={500}
                             className="w-full h-full object-cover"
                           />
                           <Button
@@ -685,12 +686,14 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {productImages.map((image) => (
                         <div
-                          key={image.id || image.id_img}
+                          key={image}
                           className="relative rounded-md overflow-hidden h-32 bg-gray-100"
                         >
-                          <img
+                          <Image
                             src={`http://localhost:3001${image}`}
                             alt={`Image not found`}
+                            width={500}
+                            height={500}
                             className="w-full h-full object-cover"
                           />
                           <Button

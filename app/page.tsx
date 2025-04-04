@@ -63,7 +63,6 @@ export default function LandingPage() {
       const data = await response.json();
       const mappedProducts = mapProductData(data);
       setAllProducts(mappedProducts);
-      console.log("Mapped Products:", mappedProducts);
 
       // Filter products in stock
       const inStockProducts = mappedProducts.filter(

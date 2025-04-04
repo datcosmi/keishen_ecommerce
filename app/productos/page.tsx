@@ -718,10 +718,16 @@ export default function ProductsPage() {
                       <CardContent className="p-0">
                         <div className="relative aspect-square bg-gray-100">
                           <Image
-                            src={product.image}
+                            src={
+                              product.image === "/images/placeholder.png"
+                                ? product.image
+                                : `http://localhost:3001${product.image}`
+                            }
                             alt={product.name}
                             fill
+                            priority
                             className="object-cover p-6 transition-transform duration-300 group-hover:scale-105"
+                            sizes="(max-width: 768px) 100vw, 50vw"
                           />
                           {/* Badges overlay */}
                           <div className="absolute top-2 left-2 flex flex-col gap-2">

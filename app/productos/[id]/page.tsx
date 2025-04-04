@@ -161,13 +161,23 @@ export default function ProductPage() {
           >
             <ChevronRight className="h-5 w-5" />
           </Button>
-          {product.product_images.length > 0 && (
+          {product.product_images.length > 0 ? (
             <Image
-              src={product.product_images[currentImageIndex].image_url}
+              src={`http://localhost:3001${product.product_images[currentImageIndex].image_url}`}
               alt={product.product_name}
               width={500}
               height={500}
               className="p-8"
+              priority
+            />
+          ) : (
+            <Image
+              src={"/images/placeholder.png"}
+              alt={product.product_name}
+              width={500}
+              height={500}
+              className="p-8"
+              priority
             />
           )}
 

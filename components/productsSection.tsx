@@ -53,7 +53,7 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
               src={
                 product.image.length > 0
                   ? `http://localhost:3001${product.image}`
-                  : "/uploads/placeholder.png"
+                  : "/images/placeholder.png"
               }
               alt={product.name}
               fill

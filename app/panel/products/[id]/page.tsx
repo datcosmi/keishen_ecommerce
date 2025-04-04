@@ -408,7 +408,7 @@ const AdminProductDetailPage: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Product Images */}
-          <Card className="lg:col-span-1 overflow-hidden">
+          <Card className="lg:col-span-1 overflow-hidden max-h-[90vh]">
             <CardHeader>
               <CardTitle>Imágenes del Producto</CardTitle>
             </CardHeader>
