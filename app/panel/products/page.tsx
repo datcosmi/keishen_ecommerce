@@ -96,7 +96,10 @@ const ProductDashboard: React.FC = () => {
       stock: item.stock,
       category: item.category,
       details: item.product_details,
-      images: item.product_images.map((img) => img.image_url),
+      images: item.product_images.map((img) => ({
+        image_id: img.image_id,
+        image_url: img.image_url,
+      })),
       inStock: item.stock > 0,
     }));
   };
@@ -649,7 +652,7 @@ const ProductDashboard: React.FC = () => {
                                     <Image
                                       src={
                                         product.images.length > 0
-                                          ? `http://localhost:3001${product.images[0]}`
+                                          ? `http://localhost:3001${product.images[0].image_url}`
                                           : "/images/placeholder.png"
                                       }
                                       alt={product.name}
@@ -770,7 +773,11 @@ const ProductDashboard: React.FC = () => {
                             <div className="w-8 h-8 relative">
                               {product.images.length > 0 ? (
                                 <Image
-                                  src={product.images[0]}
+                                  src={
+                                    product.images.length > 0
+                                      ? `http://localhost:3001${product.images[0].image_url}`
+                                      : "/images/placeholder.png"
+                                  }
                                   alt={product.name}
                                   layout="fill"
                                   objectFit="contain"

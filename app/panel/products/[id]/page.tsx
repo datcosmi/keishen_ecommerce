@@ -202,7 +202,10 @@ const AdminProductDetailPage: React.FC = () => {
       stock: data.stock,
       category: data.category,
       details: data.product_details,
-      images: data.product_images.map((img) => img.image_url),
+      images: data.product_images.map((img) => ({
+        image_id: img.image_id,
+        image_url: img.image_url,
+      })),
       inStock: data.stock > 0,
     };
   };

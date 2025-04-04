@@ -145,6 +145,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       });
       if (product.images && product.images.length > 0) {
         setProductImages(product.images);
+        console.log("Product", product);
       }
     }
   }, [product]);
@@ -409,18 +410,93 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       ];
 
       if (product) {
-        const existingDetails = product.details;
+        // Track existing detail IDs
+        const existingDetailIds = new Set(
+          product.details.map((detail: any) => detail.id_pd)
+        );
+        const detailsByType: Record<string, Set<string>> = {
+          Color: new Set(
+            product.details
+              .filter((d: any) => d.detail_name === "Color")
+              .map((d: any) => d.detail_desc)
+          ),
+          Tamaño: new Set(
+            product.details
+              .filter((d: any) => d.detail_name === "Tamaño")
+              .map((d: any) => d.detail_desc)
+          ),
+          Talla: new Set(
+            product.details
+              .filter((d: any) => d.detail_name === "Talla")
+              .map((d: any) => d.detail_desc)
+          ),
+          Material: new Set(
+            product.details
+              .filter((d: any) => d.detail_name === "Material")
+              .map((d: any) => d.detail_desc)
+          ),
+        };
 
-        for (const detail of existingDetails) {
+        // Find details to delete (ones that exist in original but not in form)
+        const detailsToDelete = product.details.filter((detail: any) => {
+          if (detail.detail_name === "Color") {
+            return !formData.colorDetails.some(
+              (d: ProductDetail) => d.detail_desc === detail.detail_desc
+            );
+          } else if (detail.detail_name === "Tamaño") {
+            return !formData.sizeDetails.some(
+              (d: ProductDetail) => d.detail_desc === detail.detail_desc
+            );
+          } else if (detail.detail_name === "Talla") {
+            return !formData.tallaSizeDetails.some(
+              (d: ProductDetail) => d.detail_desc === detail.detail_desc
+            );
+          } else if (detail.detail_name === "Material") {
+            return !formData.materialDetails.some(
+              (d: ProductDetail) => d.detail_desc === detail.detail_desc
+            );
+          }
+          return true; // Delete any unrecognized types
+        });
+
+        // Delete only removed details
+        for (const detail of detailsToDelete) {
           await fetch(`${API_BASE_URL}/product/${detail.id_pd}/detail`, {
             method: "DELETE",
           });
         }
-      }
 
-      // Only send details if there are any
-      if (allDetails.length > 0) {
-        await createProductDetails(productId, allDetails);
+        // Only add new details
+        const newDetails = [
+          ...formData.colorDetails.filter(
+            (d: ProductDetail) => !detailsByType["Color"].has(d.detail_desc)
+          ),
+          ...formData.sizeDetails.filter(
+            (d: ProductDetail) => !detailsByType["Tamaño"].has(d.detail_desc)
+          ),
+          ...formData.tallaSizeDetails.filter(
+            (d: ProductDetail) => !detailsByType["Talla"].has(d.detail_desc)
+          ),
+          ...formData.materialDetails.filter(
+            (d: ProductDetail) => !detailsByType["Material"].has(d.detail_desc)
+          ),
+        ];
+
+        if (newDetails.length > 0) {
+          await createProductDetails(productId, newDetails);
+        }
+      } else {
+        // For new products, add all details
+        const allDetails = [
+          ...formData.colorDetails,
+          ...formData.sizeDetails,
+          ...formData.tallaSizeDetails,
+          ...formData.materialDetails,
+        ];
+
+        if (allDetails.length > 0) {
+          await createProductDetails(productId, allDetails);
+        }
       }
 
       // Si hay imágenes para eliminar
@@ -686,11 +762,11 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {productImages.map((image) => (
                         <div
-                          key={image}
+                          key={image.image_id}
                           className="relative rounded-md overflow-hidden h-32 bg-gray-100"
                         >
                           <Image
-                            src={`http://localhost:3001${image}`}
+                            src={`http://localhost:3001${image.image_url}`}
                             alt={`Image not found`}
                             width={500}
                             height={500}

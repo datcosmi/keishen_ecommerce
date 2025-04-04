@@ -35,7 +35,7 @@ export interface Product {
   stock: number;
   category: string;
   details: ProductDetail[];
-  images: string[];
+  images: { image_id: number; image_url: string }[];
   inStock: boolean;
 }
 
