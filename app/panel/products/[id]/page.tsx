@@ -416,11 +416,12 @@ const AdminProductDetailPage: React.FC = () => {
               <div className="relative aspect-square w-full bg-gray-100">
                 {product_images.length > 0 ? (
                   <Image
-                    src={product_images[selectedImage].image_url}
+                    src={`http://localhost:3001${product_images[selectedImage].image_url}`}
                     alt={product.product_name}
                     fill
                     sizes="20vw"
                     priority
+                    unoptimized
                     className="object-contain p-4"
                   />
                 ) : (
@@ -445,10 +446,13 @@ const AdminProductDetailPage: React.FC = () => {
                     >
                       <Image
                         src={image.image_url}
-                        alt={`${product.product_name} - vista ${index + 1}`}
+                        alt={`http://localhost:3001${
+                          product.product_name
+                        } - vista ${index + 1}`}
                         fill
                         sizes="5vw"
                         priority
+                        unoptimized
                         className="object-cover"
                       />
                     </div>

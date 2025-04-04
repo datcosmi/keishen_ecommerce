@@ -49,7 +49,7 @@ export default function LandingPage() {
       image:
         product.product_images.length > 0
           ? product.product_images[0].image_url
-          : "/images/placeholder.png",
+          : "/uploads/placeholder.png",
     }));
   };
 
@@ -63,6 +63,7 @@ export default function LandingPage() {
       const data = await response.json();
       const mappedProducts = mapProductData(data);
       setAllProducts(mappedProducts);
+      console.log("Mapped Products:", mappedProducts);
 
       // Filter products in stock
       const inStockProducts = mappedProducts.filter(

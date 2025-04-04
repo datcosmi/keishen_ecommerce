@@ -50,9 +50,15 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
         <CardContent className="p-0">
           <div className="relative aspect-square bg-gray-100">
             <Image
-              src={product.image}
+              src={
+                product.image.length > 0
+                  ? `http://localhost:3001${product.image}`
+                  : "/uploads/placeholder.png"
+              }
               alt={product.name}
               fill
+              unoptimized
+              priority
               className="object-cover p-4 transition-transform duration-300 hover:scale-105"
               sizes="(max-width: 768px) 100vw, 50vw"
             />

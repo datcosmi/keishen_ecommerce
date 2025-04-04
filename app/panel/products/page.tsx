@@ -647,9 +647,15 @@ const ProductDashboard: React.FC = () => {
                                 <div className="w-6 h-6 relative">
                                   {product.images.length > 0 ? (
                                     <Image
-                                      src={product.images[0]}
+                                      src={
+                                        product.images.length > 0
+                                          ? `http://localhost:3001${product.images[0]}`
+                                          : "/images/placeholder.png"
+                                      }
                                       alt={product.name}
                                       fill
+                                      unoptimized
+                                      priority
                                       style={{ objectFit: "contain" }}
                                       sizes="30px"
                                     />

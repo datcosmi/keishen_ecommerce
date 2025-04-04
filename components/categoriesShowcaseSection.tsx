@@ -309,7 +309,7 @@ const CategoriesShowcaseSection: React.FC<CategoriesShowcaseSectionProps> = ({
                                   <Image
                                     src={
                                       product.images.length > 0
-                                        ? product.images[0]
+                                        ? `http://localhost:3001${product.images[0]}`
                                         : "/images/placeholder.png"
                                     }
                                     alt={product.name}
