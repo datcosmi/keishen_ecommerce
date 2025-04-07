@@ -4,6 +4,7 @@ export interface ProductDetail {
   product_detail_id: number;
   detail_name: string;
   detail_desc: string;
+  stock: number;
 }
 
 export interface ProductImage {

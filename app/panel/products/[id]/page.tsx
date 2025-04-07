@@ -47,7 +47,7 @@ const API_BASE_URL = "http://localhost:3001/api";
 
 // Group details by name
 const groupDetailsByName = (details: ProductDetail[]) => {
-  const grouped: Record<string, string[]> = {};
+  const grouped: Record<string, Array<{ desc: string; stock: number }>> = {};
 
   if (!details || !Array.isArray(details)) {
     return grouped;
@@ -57,7 +57,10 @@ const groupDetailsByName = (details: ProductDetail[]) => {
     if (!grouped[detail.detail_name]) {
       grouped[detail.detail_name] = [];
     }
-    grouped[detail.detail_name].push(detail.detail_desc);
+    grouped[detail.detail_name].push({
+      desc: detail.detail_desc,
+      stock: detail.stock || 0, // Assuming stock is now included in the detail object
+    });
   });
 
   return grouped;
@@ -666,18 +669,59 @@ const AdminProductDetailPage: React.FC = () => {
                         <TableCell className="font-medium">{name}</TableCell>
                         <TableCell>
                           {name === "Color" ? (
-                            <div className="flex flex-wrap gap-1">
-                              {values.map((color, i) => (
+                            <div className="flex flex-wrap gap-3">
+                              {values.map((value, i) => (
                                 <div
                                   key={i}
-                                  className="w-6 h-6 rounded-full border border-gray-300"
-                                  style={{ backgroundColor: color }}
-                                  title={color}
-                                />
+                                  className="flex items-center gap-2 bg-gray-50 rounded p-2"
+                                >
+                                  <div
+                                    className="w-8 h-8 rounded-full border border-gray-300 shadow-sm"
+                                    style={{ backgroundColor: value.desc }}
+                                  />
+                                  <div className="text-sm">
+                                    <div className="font-medium">
+                                      {value.desc}
+                                    </div>
+                                    <div
+                                      className={`text-xs ${
+                                        value.stock > 0
+                                          ? "text-green-600"
+                                          : "text-red-500"
+                                      }`}
+                                    >
+                                      {value.stock > 0
+                                        ? `${value.stock} en stock`
+                                        : "Agotado"}
+                                    </div>
+                                  </div>
+                                </div>
                               ))}
                             </div>
                           ) : (
-                            values.join(", ")
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full">
+                              {values.map((value, i) => (
+                                <div
+                                  key={i}
+                                  className="flex justify-between items-center bg-gray-50 rounded p-2"
+                                >
+                                  <span className="font-medium">
+                                    {value.desc}
+                                  </span>
+                                  <Badge
+                                    className={
+                                      value.stock > 0
+                                        ? "bg-green-100 text-green-700"
+                                        : "bg-red-100 text-red-700"
+                                    }
+                                  >
+                                    {value.stock > 0
+                                      ? `${value.stock} disponibles`
+                                      : "Agotado"}
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </TableCell>
                       </TableRow>
@@ -690,6 +734,7 @@ const AdminProductDetailPage: React.FC = () => {
                 </div>
               )}
             </CardContent>
+
             <CardHeader>
               <CardTitle>Inventario y Estado</CardTitle>
             </CardHeader>
