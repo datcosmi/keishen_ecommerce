@@ -9,11 +9,13 @@ import {
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import Link from "next/link";
+import { signIn } from "next-auth/react"; // para ingresar con google
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  // const { data: session } = useSession(); // para ingresar con google
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,7 +118,9 @@ export default function Login() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">O inicia sesión con</p>
             <div className="mt-3">
-              <button className="flex items-center justify-center w-full border border-gray-300 rounded-lg py-2 px-4 hover:bg-gray-50 transition duration-200">
+              <button 
+              onClick={() => signIn("google", { callbackUrl: "/panel/dashboard"})} // para ingresar con google, preguntarle a Iván
+              className="flex items-center justify-center w-full border border-gray-300 rounded-lg py-2 px-4 hover:bg-gray-50 transition duration-200">
                 <Image
                   src="/google-icon.png"
                   alt="Google"
