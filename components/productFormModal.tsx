@@ -38,6 +38,8 @@ interface Category {
 interface ProductDetail {
   detail_name: string;
   detail_desc: string;
+  stock?: number;
+  id_pd?: number;
 }
 
 interface ProductFormData {
@@ -94,9 +96,13 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   // Input states for product details/variants
   const [colorInput, setColorInput] = useState("#000000");
+  const [colorStockInput, setColorStockInput] = useState<number>(0);
   const [sizeInput, setSizeInput] = useState("");
+  const [sizeStockInput, setSizeStockInput] = useState<number>(0);
   const [tallaInput, setTallaInput] = useState("");
+  const [tallaStockInput, setTallaStockInput] = useState<number>(0);
   const [materialInput, setMaterialInput] = useState("");
+  const [materialStockInput, setMaterialStockInput] = useState<number>(0);
 
   // Image states
   const [images, setImages] = useState<File[]>([]);
@@ -130,18 +136,18 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         price: product.price,
         cat_id: product.id_cat || 0,
         stock: product.stock,
-        colorDetails: product.details.filter(
-          (d: ProductDetail) => d.detail_name === "Color"
-        ),
-        sizeDetails: product.details.filter(
-          (d: ProductDetail) => d.detail_name === "Tamaño"
-        ),
-        tallaSizeDetails: product.details.filter(
-          (d: ProductDetail) => d.detail_name === "Talla"
-        ),
-        materialDetails: product.details.filter(
-          (d: ProductDetail) => d.detail_name === "Material"
-        ),
+        colorDetails: product.details
+          .filter((d: any) => d.detail_name === "Color")
+          .map((d: any) => ({ ...d })),
+        sizeDetails: product.details
+          .filter((d: any) => d.detail_name === "Tamaño")
+          .map((d: any) => ({ ...d })),
+        tallaSizeDetails: product.details
+          .filter((d: any) => d.detail_name === "Talla")
+          .map((d: any) => ({ ...d })),
+        materialDetails: product.details
+          .filter((d: any) => d.detail_name === "Material")
+          .map((d: any) => ({ ...d })),
       });
       if (product.images && product.images.length > 0) {
         setProductImages(product.images);
@@ -166,7 +172,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   // Manejador para marcar imágenes existentes para eliminar
   const handleImageDelete = (imageId: number) => {
     setImagesToDelete((prev) => [...prev, imageId]);
-    setProductImages((prev) => prev.filter((img) => img.id !== imageId));
+    setProductImages((prev) => prev.filter((img) => img.image_id !== imageId));
   };
 
   const handleInputChange = (
@@ -198,10 +204,15 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         ...prev,
         colorDetails: [
           ...prev.colorDetails,
-          { detail_name: "Color", detail_desc: colorInput },
+          {
+            detail_name: "Color",
+            detail_desc: colorInput,
+            stock: colorStockInput,
+          },
         ],
       }));
       setColorInput("#000000");
+      setColorStockInput(0);
     }
   };
 
@@ -225,10 +236,15 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         ...prev,
         sizeDetails: [
           ...prev.sizeDetails,
-          { detail_name: "Tamaño", detail_desc: sizeInput.trim() },
+          {
+            detail_name: "Tamaño",
+            detail_desc: sizeInput.trim(),
+            stock: sizeStockInput,
+          },
         ],
       }));
       setSizeInput("");
+      setSizeStockInput(0);
     }
   };
 
@@ -252,10 +268,15 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         ...prev,
         tallaSizeDetails: [
           ...prev.tallaSizeDetails,
-          { detail_name: "Talla", detail_desc: tallaInput.trim() },
+          {
+            detail_name: "Talla",
+            detail_desc: tallaInput.trim(),
+            stock: tallaStockInput,
+          },
         ],
       }));
       setTallaInput("");
+      setTallaStockInput(0);
     }
   };
 
@@ -279,10 +300,15 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         ...prev,
         materialDetails: [
           ...prev.materialDetails,
-          { detail_name: "Material", detail_desc: materialInput.trim() },
+          {
+            detail_name: "Material",
+            detail_desc: materialInput.trim(),
+            stock: materialStockInput,
+          },
         ],
       }));
       setMaterialInput("");
+      setMaterialStockInput(0);
     }
   };
 
@@ -304,6 +330,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         prod_id: productId,
         detail_name: detail.detail_name,
         detail_desc: detail.detail_desc,
+        stock: detail.stock || 0,
       }));
 
       console.log(
@@ -461,7 +488,8 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
         // Delete only removed details
         for (const detail of detailsToDelete) {
-          await fetch(`${API_BASE_URL}/product/${detail.id_pd}/detail`, {
+          console.log("Deleting detail:", detail);
+          await fetch(`${API_BASE_URL}/product/${detail.detail_id}/detail`, {
             method: "DELETE",
           });
         }
@@ -777,9 +805,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                             variant="destructive"
                             size="icon"
                             className="absolute top-1 right-1 h-6 w-6 rounded-full"
-                            onClick={() =>
-                              handleImageDelete(image.id || image.id_img)
-                            }
+                            onClick={() => handleImageDelete(image.image_id)}
                           >
                             <X className="h-3 w-3" />
                           </Button>
@@ -803,6 +829,16 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     onChange={(e) => setColorInput(e.target.value)}
                     className="w-16"
                   />
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Stock"
+                    value={colorStockInput}
+                    onChange={(e) =>
+                      setColorStockInput(parseInt(e.target.value) || 0)
+                    }
+                    className="w-24"
+                  />
                   <Button
                     type="button"
                     onClick={addColor}
@@ -824,6 +860,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                           style={{ backgroundColor: detail.detail_desc }}
                         />
                         <span className="text-sm">{detail.detail_desc}</span>
+                        <span className="text-xs text-gray-500 ml-1">
+                          Stock: {detail.stock || 0}
+                        </span>
                         <X
                           className="h-3 w-3 ml-1 cursor-pointer"
                           onClick={() => removeColor(detail.detail_desc)}
@@ -848,6 +887,16 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     placeholder="Añadir tamaño (ej: 10cm x 15cm)"
                     className="flex-1"
                   />
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Stock"
+                    value={sizeStockInput}
+                    onChange={(e) =>
+                      setSizeStockInput(parseInt(e.target.value) || 0)
+                    }
+                    className="w-24"
+                  />
                   <Button type="button" onClick={addSize} variant="outline">
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -861,6 +910,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                         className="px-3 py-1"
                       >
                         {detail.detail_desc}
+                        <span className="text-xs text-gray-500 ml-1">
+                          Stock: {detail.stock || 0}
+                        </span>
                         <X
                           className="h-3 w-3 ml-1 cursor-pointer"
                           onClick={() => removeSize(detail.detail_desc)}
@@ -885,6 +937,16 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     placeholder="Añadir talla (ej: S, M, L, XL)"
                     className="flex-1"
                   />
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Stock"
+                    value={tallaStockInput}
+                    onChange={(e) =>
+                      setTallaStockInput(parseInt(e.target.value) || 0)
+                    }
+                    className="w-24"
+                  />
                   <Button type="button" onClick={addTalla} variant="outline">
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -898,6 +960,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                         className="px-3 py-1"
                       >
                         {detail.detail_desc}
+                        <span className="text-xs text-gray-500 ml-1">
+                          Stock: {detail.stock || 0}
+                        </span>
                         <X
                           className="h-3 w-3 ml-1 cursor-pointer"
                           onClick={() => removeTalla(detail.detail_desc)}
@@ -922,6 +987,16 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     placeholder="Añadir material (ej: Algodón, Poliéster)"
                     className="flex-1"
                   />
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Stock"
+                    value={materialStockInput}
+                    onChange={(e) =>
+                      setMaterialStockInput(parseInt(e.target.value) || 0)
+                    }
+                    className="w-24"
+                  />
                   <Button type="button" onClick={addMaterial} variant="outline">
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -935,6 +1010,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                         className="px-3 py-1"
                       >
                         {detail.detail_desc}
+                        <span className="text-xs text-gray-500 ml-1">
+                          Stock: {detail.stock || 0}
+                        </span>
                         <X
                           className="h-3 w-3 ml-1 cursor-pointer"
                           onClick={() => removeMaterial(detail.detail_desc)}

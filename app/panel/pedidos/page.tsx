@@ -20,6 +20,10 @@ import {
   X,
   CheckSquare,
   Square,
+  RulerIcon,
+  LayersIcon,
+  TagIcon,
+  CircleIcon,
 } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 
@@ -63,7 +67,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import OrderFormModal from "@/components/orderFormModal";
-import { Order } from "@/types/orderTypes";
+import { Order, ProductVariant } from "@/types/orderTypes";
 
 type SortField = "id" | "date" | "status" | "paymentMethod" | "total";
 type SortDirection = "asc" | "desc";
@@ -346,6 +350,68 @@ const OrderDashboard: React.FC = () => {
       <Badge variant="outline" className={colorClass}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
+    );
+  };
+
+  const VariantBadge: React.FC<{ variant: ProductVariant }> = ({ variant }) => {
+    // Check if it's a color variant
+    if (variant.detail_name.toLowerCase() === "color") {
+      const isHexColor = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(
+        variant.detail_desc
+      );
+
+      if (isHexColor) {
+        return (
+          <div className="inline-flex items-center bg-gray-50 rounded-full px-2 py-1 mr-1 mb-1 border border-gray-100">
+            <div
+              className="w-4 h-4 rounded-full mr-1.5 ring-1 ring-gray-200"
+              style={{ backgroundColor: variant.detail_desc }}
+            />
+            <span className="text-xs font-medium text-gray-700">
+              {variant.detail_desc}
+            </span>
+          </div>
+        );
+      }
+    }
+
+    // Regular variant display with appropriate styling based on type
+    const getVariantStyle = () => {
+      switch (variant.detail_name.toLowerCase()) {
+        case "tamaño":
+        case "talla":
+        case "size":
+          return "bg-blue-50 text-blue-700 border-blue-100";
+        case "material":
+          return "bg-amber-50 text-amber-700 border-amber-100";
+        case "estilo":
+        case "style":
+          return "bg-purple-50 text-purple-700 border-purple-100";
+        default:
+          return "bg-gray-50 text-gray-700 border-gray-100";
+      }
+    };
+
+    const getVariantIcon = (variantName: string) => {
+      const name = variantName.toLowerCase();
+      if (name === "color") return <div className="w-3 h-3 mr-1.5"></div>; // Placeholder for color circle
+      if (name === "tamaño" || name === "talla" || name === "size")
+        return <RulerIcon size={12} className="mr-1.5" />;
+      if (name === "material")
+        return <LayersIcon size={12} className="mr-1.5" />;
+      if (name === "estilo" || name === "style")
+        return <TagIcon size={12} className="mr-1.5" />;
+      return <CircleIcon size={12} className="mr-1.5" />;
+    };
+
+    return (
+      <span
+        className={`text-xs font-medium px-2 py-1 rounded-full inline-flex items-center mr-1 mb-1 border transition-all hover:-translate-y-0.5 hover:shadow-sm ${getVariantStyle()}`}
+      >
+        <span>{getVariantIcon(variant.detail_name)}</span>
+        <span className="font-semibold mr-1">{variant.detail_name}:</span>{" "}
+        {variant.detail_desc}
+      </span>
     );
   };
 
@@ -901,37 +967,64 @@ const OrderDashboard: React.FC = () => {
                                   <p className="text-sm font-medium text-gray-500 mb-2">
                                     Productos
                                   </p>
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead>Producto</TableHead>
-                                        <TableHead>Cantidad</TableHead>
-                                        <TableHead>Precio unitario</TableHead>
-                                        <TableHead>Subtotal</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {order.detalles.map((item, index) => (
-                                        <TableRow key={index}>
-                                          <TableCell>
-                                            {item.producto.producto_nombre}
-                                          </TableCell>
-                                          <TableCell>{item.amount}</TableCell>
-                                          <TableCell>
-                                            ${item.unit_price.toLocaleString()}
-                                          </TableCell>
-                                          <TableCell>
-                                            $
-                                            {(
-                                              item.amount * item.unit_price
-                                            ).toLocaleString()}
-                                          </TableCell>
+                                  <div className="rounded-md border border-gray-200 overflow-hidden">
+                                    <Table>
+                                      <TableHeader className="bg-gray-50">
+                                        <TableRow>
+                                          <TableHead>Producto</TableHead>
+                                          <TableHead>Cantidad</TableHead>
+                                          <TableHead>Precio unitario</TableHead>
+                                          <TableHead>Subtotal</TableHead>
                                         </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                  <div className="text-right mt-2">
-                                    <p className="font-medium">
+                                      </TableHeader>
+                                      <TableBody>
+                                        {order.detalles.map((item, index) => (
+                                          <TableRow
+                                            key={index}
+                                            className="group hover:bg-gray-50"
+                                          >
+                                            <TableCell className="py-3">
+                                              <div>
+                                                <div className="font-medium">
+                                                  {
+                                                    item.producto
+                                                      .producto_nombre
+                                                  }
+                                                </div>
+                                                {item.producto.variantes &&
+                                                  item.producto.variantes
+                                                    .length > 0 && (
+                                                    <div className="mt-2 flex flex-wrap gap-1">
+                                                      {item.producto.variantes.map(
+                                                        (variant, vIdx) => (
+                                                          <VariantBadge
+                                                            key={vIdx}
+                                                            variant={variant}
+                                                          />
+                                                        )
+                                                      )}
+                                                    </div>
+                                                  )}
+                                              </div>
+                                            </TableCell>
+                                            <TableCell>{item.amount}</TableCell>
+                                            <TableCell>
+                                              $
+                                              {item.unit_price.toLocaleString()}
+                                            </TableCell>
+                                            <TableCell className="font-medium">
+                                              $
+                                              {(
+                                                item.amount * item.unit_price
+                                              ).toLocaleString()}
+                                            </TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  </div>
+                                  <div className="text-right mt-4 p-2 bg-gray-50 rounded-md border border-gray-100">
+                                    <p className="font-medium text-lg">
                                       Total: $
                                       {calculateOrderTotal(
                                         order

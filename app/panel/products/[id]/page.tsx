@@ -66,6 +66,35 @@ const groupDetailsByName = (details: ProductDetail[]) => {
   return grouped;
 };
 
+// Helper functions for stock display
+const getStockLabel = (stock: number): string => {
+  if (stock <= 0) return "Agotado";
+  if (stock <= 3) return `¡Últimas ${stock} unidades!`;
+  if (stock <= 10) return `${stock} disponibles (Bajo)`;
+  return `${stock} en stock`;
+};
+
+const getStockTextColor = (stock: number): string => {
+  if (stock <= 0) return "text-red-600 font-medium";
+  if (stock <= 3) return "text-amber-600 font-medium";
+  if (stock <= 10) return "text-blue-600";
+  return "text-green-600";
+};
+
+const getStockBarColor = (stock: number): string => {
+  if (stock <= 0) return "bg-red-500";
+  if (stock <= 3) return "bg-amber-500";
+  if (stock <= 10) return "bg-blue-500";
+  return "bg-green-500";
+};
+
+const getStockBadgeClass = (stock: number): string => {
+  if (stock <= 0) return "bg-red-50 text-red-700 border-red-200";
+  if (stock <= 3) return "bg-amber-50 text-amber-700 border-amber-200";
+  if (stock <= 10) return "bg-blue-50 text-blue-700 border-blue-200";
+  return "bg-green-50 text-green-700 border-green-200";
+};
+
 // Check if discount is active
 const isDiscountActive = (startDate: string, endDate: string): boolean => {
   const now = new Date();
@@ -656,81 +685,80 @@ const AdminProductDetailPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               {Object.entries(groupedDetails).length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Atributo</TableHead>
-                      <TableHead>Valores</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Object.entries(groupedDetails).map(([name, values]) => (
-                      <TableRow key={name}>
-                        <TableCell className="font-medium">{name}</TableCell>
-                        <TableCell>
-                          {name === "Color" ? (
-                            <div className="flex flex-wrap gap-3">
-                              {values.map((value, i) => (
+                <div className="space-y-6">
+                  {Object.entries(groupedDetails).map(([name, values]) => (
+                    <div
+                      key={name}
+                      className="bg-white rounded-lg shadow-sm border p-4"
+                    >
+                      <h3 className="text-md font-medium mb-3 pb-2 border-b">
+                        {name}
+                      </h3>
+
+                      {name === "Color" ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                          {values.map((value, i) => (
+                            <div
+                              key={i}
+                              className="flex items-center p-3 bg-gray-50 rounded-lg transition-all hover:shadow-md"
+                            >
+                              <div
+                                className="w-10 h-10 rounded-full border shadow-sm mr-3 flex-shrink-0"
+                                style={{ backgroundColor: value.desc }}
+                              />
+                              <div>
+                                <div className="font-medium text-sm">
+                                  {value.desc}
+                                </div>
                                 <div
-                                  key={i}
-                                  className="flex items-center gap-2 bg-gray-50 rounded p-2"
+                                  className={`text-sm ${getStockTextColor(
+                                    value.stock
+                                  )}`}
                                 >
+                                  {getStockLabel(value.stock)}
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                                   <div
-                                    className="w-8 h-8 rounded-full border border-gray-300 shadow-sm"
-                                    style={{ backgroundColor: value.desc }}
+                                    className={`h-1.5 rounded-full ${getStockBarColor(
+                                      value.stock
+                                    )}`}
+                                    style={{
+                                      width: `${Math.min(
+                                        100,
+                                        (value.stock / 20) * 100
+                                      )}%`,
+                                    }}
                                   />
-                                  <div className="text-sm">
-                                    <div className="font-medium">
-                                      {value.desc}
-                                    </div>
-                                    <div
-                                      className={`text-xs ${
-                                        value.stock > 0
-                                          ? "text-green-600"
-                                          : "text-red-500"
-                                      }`}
-                                    >
-                                      {value.stock > 0
-                                        ? `${value.stock} en stock`
-                                        : "Agotado"}
-                                    </div>
-                                  </div>
                                 </div>
-                              ))}
+                              </div>
                             </div>
-                          ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full">
-                              {values.map((value, i) => (
-                                <div
-                                  key={i}
-                                  className="flex justify-between items-center bg-gray-50 rounded p-2"
-                                >
-                                  <span className="font-medium">
-                                    {value.desc}
-                                  </span>
-                                  <Badge
-                                    className={
-                                      value.stock > 0
-                                        ? "bg-green-100 text-green-700"
-                                        : "bg-red-100 text-red-700"
-                                    }
-                                  >
-                                    {value.stock > 0
-                                      ? `${value.stock} disponibles`
-                                      : "Agotado"}
-                                  </Badge>
-                                </div>
-                              ))}
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {values.map((value, i) => (
+                            <div
+                              key={i}
+                              className="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all"
+                            >
+                              <span className="font-medium">{value.desc}</span>
+                              <Badge
+                                className={getStockBadgeClass(value.stock)}
+                              >
+                                {getStockLabel(value.stock)}
+                              </Badge>
                             </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               ) : (
-                <div className="text-center py-4">
-                  <p className="text-gray-500">No hay detalles disponibles</p>
+                <div className="text-center py-6 bg-gray-50 rounded-lg">
+                  <p className="text-gray-500">
+                    No hay detalles disponibles para este producto
+                  </p>
                 </div>
               )}
             </CardContent>
