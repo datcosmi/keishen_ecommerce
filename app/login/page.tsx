@@ -15,12 +15,53 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  // const { data: session } = useSession(); // para ingresar con google
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const validateEmail = (email: string) => {
+    const emailRegex = 
+      /^[\w-.]+@(gmail\.com|outlook\.com|hotmail\.com|yahoo\.com)$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePassword = (password: string) => {
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).{8,}$/;
+    return passwordRegex.test(password);
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log({ email, password, rememberMe });
+
+    if (!validateEmail(email)) {
+      alert("Por favor ingresa un correo válido de Gmail, Outlook, Hotmail o Yahoo.");
+      return;
+    }
+
+    if(!validatePassword(password)) {
+      alert("La contraseña debe tener al menos 8 caracteres, incluyendo mayúsculas, minúsculas, números y símbolos.");
+      return;
+    }
+    
+    try {
+      const response = await fetch("http://localhost:3001/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Login successful:", data);
+        alert("Bienvenido");
+      } else {
+        console.error("Login failed:", data.error);
+        alert("Email o contraseña incorrectos");
+      }
+    } catch (error){
+      console.error("Error a la solicitud de login:", error);
+      alert("Error en el servidor");
+    }
   };
 
   return (
@@ -119,7 +160,7 @@ export default function Login() {
             <p className="text-sm text-gray-600">O inicia sesión con</p>
             <div className="mt-3">
               <button 
-              onClick={() => signIn("google", { callbackUrl: "/panel/dashboard"})} // para ingresar con google, preguntarle a Iván
+              onClick={() => signIn("google", { callbackUrl: "/dashboard"})} // para ingresar con google, preguntarle a Iván
               className="flex items-center justify-center w-full border border-gray-300 rounded-lg py-2 px-4 hover:bg-gray-50 transition duration-200">
                 <Image
                   src="/google-icon.png"
