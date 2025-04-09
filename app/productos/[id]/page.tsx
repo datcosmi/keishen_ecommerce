@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -194,12 +193,12 @@ export default function ProductPage() {
           <Button
             variant="link"
             className="text-yellow-500 hover:text-yellow-600 mb-6 p-0 h-auto"
-            asChild
+            onClick={() => router.back()}
           >
-            <Link href="/productos">
+            <span className="flex items-center">
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Ver todos los productos
-            </Link>
+              Regresar a la tienda
+            </span>
           </Button>
 
           <h1 className="text-3xl font-bold mb-2">{product.product_name}</h1>

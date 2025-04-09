@@ -9,11 +9,14 @@ import {
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,13 +31,16 @@ export default function Login() {
         <div className="max-w-md mx-auto w-full">
           {/* Back to home button at top left */}
           <div className="mb-4">
-            <Link
-              href="/"
-              className="text-yellow-500 hover:underline text-sm flex items-center"
+            <Button
+              variant="link"
+              className="text-yellow-500 hover:text-yellow-600 mb-6 p-0 h-auto"
+              onClick={() => router.back()}
             >
-              <ChevronLeftIcon className="h-6 w-6 mr-1" />
-              <span>Volver a la página de inicio</span>
-            </Link>
+              <span className="flex items-center">
+                <ChevronLeftIcon className="h-4 w-4 mr-1" />
+                Regresar a la tienda
+              </span>
+            </Button>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Bienvenido de nuevo
