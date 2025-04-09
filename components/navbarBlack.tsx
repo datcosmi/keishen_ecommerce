@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ShoppingCartIcon,
   UserIcon,
@@ -17,6 +17,7 @@ interface Category {
 
 export default function NavbarBlack() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isShrunk, setIsShrunk] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [showProductsMenu, setShowProductsMenu] = useState(false);
@@ -24,6 +25,12 @@ export default function NavbarBlack() {
   const [isLoading, setIsLoading] = useState(true);
   // Type the ref correctly for NodeJS.Timeout
   const dropdownRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Search functionality
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showResults, setShowResults] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -70,6 +77,64 @@ export default function NavbarBlack() {
       clearTimeout(dropdownRef.current);
     }
     setShowProductsMenu(true);
+  };
+
+  // Search functionality
+  const handleSearch = async (term: string) => {
+    setSearchTerm(term);
+
+    if (term.length >= 2) {
+      try {
+        const response = await fetch(
+          `http://localhost:3001/api/products/search?q=${encodeURIComponent(
+            term
+          )}`
+        );
+        if (!response.ok) throw new Error("Search failed");
+        const data = await response.json();
+        setSearchResults(data);
+        setShowResults(true);
+      } catch (error) {
+        console.error("Error searching products:", error);
+        setSearchResults([]);
+      }
+    } else {
+      setSearchResults([]);
+      setShowResults(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setShowResults(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm.length >= 2) {
+        handleSearch(searchTerm);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchTerm.trim()) {
+      router.push(`/productos?search=${encodeURIComponent(searchTerm)}`);
+      setShowResults(false);
+    }
   };
 
   return (
@@ -177,7 +242,7 @@ export default function NavbarBlack() {
 
       {/* Barra de búsqueda e íconos */}
       <div className="w-1/3 flex justify-end items-center space-x-6">
-        <div className="relative transition-all duration-300">
+        <div className="relative transition-all duration-300" ref={searchRef}>
           <input
             type="text"
             placeholder="Buscar"
@@ -186,7 +251,13 @@ export default function NavbarBlack() {
                 ? "w-80 bg-white text-black shadow-lg"
                 : "w-64 bg-black text-white"
             }`}
-            onFocus={() => setIsFocused(true)}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => {
+              setIsFocused(true);
+              if (searchResults.length > 0) setShowResults(true);
+            }}
             onBlur={() => setIsFocused(false)}
           />
           <MagnifyingGlassIcon
@@ -194,6 +265,66 @@ export default function NavbarBlack() {
               isFocused ? "text-gray-500" : "text-gray-300"
             }`}
           />
+
+          {/* Search results dropdown */}
+          {showResults && searchResults.length > 0 && (
+            <div className="absolute top-full left-0 w-full mt-1 bg-black border border-gray-700 rounded-md shadow-lg z-50 max-h-80 overflow-y-auto">
+              {searchResults.map((product) => (
+                <div
+                  key={product.id_product}
+                  className="p-2 hover:bg-gray-800 cursor-pointer border-b border-gray-700 flex items-center"
+                  onClick={() => {
+                    router.push(`/productos/${product.id_product}`);
+                    setShowResults(false);
+                    setSearchTerm("");
+                  }}
+                >
+                  <div className="w-12 h-12 relative mr-2 bg-gray-800 rounded">
+                    {product.image_url ? (
+                      <Image
+                        src={`http://localhost:3001${product.image_url}`}
+                        alt={product.product_name}
+                        fill
+                        className="object-cover rounded p-1"
+                        sizes="48px"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-500">
+                        <ShoppingCartIcon className="h-6 w-6" />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      {product.product_name}
+                    </p>
+                    <p className="text-xs text-gray-400">{product.category}</p>
+                  </div>
+                </div>
+              ))}
+              <div
+                className="p-2 text-center text-sm font-medium text-yellow-300 hover:bg-gray-800 cursor-pointer"
+                onClick={() => {
+                  router.push(
+                    `/productos?search=${encodeURIComponent(searchTerm)}`
+                  );
+                  setShowResults(false);
+                }}
+              >
+                Ver todos los resultados
+              </div>
+            </div>
+          )}
+
+          {showResults &&
+            searchTerm.length >= 2 &&
+            searchResults.length === 0 && (
+              <div className="absolute top-full left-0 w-full mt-1 bg-black border border-gray-700 rounded-md shadow-lg z-50 p-3 text-center">
+                <p className="text-sm text-gray-300">
+                  No se encontraron productos
+                </p>
+              </div>
+            )}
         </div>
         <Link href="/carrito">
           <div className="relative">

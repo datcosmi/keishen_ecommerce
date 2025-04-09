@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ChevronDown, ChevronUp, SlidersHorizontal, Tag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import NavbarWhite from "@/components/navbarWhite";
 import Footer from "@/components/footer";
 
@@ -95,12 +96,21 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState("newest");
 
+  // Search
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get("search") || "";
+
   useEffect(() => {
     async function fetchData() {
       try {
+        setLoading(true);
         // Fetch products and categories in parallel
         const [productsResponse, categoriesResponse] = await Promise.all([
-          fetch(`${API_BASE_URL}/products/full-details`),
+          fetch(
+            `${API_BASE_URL}/products/full-details${
+              searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ""
+            }`
+          ),
           fetch(`${API_BASE_URL}/categories`),
         ]);
 
@@ -120,7 +130,7 @@ export default function ProductsPage() {
     }
 
     fetchData();
-  }, []);
+  }, [searchQuery]);
 
   // Function to transform raw product data to display format
   const transformProducts = (productsData: ProductData[]): DisplayProduct[] => {
@@ -346,7 +356,9 @@ export default function ProductsPage() {
       <div className="max-w-8xl mx-auto px-2 sm:px-4 lg:px-6 py-8">
         <div className="flex justify-between items-center mb-8 px-2">
           <h1 className="text-2xl font-semibold">
-            Artículos para Hombre ({sortedProducts.length})
+            {searchQuery
+              ? `Resultados para "${searchQuery}" (${sortedProducts.length})`
+              : `Artículos para Hombre (${sortedProducts.length})`}
           </h1>
 
           <div className="flex items-center gap-4">

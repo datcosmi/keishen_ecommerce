@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ShoppingCartIcon,
   UserIcon,
@@ -23,6 +23,13 @@ export default function NavbarWhite() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const dropdownRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Search for products
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showResults, setShowResults] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -57,7 +64,7 @@ export default function NavbarWhite() {
   const handleMouseLeave = () => {
     const timer = setTimeout(() => {
       setShowProductsMenu(false);
-    }, 300); // Delay before hiding the menu
+    }, 300);
 
     // Store the timer ID in a ref so we can clear it if needed
     dropdownRef.current = timer;
@@ -69,6 +76,63 @@ export default function NavbarWhite() {
       clearTimeout(dropdownRef.current);
     }
     setShowProductsMenu(true);
+  };
+
+  const handleSearch = async (term: string) => {
+    setSearchTerm(term);
+
+    if (term.length >= 2) {
+      try {
+        const response = await fetch(
+          `http://localhost:3001/api/products/search?q=${encodeURIComponent(
+            term
+          )}`
+        );
+        if (!response.ok) throw new Error("Search failed");
+        const data = await response.json();
+        setSearchResults(data);
+        setShowResults(true);
+      } catch (error) {
+        console.error("Error searching products:", error);
+        setSearchResults([]);
+      }
+    } else {
+      setSearchResults([]);
+      setShowResults(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setShowResults(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm.length >= 2) {
+        handleSearch(searchTerm);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchTerm.trim()) {
+      router.push(`/productos?search=${encodeURIComponent(searchTerm)}`);
+      setShowResults(false);
+    }
   };
 
   return (
@@ -95,7 +159,7 @@ export default function NavbarWhite() {
       <div className="border-t border-gray-200 py-2 px-8 grid grid-cols-3 items-center">
         <div></div>
 
-        {/* Navigation links - same as black navbar */}
+        {/* Navigation links  */}
         <div className="flex justify-center space-x-8">
           <Link href="/">
             <span
@@ -174,15 +238,82 @@ export default function NavbarWhite() {
 
         {/* Íconos y barra de búsqueda */}
         <div className="flex justify-end items-center space-x-6">
-          <div className="relative w-64">
+          <div className="relative w-64" ref={searchRef}>
             <input
               type="text"
               placeholder="Buscar"
               className="w-full py-1 px-4 border border-gray-300 rounded-full text-sm focus:outline-none transition-all duration-300"
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => {
+                setIsFocused(true);
+                if (searchResults.length > 0) setShowResults(true);
+              }}
             />
             <MagnifyingGlassIcon className="absolute right-3 top-2 h-4 w-4 text-gray-500" />
+
+            {/* Search results dropdown */}
+            {showResults && searchResults.length > 0 && (
+              <div className="absolute top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-80 overflow-y-auto">
+                {searchResults.map((product) => (
+                  <div
+                    key={product.id_product}
+                    className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 flex items-center"
+                    onClick={() => {
+                      router.push(`/productos/${product.id_product}`);
+                      setShowResults(false);
+                      setSearchTerm("");
+                    }}
+                  >
+                    <div className="w-12 h-12 relative mr-2 bg-gray-100 rounded">
+                      {product.image_url ? (
+                        <Image
+                          src={`http://localhost:3001${product.image_url}`}
+                          alt={product.product_name}
+                          fill
+                          className="object-cover rounded p-1"
+                          sizes="48px"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <ShoppingCartIcon className="h-6 w-6" />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">
+                        {product.product_name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {product.category}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                <div
+                  className="p-2 text-center text-sm font-medium text-blue-600 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => {
+                    router.push(
+                      `/productos?search=${encodeURIComponent(searchTerm)}`
+                    );
+                    setShowResults(false);
+                  }}
+                >
+                  Ver todos los resultados
+                </div>
+              </div>
+            )}
+
+            {showResults &&
+              searchTerm.length >= 2 &&
+              searchResults.length === 0 && (
+                <div className="absolute top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 p-3 text-center">
+                  <p className="text-sm text-gray-500">
+                    No se encontraron productos
+                  </p>
+                </div>
+              )}
           </div>
 
           <Link href="/carrito">
