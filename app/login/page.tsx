@@ -31,8 +31,6 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // esto aqui no va princesa
-    // que ondeadota
     if (!validateEmail(email)) {
       alert("Por favor ingresa un correo válido de Gmail, Outlook, Hotmail o Yahoo.");
       return;
@@ -162,7 +160,7 @@ export default function Login() {
             <p className="text-sm text-gray-600">O inicia sesión con</p>
             <div className="mt-3">
               <button 
-              onClick={() => signIn("google", { callbackUrl: "/dashboard"})} // para ingresar con google, preguntarle a Iván
+              onClick={() => signIn("google", { callbackUrl: "/panel/dashboard"})} // para ingresar con google, preguntarle a Iván
               className="flex items-center justify-center w-full border border-gray-300 rounded-lg py-2 px-4 hover:bg-gray-50 transition duration-200">
                 <Image
                   src="/google-icon.png"
