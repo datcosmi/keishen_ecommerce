@@ -31,6 +31,8 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // esto aqui no va princesa
+    // que ondeadota
     if (!validateEmail(email)) {
       alert("Por favor ingresa un correo válido de Gmail, Outlook, Hotmail o Yahoo.");
       return;
