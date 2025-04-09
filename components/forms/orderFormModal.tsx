@@ -268,6 +268,9 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
       return;
     }
 
+    // Validate main product stock
+    const currentStock = selectedProduct.stock || 0;
+
     // Create a unique identifier for the product+variants combination
     const productVariantKey = `${currentDetail.prod_id}-${
       currentDetail.selected_details?.sort().join("-") || ""
@@ -280,6 +283,38 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
       }`;
       return detailVariantKey === productVariantKey;
     });
+
+    // Calculate total amount including existing amount in order if any
+    let totalAmount = currentDetail.amount;
+    if (existingProductIndex >= 0) {
+      totalAmount += orderDetails[existingProductIndex].amount;
+    }
+
+    // Check if we have enough stock
+    if (totalAmount > currentStock) {
+      toast.error(
+        `Stock insuficiente. Solo hay ${currentStock} unidades disponibles.`
+      );
+      return;
+    }
+
+    // Also validate stock for each selected detail
+    if (
+      currentDetail.selected_details &&
+      currentDetail.selected_details.length > 0
+    ) {
+      for (const detailId of currentDetail.selected_details) {
+        const detail = selectedProduct.product_details?.find(
+          (d) => d.detail_id === detailId
+        );
+        if (detail && detail.stock < totalAmount) {
+          toast.error(
+            `Stock insuficiente para variante ${detail.detail_name}: ${detail.detail_desc}. Solo hay ${detail.stock} unidades disponibles.`
+          );
+          return;
+        }
+      }
+    }
 
     if (existingProductIndex >= 0) {
       // Update existing product quantity
@@ -389,6 +424,136 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
     setProductSearch("");
   };
 
+  const updateProductStocks = async () => {
+    try {
+      // Track products that need updating and their quantities
+      const productUpdates = new Map<string | number, number>();
+      // Track product details that need updating and their quantities
+      const detailUpdates = new Map<number, number>();
+
+      // Collect all updates needed
+      orderDetails.forEach((detail) => {
+        const productId = detail.prod_id;
+        const quantity = detail.amount;
+
+        // Add to product updates
+        if (productUpdates.has(productId)) {
+          productUpdates.set(
+            productId,
+            productUpdates.get(productId)! + quantity
+          );
+        } else {
+          productUpdates.set(productId, quantity);
+        }
+
+        // Add to product detail updates if applicable
+        if (detail.selected_details && detail.selected_details.length > 0) {
+          detail.selected_details.forEach((detailId) => {
+            if (detailUpdates.has(detailId)) {
+              detailUpdates.set(
+                detailId,
+                detailUpdates.get(detailId)! + quantity
+              );
+            } else {
+              detailUpdates.set(detailId, quantity);
+            }
+          });
+        }
+      });
+
+      // Process product stock updates
+      const productUpdatePromises = Array.from(productUpdates.entries()).map(
+        ([productId, quantity]) => {
+          // Find current stock
+          const product = products.find(
+            (p) =>
+              (p.id_product &&
+                p.id_product.toString() === productId.toString()) ||
+              (p.id_prod && p.id_prod.toString() === productId.toString())
+          );
+
+          if (!product) return Promise.resolve();
+
+          const currentStock = product.stock || 0;
+          const newStock = Math.max(0, currentStock - quantity); // Ensure stock doesn't go negative
+
+          return fetch(`${API_BASE_URL}/product/${productId}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              stock: newStock,
+            }),
+          }).then((response) => {
+            if (!response.ok) {
+              throw new Error(
+                `Failed to update stock for product ${productId}`
+              );
+            }
+            return response;
+          });
+        }
+      );
+
+      // Process product detail stock updates
+      // Prepare the bulk update format
+      const detailUpdateData = Array.from(detailUpdates.entries()).map(
+        ([detailId, quantity]) => {
+          // Find current stock for this detail
+          let currentStock = 0;
+          products.some((product) => {
+            const detail = product.product_details?.find(
+              (d) => d.detail_id === detailId
+            );
+            if (detail) {
+              currentStock = detail.stock || 0;
+              return true;
+            }
+            return false;
+          });
+
+          const newStock = Math.max(0, currentStock - quantity); // Ensure stock doesn't go negative
+
+          return {
+            id_pd: detailId.toString(),
+            data: { stock: newStock },
+          };
+        }
+      );
+
+      // Only call the API if there are details to update
+      let detailUpdatePromise: Promise<any> = Promise.resolve();
+      if (detailUpdateData.length > 0) {
+        detailUpdatePromise = fetch(
+          `${API_BASE_URL}/products/details/bulk-update`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(detailUpdateData),
+          }
+        ).then((response) => {
+          if (!response.ok) {
+            throw new Error(`Failed to update stock for product details`);
+          }
+          return response;
+        });
+      }
+
+      // Wait for all updates to complete
+      await Promise.all([...productUpdatePromises, detailUpdatePromise]);
+
+      console.log("Stock updated successfully for all products and details");
+    } catch (error) {
+      console.error("Error updating product stocks:", error);
+      toast.error(
+        "Se creó el pedido pero hubo un error actualizando el inventario"
+      );
+    }
+  };
+
   // Submit order
   const handleSubmit = async () => {
     // Validate order
@@ -437,6 +602,9 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
       });
 
       await Promise.all(detailPromises);
+
+      // Step 3: Update product stock levels
+      await updateProductStocks();
 
       // Success!
       resetForm();
@@ -734,6 +902,9 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
                                     disabled={detail.stock === 0}
                                   >
                                     {detail.detail_desc}
+                                    <span className="ml-1 text-xs">
+                                      ({detail.stock})
+                                    </span>
                                   </Button>
                                 ))}
                               </div>
@@ -757,10 +928,23 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
                                 className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                                 onClick={() => handleProductSelect(product)}
                               >
-                                {product.product_name ||
-                                  product.name ||
-                                  "Unknown"}{" "}
-                                - ${product.price || 0}
+                                <div className="flex justify-between">
+                                  <span>
+                                    {product.product_name ||
+                                      product.name ||
+                                      "Unknown"}{" "}
+                                    - ${product.price || 0}
+                                  </span>
+                                  <span
+                                    className={`text-sm ${
+                                      (product.stock || 0) > 5
+                                        ? "text-green-600"
+                                        : "text-red-600"
+                                    }`}
+                                  >
+                                    Stock: {product.stock || 0}
+                                  </span>
+                                </div>
                               </li>
                             ))}
                           </ul>
