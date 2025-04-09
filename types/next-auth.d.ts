@@ -1,9 +1,7 @@
-// para next-auth 
-
+// para next-auth
 import "next-auth";
 
 declare module "next-auth" {
-
   interface User {
     id_user?: number;
     role?: string;
@@ -17,5 +15,14 @@ declare module "next-auth" {
       email?: string | null;
       image?: string | null;
     };
+    token?: string;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id_user?: number;
+    role?: string;
+    accessToken?: string;
   }
 }

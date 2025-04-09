@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -27,23 +27,76 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Image from "next/image";
+import { useAuth } from "@/hooks/useAuth"; // Import our custom hook
 
 const Sidebar = () => {
   const router = useRouter();
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const { user, logout, hasRole } = useAuth();
 
-  const menuItems = [
-    { name: "Inicio", icon: Home, href: "/panel/dashboard" },
-    { name: "Productos", icon: Archive, href: "/panel/products" },
-    { name: "Categorias", icon: Layers2, href: "/panel/categories" },
-    { name: "Descuentos", icon: Tags, href: "/panel/discounts" },
-    { name: "Pedidos", icon: CreditCard, href: "/panel/pedidos" },
-    { name: "Ventas", icon: BarChart2, href: "/panel/ventas" },
-    { name: "Administradores", icon: User, href: "/panel/administradores" },
-    { name: "Vendedores", icon: Users, href: "/panel/vendedores" },
-    { name: "Configuración", icon: Settings, href: "/panel/settings" },
+  // Base menu items
+  const baseMenuItems = [
+    {
+      name: "Inicio",
+      icon: Home,
+      href: "/panel/dashboard",
+      roles: ["admin", "vendedor", "cliente", "superadmin"],
+    },
+    {
+      name: "Productos",
+      icon: Archive,
+      href: "/panel/products",
+      roles: ["admin", "vendedor", "superadmin"],
+    },
+    {
+      name: "Categorias",
+      icon: Layers2,
+      href: "/panel/categories",
+      roles: ["admin", "superadmin"],
+    },
+    {
+      name: "Descuentos",
+      icon: Tags,
+      href: "/panel/discounts",
+      roles: ["admin", "superadmin"],
+    },
+    {
+      name: "Pedidos",
+      icon: CreditCard,
+      href: "/panel/pedidos",
+      roles: ["admin", "vendedor", "superadmin"],
+    },
+    {
+      name: "Ventas",
+      icon: BarChart2,
+      href: "/panel/ventas",
+      roles: ["admin", "vendedor", "superadmin"],
+    },
+    {
+      name: "Administradores",
+      icon: User,
+      href: "/panel/administradores",
+      roles: ["admin", "superadmin"],
+    },
+    {
+      name: "Vendedores",
+      icon: Users,
+      href: "/panel/vendedores",
+      roles: ["admin", "superadmin"],
+    },
+    {
+      name: "Configuración",
+      icon: Settings,
+      href: "/panel/settings",
+      roles: ["admin", "vendedor", "cliente", "superadmin"],
+    },
   ];
+
+  // Filter menu items based on user role
+  const menuItems = baseMenuItems.filter(
+    (item) => !user?.role || item.roles.includes(user.role)
+  );
 
   // Función mejorada que comprueba si la ruta actual es o comienza con la ruta del enlace
   const isActiveRoute = (href: string): boolean => {
@@ -56,7 +109,8 @@ const Sidebar = () => {
     return false;
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout();
     router.push("/");
   };
 
@@ -67,7 +121,8 @@ const Sidebar = () => {
   return (
     <aside
       className={cn(
-        "h-screen bg-white hidden md:flex flex-col border-r border-gray-200 transition-all duration-300 ease-in-out sticky top-0"
+        "h-screen bg-white hidden md:flex flex-col border-r border-gray-200 transition-all duration-300 ease-in-out sticky top-0",
+        collapsed ? "w-16" : "w-56"
       )}
     >
       {/* Toggle button */}
@@ -114,6 +169,22 @@ const Sidebar = () => {
             )}
           </Link>
         </div>
+
+        {/* User info */}
+        {!collapsed && (
+          <div className="px-4 py-2">
+            <p className="text-sm font-medium text-gray-900">
+              {user?.name || "Usuario"}
+            </p>
+            <p className="text-xs text-gray-500">{user?.email}</p>
+            <p className="text-xs text-gray-500 capitalize">
+              {user?.role || "Invitado"}
+            </p>
+            <p className="text-xs text-gray-500 capitalize">
+              ID: {user?.id_user || "N/A"}
+            </p>
+          </div>
+        )}
 
         {/* Navigation section */}
         <div className="flex-1 flex flex-col mt-4">

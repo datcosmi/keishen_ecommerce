@@ -300,8 +300,7 @@ const CategoriesDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-[#eaeef6]">
-      <Sidebar />
+    <div className="flex flex-col md:flex-row min-h-screen">
       {/* Main Content */}
       <div className="p-6 flex-1">
         <div className="mb-6">

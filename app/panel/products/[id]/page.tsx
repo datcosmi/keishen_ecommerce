@@ -279,7 +279,6 @@ const AdminProductDetailPage: React.FC = () => {
   if (error || !productData) {
     return (
       <div className="flex flex-col md:flex-row gap-2 min-h-screen bg-[#eaeef6]">
-        <Sidebar />
         <div className="p-6 flex-1">
           <Button
             variant="outline"
