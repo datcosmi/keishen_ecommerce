@@ -99,6 +99,10 @@ const OrderDashboard: React.FC = () => {
   // Modal de detalles
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  // Modal de edición
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [orderToEdit, setOrderToEdit] = useState<Order | null>(null);
+
   const fetchOrders = async () => {
     setLoading(true);
     try {
@@ -184,6 +188,31 @@ const OrderDashboard: React.FC = () => {
       setDeleteLoading(false);
       setConfirmDelete(false);
     }
+  };
+
+  const transformOrderForEdit = (order: Order | null) => {
+    if (!order) return undefined;
+
+    return {
+      id_pedido: order.pedido_id,
+      fecha_pedido: order.fecha_pedido,
+      status: order.status,
+      metodo_pago: order.metodo_pago as "efectivo" | "mercado pago" | "paypal",
+      detalles: order.detalles.map((detail) => ({
+        prod_id: detail.producto.producto_id,
+        amount: detail.amount,
+        unit_price: detail.unit_price,
+        productName: detail.producto.producto_nombre,
+      })),
+    };
+  };
+
+  const handleEditOrder = () => {
+    const selectedOrderId = selectedOrders[0];
+    const orderToEdit =
+      orders.find((order) => order.pedido_id === selectedOrderId) || null;
+    setOrderToEdit(orderToEdit);
+    setIsEditModalOpen(true);
   };
 
   // Calcular las cantidades para los filtros
@@ -445,6 +474,7 @@ const OrderDashboard: React.FC = () => {
                   <Button
                     variant="outline"
                     className="bg-blue-50 text-blue-600 hover:text-blue-600 border-blue-200 hover:bg-blue-100"
+                    onClick={handleEditOrder}
                   >
                     <Edit size={16} className="mr-1" />
                     Editar
@@ -489,6 +519,16 @@ const OrderDashboard: React.FC = () => {
               </>
             )}
             <OrderFormModal onOrderAdded={handleRefresh} />
+
+            <OrderFormModal
+              existingOrder={transformOrderForEdit(orderToEdit)}
+              isEditMode={!!orderToEdit}
+              onOrderUpdated={handleRefresh}
+              isOpen={isEditModalOpen}
+              onOpenChange={setIsEditModalOpen}
+              buttonLabel="Editar Producto"
+              buttonIcon={<Edit className="h-5 w-5 mr-2" />}
+            />
           </div>
         </div>
 

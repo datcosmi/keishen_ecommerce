@@ -81,13 +81,40 @@ interface OrderDetail {
 
 interface OrderFormModalProps {
   onOrderAdded?: () => void;
+  onOrderUpdated?: () => void;
+  existingOrder?: {
+    id_pedido?: string | number;
+    user_id?: string | number;
+    fecha_pedido: string;
+    status: "pendiente" | "enviado" | "finalizado";
+    metodo_pago: "efectivo" | "mercado pago" | "paypal";
+    detalles?: OrderDetail[];
+  };
+  isOpen?: boolean;
+  isEditMode?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  buttonLabel?: string;
+  buttonIcon?: React.ReactNode;
 }
 
 const API_BASE_URL = "http://localhost:3001/api";
 
-const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
+const OrderFormModal: React.FC<OrderFormModalProps> = ({
+  onOrderAdded,
+  onOrderUpdated,
+  existingOrder,
+  isEditMode,
+  isOpen,
+  onOpenChange,
+  buttonLabel = "Añadir Producto",
+  buttonIcon = <Plus className="h-5 w-5 mr-2" />,
+}) => {
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const controlled = isOpen !== undefined && onOpenChange !== undefined;
+  const open = controlled ? isOpen : internalOpen;
+  const setOpen = controlled ? onOpenChange : setInternalOpen;
 
   // Form data
   const [orderData, setOrderData] = useState<OrderData>({
@@ -165,6 +192,34 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (existingOrder && isEditMode) {
+      // Set order data
+      setOrderData({
+        fecha_pedido: existingOrder.fecha_pedido,
+        status: existingOrder.status,
+        metodo_pago: existingOrder.metodo_pago,
+      });
+
+      // If user data is available, set selected user
+      if (existingOrder.user_id) {
+        const foundUser = users.find(
+          (user) =>
+            user.id_user.toString() === existingOrder.user_id?.toString()
+        );
+        if (foundUser) {
+          setSelectedUser(foundUser);
+          setUserSearch(foundUser.name);
+        }
+      }
+
+      // Set order details if available
+      if (existingOrder.detalles && existingOrder.detalles.length > 0) {
+        setOrderDetails(existingOrder.detalles);
+      }
+    }
+  }, [existingOrder, isEditMode, users]);
 
   // Filter users based on search input
   useEffect(() => {
@@ -554,14 +609,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
     }
   };
 
-  // Submit order
-  const handleSubmit = async () => {
-    // Validate order
-    if (orderDetails.length === 0) {
-      alert("Por favor, agrega al menos un producto al pedido");
-      return;
-    }
-
+  const createOrder = async () => {
     setIsSubmitting(true);
 
     try {
@@ -625,18 +673,102 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
     }
   };
 
+  const updateOrder = async () => {
+    setIsSubmitting(true);
+
+    try {
+      // Update the order data
+      const orderResponse = await fetch(
+        `${API_BASE_URL}/pedidos/${existingOrder?.id_pedido}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(orderData),
+        }
+      );
+
+      if (!orderResponse.ok) {
+        throw new Error(`Error updating order: ${orderResponse.statusText}`);
+      }
+
+      // Handle order details
+      await fetch(
+        `${API_BASE_URL}/pedido/details/${existingOrder?.id_pedido}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      // Then create new details
+      const detailPromises = orderDetails.map((detail) => {
+        return fetch(`${API_BASE_URL}/pedido/details`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            pedido_id: existingOrder?.id_pedido,
+            prod_id: detail.prod_id,
+            amount: detail.amount,
+            unit_price: detail.unit_price,
+            product_detail_ids: detail.selected_details || [],
+          }),
+        });
+      });
+
+      await Promise.all(detailPromises);
+
+      // Handle stock updates
+      resetForm();
+      setIsDialogOpen(false);
+      onOrderUpdated && onOrderUpdated();
+
+      toast.success("Pedido actualizado correctamente");
+    } catch (error) {
+      console.error("Error updating order:", error);
+      alert(
+        `Error al actualizar el pedido: ${
+          error instanceof Error ? error.message : "Error desconocido"
+        }`
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Submit order
+  const handleSubmit = async () => {
+    // Validate order
+    if (orderDetails.length === 0) {
+      alert("Por favor, agrega al menos un producto al pedido");
+      return;
+    }
+
+    if (isEditMode && existingOrder) {
+      await updateOrder();
+    } else {
+      await createOrder();
+    }
+  };
+
   return (
     <>
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogTrigger asChild>
-          <Button className="bg-black hover:bg-gray-800">
-            <Plus className="mr-2 h-4 w-4" />
-            Nuevo Pedido
-          </Button>
-        </DialogTrigger>
+        {!controlled && (
+          <DialogTrigger asChild>
+            <Button>
+              {buttonIcon}
+              {buttonLabel}
+            </Button>
+          </DialogTrigger>
+        )}
         <DialogContent className="sm:max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Crear Nuevo Pedido</DialogTitle>
+            <DialogTitle>
+              {isEditMode ? "Editar Pedido" : "Crear Nuevo Pedido"}
+            </DialogTitle>
             <DialogDescription>
               Agrega la información del pedido y sus productos
             </DialogDescription>
@@ -1097,7 +1229,11 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
               disabled={isSubmitting || orderDetails.length === 0}
               className="bg-black hover:bg-gray-800"
             >
-              {isSubmitting ? "Guardando..." : "Guardar Pedido"}
+              {isSubmitting
+                ? "Guardando..."
+                : isEditMode
+                ? "Actualizar Pedido"
+                : "Guardar Pedido"}
             </Button>
           </DialogFooter>
         </DialogContent>
