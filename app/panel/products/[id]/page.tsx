@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { ProductDetail, ProductData, Product } from "@/types/productTypes";
-import ProductFormModal from "@/components/productFormModal";
+import ProductFormModal from "@/components/forms/productFormModal";
 import {
   AlertDialog,
   AlertDialogAction,

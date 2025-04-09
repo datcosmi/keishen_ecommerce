@@ -52,7 +52,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import ProductFormModal from "@/components/productFormModal";
+import ProductFormModal from "@/components/forms/productFormModal";
 import { Product, ProductData } from "@/types/productTypes";
 
 type SortField = "name" | "price" | "stock" | "inStock";

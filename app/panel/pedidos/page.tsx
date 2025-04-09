@@ -66,7 +66,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import OrderFormModal from "@/components/orderFormModal";
+import OrderFormModal from "@/components/forms/orderFormModal";
 import { Order, ProductVariant } from "@/types/orderTypes";
 
 type SortField = "id" | "date" | "status" | "paymentMethod" | "total";

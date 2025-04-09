@@ -23,7 +23,6 @@ export default function NavbarBlack() {
   const [showProductsMenu, setShowProductsMenu] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  // Type the ref correctly for NodeJS.Timeout
   const dropdownRef = useRef<NodeJS.Timeout | null>(null);
 
   // Search functionality

@@ -24,15 +24,44 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 
 // Define types
+interface ProductDetail {
+  detail_id: number;
+  detail_name: string;
+  detail_desc: string;
+  stock: number;
+}
+
+interface ProductImage {
+  image_id: number;
+  image_url: string;
+}
+
+interface Discount {
+  id_discount: number;
+  percent_discount: number;
+  start_date_discount: string;
+  end_date_discount: string;
+}
+
 interface User {
   id_user: string | number;
   name: string;
 }
 
 interface Product {
-  id_prod: string | number;
-  name: string;
-  price: number;
+  id_prod?: string | number;
+  id_product?: string | number;
+  name?: string;
+  product_name?: string;
+  price?: number;
+  description?: string;
+  category_id?: number;
+  category?: string;
+  stock?: number;
+  product_details?: ProductDetail[];
+  product_images?: ProductImage[];
+  discount_product?: Discount[];
+  discount_category?: Discount[];
 }
 
 interface OrderData {
@@ -47,6 +76,7 @@ interface OrderDetail {
   amount: number;
   unit_price: number;
   productName?: string;
+  selected_details?: number[];
 }
 
 interface OrderFormModalProps {
@@ -74,6 +104,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
     prod_id: "",
     amount: 1,
     unit_price: 0,
+    selected_details: [],
   });
 
   // Data sources
@@ -115,7 +146,9 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
         setUsers(usersData);
 
         // Fetch products
-        const productsResponse = await fetch(`${API_BASE_URL}/product`);
+        const productsResponse = await fetch(
+          `${API_BASE_URL}/products/full-details`
+        );
         if (!productsResponse.ok) {
           throw new Error(
             `Error fetching products: ${productsResponse.statusText}`
@@ -148,9 +181,10 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
   // Filter products based on search input
   useEffect(() => {
     if (productSearch) {
-      const filtered = products.filter((product) =>
-        product.name.toLowerCase().includes(productSearch.toLowerCase())
-      );
+      const filtered = products.filter((product) => {
+        const productName = product.product_name || product.name || "";
+        return productName.toLowerCase().includes(productSearch.toLowerCase());
+      });
       setFilteredProducts(filtered);
     } else {
       setFilteredProducts([]);
@@ -203,11 +237,12 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
   // Handle product selection
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
-    setProductSearch(product.name);
+    setProductSearch(product.product_name || product.name || "");
     setCurrentDetail({
       ...currentDetail,
-      prod_id: product.id_prod,
-      unit_price: product.price,
+      prod_id: product.id_product || product.id_prod || "",
+      unit_price: product.price || 0,
+      selected_details: [],
     });
     setShowProductDropdown(false);
   };
@@ -222,10 +257,29 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
       return;
     }
 
-    // Check if product already exists in order
-    const existingProductIndex = orderDetails.findIndex(
-      (detail) => detail.prod_id === currentDetail.prod_id
-    );
+    // If the product has variants but none are selected, show an error
+    if (
+      selectedProduct.product_details &&
+      selectedProduct.product_details.length > 0 &&
+      (!currentDetail.selected_details ||
+        currentDetail.selected_details.length === 0)
+    ) {
+      toast.error("Por favor, selecciona las variantes del producto");
+      return;
+    }
+
+    // Create a unique identifier for the product+variants combination
+    const productVariantKey = `${currentDetail.prod_id}-${
+      currentDetail.selected_details?.sort().join("-") || ""
+    }`;
+
+    // Check if the same product with same variants exists in order
+    const existingProductIndex = orderDetails.findIndex((detail) => {
+      const detailVariantKey = `${detail.prod_id}-${
+        detail.selected_details?.sort().join("-") || ""
+      }`;
+      return detailVariantKey === productVariantKey;
+    });
 
     if (existingProductIndex >= 0) {
       // Update existing product quantity
@@ -238,7 +292,10 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
         ...orderDetails,
         {
           ...currentDetail,
-          productName: selectedProduct.name,
+          productName:
+            selectedProduct.product_name ||
+            selectedProduct.name ||
+            "Unknown Product",
         },
       ]);
     }
@@ -248,6 +305,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
       prod_id: "",
       amount: 1,
       unit_price: 0,
+      selected_details: [],
     });
     setSelectedProduct(null);
     setProductSearch("");
@@ -285,6 +343,30 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
     setOrderData({
       ...orderData,
       status: status,
+    });
+  };
+
+  // Handle variant selection
+  const handleVariantSelect = (detailName: string, detailId: number) => {
+    // First, find all details with the same detail_name
+    const detailsWithSameName =
+      selectedProduct?.product_details?.filter(
+        (d) => d.detail_name === detailName
+      ) || [];
+
+    // Get IDs of those details
+    const detailIdsWithSameName = detailsWithSameName.map((d) => d.detail_id);
+
+    // Remove any previously selected detail with the same name
+    const filteredDetails =
+      currentDetail.selected_details?.filter(
+        (id) => !detailIdsWithSameName.includes(id)
+      ) || [];
+
+    // Add the newly selected detail
+    setCurrentDetail({
+      ...currentDetail,
+      selected_details: [...filteredDetails, detailId],
     });
   };
 
@@ -349,6 +431,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
             prod_id: detail.prod_id,
             amount: detail.amount,
             unit_price: detail.unit_price,
+            product_detail_ids: detail.selected_details || [],
           }),
         });
       });
@@ -598,6 +681,67 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
                       />
                     </div>
 
+                    {selectedProduct &&
+                      selectedProduct.product_details &&
+                      selectedProduct.product_details.length > 0 && (
+                        <div className="mt-4 border rounded-md p-4 bg-gray-50">
+                          <h4 className="text-sm font-medium mb-2">
+                            Variantes del Producto
+                          </h4>
+
+                          {/* Group details by detail_name */}
+                          {Object.entries(
+                            selectedProduct.product_details.reduce(
+                              (acc, detail) => {
+                                if (!acc[detail.detail_name]) {
+                                  acc[detail.detail_name] = [];
+                                }
+                                acc[detail.detail_name].push(detail);
+                                return acc;
+                              },
+                              {} as Record<string, ProductDetail[]>
+                            )
+                          ).map(([detailName, details]) => (
+                            <div key={detailName} className="mb-3">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                {detailName}
+                              </label>
+                              <div className="flex flex-wrap gap-2">
+                                {details.map((detail) => (
+                                  <Button
+                                    key={detail.detail_id}
+                                    type="button"
+                                    variant={
+                                      currentDetail.selected_details?.includes(
+                                        detail.detail_id
+                                      )
+                                        ? "default"
+                                        : "outline"
+                                    }
+                                    className={
+                                      currentDetail.selected_details?.includes(
+                                        detail.detail_id
+                                      )
+                                        ? "bg-black hover:bg-gray-800"
+                                        : ""
+                                    }
+                                    onClick={() =>
+                                      handleVariantSelect(
+                                        detailName,
+                                        detail.detail_id
+                                      )
+                                    }
+                                    disabled={detail.stock === 0}
+                                  >
+                                    {detail.detail_desc}
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                     {/* Dropdown de productos */}
                     {showProductDropdown && filteredProducts.length > 0 && (
                       <Card className="absolute z-10 w-full mt-1 max-h-48 overflow-auto">
@@ -605,11 +749,18 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
                           <ul className="divide-y divide-gray-200">
                             {filteredProducts.map((product) => (
                               <li
-                                key={product.id_prod.toString()}
+                                key={(
+                                  product.id_product ||
+                                  product.id_prod ||
+                                  ""
+                                ).toString()}
                                 className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                                 onClick={() => handleProductSelect(product)}
                               >
-                                {product.name} - ${product.price}
+                                {product.product_name ||
+                                  product.name ||
+                                  "Unknown"}{" "}
+                                - ${product.price || 0}
                               </li>
                             ))}
                           </ul>
@@ -678,7 +829,30 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
                   <TableBody>
                     {orderDetails.map((detail, index) => (
                       <TableRow key={index}>
-                        <TableCell>{detail.productName}</TableCell>
+                        <TableCell>
+                          {detail.productName}
+                          {detail.selected_details &&
+                            detail.selected_details.length > 0 && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {detail.selected_details
+                                  .map((detailId) => {
+                                    // Find the detail in the products list
+                                    const product = products.find(
+                                      (p) => p.id_prod === detail.prod_id
+                                    );
+                                    const variantDetail =
+                                      product?.product_details?.find(
+                                        (d) => d.detail_id === detailId
+                                      );
+                                    return variantDetail
+                                      ? `${variantDetail.detail_name}: ${variantDetail.detail_desc}`
+                                      : "";
+                                  })
+                                  .filter(Boolean)
+                                  .join(", ")}
+                              </div>
+                            )}
+                        </TableCell>
                         <TableCell>{detail.amount}</TableCell>
                         <TableCell>
                           ${detail.unit_price.toLocaleString()}
