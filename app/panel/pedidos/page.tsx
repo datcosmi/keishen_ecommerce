@@ -24,6 +24,7 @@ import {
   LayersIcon,
   TagIcon,
   CircleIcon,
+  Plus,
 } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 
@@ -99,7 +100,8 @@ const OrderDashboard: React.FC = () => {
   // Modal de detalles
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  // Modal de edición
+  // Modal de creación y edición
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [orderToEdit, setOrderToEdit] = useState<Order | null>(null);
 
@@ -153,6 +155,8 @@ const OrderDashboard: React.FC = () => {
 
   const handleClearSelection = () => {
     setSelectedOrders([]);
+    setOrderToEdit(null);
+    setIsEditModalOpen(false);
   };
 
   // Función para eliminar pedidos seleccionados
@@ -196,23 +200,30 @@ const OrderDashboard: React.FC = () => {
     return {
       id_pedido: order.pedido_id,
       fecha_pedido: order.fecha_pedido,
-      status: order.status,
+      status: order.status as "pendiente" | "enviado" | "finalizado",
       metodo_pago: order.metodo_pago as "efectivo" | "mercado pago" | "paypal",
+      cliente: order.cliente,
       detalles: order.detalles.map((detail) => ({
         prod_id: detail.producto.producto_id,
         amount: detail.amount,
         unit_price: detail.unit_price,
         productName: detail.producto.producto_nombre,
+        selected_details: detail.producto.variantes?.map((v) => v.id_pd) || [],
       })),
     };
   };
 
   const handleEditOrder = () => {
-    const selectedOrderId = selectedOrders[0];
-    const orderToEdit =
-      orders.find((order) => order.pedido_id === selectedOrderId) || null;
-    setOrderToEdit(orderToEdit);
-    setIsEditModalOpen(true);
+    if (selectedOrders.length === 1) {
+      const selectedOrderId = selectedOrders[0];
+      const orderToEdit = orders.find(
+        (order) => order.pedido_id === selectedOrderId
+      );
+      if (orderToEdit) {
+        setOrderToEdit(orderToEdit);
+        setIsEditModalOpen(true);
+      }
+    }
   };
 
   // Calcular las cantidades para los filtros
@@ -480,7 +491,6 @@ const OrderDashboard: React.FC = () => {
                     Editar
                   </Button>
                 )}
-
                 <AlertDialog
                   open={confirmDelete}
                   onOpenChange={setConfirmDelete}
@@ -518,17 +528,25 @@ const OrderDashboard: React.FC = () => {
                 </AlertDialog>
               </>
             )}
-            <OrderFormModal onOrderAdded={handleRefresh} />
 
             <OrderFormModal
-              existingOrder={transformOrderForEdit(orderToEdit)}
-              isEditMode={!!orderToEdit}
-              onOrderUpdated={handleRefresh}
-              isOpen={isEditModalOpen}
-              onOpenChange={setIsEditModalOpen}
-              buttonLabel="Editar Producto"
-              buttonIcon={<Edit className="h-5 w-5 mr-2" />}
+              isEditMode={false}
+              onOrderAdded={handleRefresh}
+              buttonLabel="Nuevo Pedido"
+              buttonIcon={<Plus className="h-5 w-5 mr-2" />}
             />
+
+            {/* Edit Modal */}
+            {orderToEdit && (
+              <OrderFormModal
+                existingOrder={transformOrderForEdit(orderToEdit)}
+                isEditMode={true}
+                onOrderUpdated={handleRefresh}
+                isOpen={isEditModalOpen}
+                onOpenChange={setIsEditModalOpen}
+                hideButton={true}
+              />
+            )}
           </div>
         </div>
 

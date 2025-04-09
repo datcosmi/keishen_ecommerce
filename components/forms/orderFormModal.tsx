@@ -84,17 +84,18 @@ interface OrderFormModalProps {
   onOrderUpdated?: () => void;
   existingOrder?: {
     id_pedido?: string | number;
-    user_id?: string | number;
+    cliente?: string;
     fecha_pedido: string;
     status: "pendiente" | "enviado" | "finalizado";
     metodo_pago: "efectivo" | "mercado pago" | "paypal";
     detalles?: OrderDetail[];
   };
-  isOpen?: boolean;
   isEditMode?: boolean;
+  isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
   buttonLabel?: string;
   buttonIcon?: React.ReactNode;
+  hideButton?: boolean;
 }
 
 const API_BASE_URL = "http://localhost:3001/api";
@@ -108,13 +109,23 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
   onOpenChange,
   buttonLabel = "Añadir Producto",
   buttonIcon = <Plus className="h-5 w-5 mr-2" />,
+  hideButton,
 }) => {
   // Dialog state
-  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
-  const [internalOpen, setInternalOpen] = useState(false);
-  const controlled = isOpen !== undefined && onOpenChange !== undefined;
-  const open = controlled ? isOpen : internalOpen;
-  const setOpen = controlled ? onOpenChange : setInternalOpen;
+  const [open, setOpen] = useState(false);
+
+  // Sync open state with isOpen prop
+  useEffect(() => {
+    if (isOpen !== undefined) {
+      setOpen(isOpen);
+    }
+  }, [isOpen]);
+
+  // Handle internal open state changes
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    onOpenChange?.(newOpen);
+  };
 
   // Form data
   const [orderData, setOrderData] = useState<OrderData>({
@@ -202,21 +213,20 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
         metodo_pago: existingOrder.metodo_pago,
       });
 
-      // If user data is available, set selected user
-      if (existingOrder.user_id) {
-        const foundUser = users.find(
-          (user) =>
-            user.id_user.toString() === existingOrder.user_id?.toString()
-        );
-        if (foundUser) {
-          setSelectedUser(foundUser);
-          setUserSearch(foundUser.name);
-        }
-      }
-
       // Set order details if available
       if (existingOrder.detalles && existingOrder.detalles.length > 0) {
         setOrderDetails(existingOrder.detalles);
+      }
+
+      // If there's a client, set the search and selected user
+      if (existingOrder.cliente) {
+        setUserSearch(existingOrder.cliente);
+        const foundUser = users.find(
+          (user) => user.name === existingOrder.cliente
+        );
+        if (foundUser) {
+          setSelectedUser(foundUser);
+        }
       }
     }
   }, [existingOrder, isEditMode, users]);
@@ -656,7 +666,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
 
       // Success!
       resetForm();
-      setIsDialogOpen(false);
+      setOpen(false);
       onOrderAdded && onOrderAdded();
 
       // Show success message
@@ -722,7 +732,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
 
       // Handle stock updates
       resetForm();
-      setIsDialogOpen(false);
+      setOpen(false);
       onOrderUpdated && onOrderUpdated();
 
       toast.success("Pedido actualizado correctamente");
@@ -740,25 +750,108 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
 
   // Submit order
   const handleSubmit = async () => {
-    // Validate order
-    if (orderDetails.length === 0) {
-      alert("Por favor, agrega al menos un producto al pedido");
-      return;
-    }
+    setIsSubmitting(true);
 
-    if (isEditMode && existingOrder) {
-      await updateOrder();
-    } else {
-      await createOrder();
+    try {
+      const orderDataToSubmit = {
+        ...orderData,
+        user_id: selectedUser?.id_user,
+      };
+
+      let response;
+      if (isEditMode && existingOrder?.id_pedido) {
+        // Update existing order
+        response = await fetch(
+          `${API_BASE_URL}/pedidos/${existingOrder.id_pedido}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(orderDataToSubmit),
+          }
+        );
+      } else {
+        // Create new order
+        response = await fetch(`${API_BASE_URL}/pedidos`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(orderDataToSubmit),
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error(`Error ${isEditMode ? "updating" : "creating"} order`);
+      }
+
+      const result = await response.json();
+      const orderId = isEditMode ? existingOrder?.id_pedido : result.id_pedido;
+
+      // Handle order details
+      if (isEditMode) {
+        // Delete existing details first
+        await fetch(`${API_BASE_URL}/pedido/details/${orderId}`, {
+          method: "DELETE",
+        });
+      }
+
+      // Create new details
+      const detailPromises = orderDetails.map((detail) =>
+        fetch(`${API_BASE_URL}/pedido/details`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            pedido_id: orderId,
+            prod_id: detail.prod_id,
+            amount: detail.amount,
+            unit_price: detail.unit_price,
+            product_detail_ids: detail.selected_details || [],
+          }),
+        })
+      );
+
+      await Promise.all(detailPromises);
+
+      // Update stocks
+      await updateProductStocks();
+
+      toast.success(
+        isEditMode
+          ? "Pedido actualizado correctamente"
+          : "Pedido creado correctamente"
+      );
+
+      // Call the appropriate callback
+      if (isEditMode) {
+        onOrderUpdated && onOrderUpdated();
+      } else {
+        onOrderAdded && onOrderAdded();
+      }
+
+      setOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error("Error processing order:", error);
+      toast.error(
+        isEditMode
+          ? "Error al actualizar el pedido"
+          : "Error al crear el pedido"
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <>
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        {!controlled && (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        {!hideButton && (
           <DialogTrigger asChild>
-            <Button>
+            <Button variant="default" className="bg-black hover:bg-gray-800">
               {buttonIcon}
               {buttonLabel}
             </Button>
@@ -1221,7 +1314,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
             <Button
