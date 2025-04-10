@@ -413,7 +413,7 @@ export default function NavbarBlack() {
               </Button>
             </Link>
 
-            <Link href="/login">
+            <Link href="/register">
               <Button
                 variant="default"
                 className="bg-black hover:bg-white hover:text-black"

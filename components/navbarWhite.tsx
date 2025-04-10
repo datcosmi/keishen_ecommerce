@@ -228,7 +228,7 @@ export default function NavbarWhite() {
               </Button>
             </Link>
 
-            <Link href="/login">
+            <Link href="/register">
               <Button
                 variant="default"
                 className="bg-whites text-black hover:bg-black hover:text-white"

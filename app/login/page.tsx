@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   EnvelopeIcon,
   LockClosedIcon,
@@ -23,9 +23,11 @@ export default function Login() {
   const { isAuthenticated } = useAuth();
 
   // Redirect if already logged in
-  if (isAuthenticated) {
-    router.push("/");
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/");
+    }
+  }, [isAuthenticated, router]);
 
   const validateEmail = (email: string) => {
     const emailRegex =
@@ -144,7 +146,7 @@ export default function Login() {
               </div>
 
               {/* Remember me checkbox */}
-              <div className="flex items-center">
+              {/* <div className="flex items-center">
                 <input
                   id="remember-me"
                   type="checkbox"
@@ -158,17 +160,17 @@ export default function Login() {
                 >
                   Mantener mi sesión iniciada
                 </label>
-              </div>
+              </div> */}
 
               {/* Forgot password link */}
-              <div className="text-right">
+              {/* <div className="text-right">
                 <Link
                   href="/forgot-password"
                   className="text-sm text-yellow-500 hover:underline"
                 >
                   ¿Olvidaste tu contraseña?
                 </Link>
-              </div>
+              </div> */}
             </div>
 
             <div className="mt-8">
