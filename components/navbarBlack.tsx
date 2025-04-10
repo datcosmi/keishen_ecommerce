@@ -38,6 +38,7 @@ export default function NavbarBlack() {
 
   const [isLoading, setIsLoading] = useState(true);
   const dropdownRef = useRef<NodeJS.Timeout | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Search functionality
   const [searchTerm, setSearchTerm] = useState("");
@@ -181,6 +182,23 @@ export default function NavbarBlack() {
       router.push(`/productos?search=${encodeURIComponent(searchTerm)}`);
       setShowResults(false);
     }
+  };
+
+  const userMenuRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleUserMouseLeave = () => {
+    const timer = setTimeout(() => {
+      setShowUserMenu(false);
+    }, 300); // Delay before hiding the menu
+
+    userMenuRef.current = timer;
+  };
+
+  const handleUserMouseEnter = () => {
+    if (userMenuRef.current) {
+      clearTimeout(userMenuRef.current);
+    }
+    setShowUserMenu(true);
   };
 
   return (
@@ -384,22 +402,6 @@ export default function NavbarBlack() {
           </div>
         </Link>
 
-        {isAuthenticated && (
-          <>
-            <Link href="/panel/dashboard">
-              <UserIcon className="h-6 w-6 text-white" />
-            </Link>
-
-            <Button
-              variant="default"
-              onClick={handleLogout}
-              className="bg-yellow-400 hover:bg-yellow-500"
-            >
-              <span className="text-black">Cerrar sesión</span>
-            </Button>
-          </>
-        )}
-
         {!isAuthenticated && (
           <div className="flex gap-3">
             <Link href="/login">
@@ -422,31 +424,64 @@ export default function NavbarBlack() {
           </div>
         )}
 
-        {isAuthenticated &&
-          (user?.role === "admin_tienda" ||
-            (user?.role === "superadmin" && (
-              <div>
-                <Link href="/panel/dashboard">
-                  <Button
-                    variant="default"
-                    className="bg-yellow-400 hover:bg-yellow-500"
-                  >
-                    <span className="text-black">Ir al panel</span>
-                  </Button>
-                </Link>
-              </div>
-            )))}
+        {isAuthenticated && (
+          <div className="relative">
+            <div
+              className="cursor-pointer"
+              onMouseEnter={handleUserMouseEnter}
+              onMouseLeave={handleUserMouseLeave}
+            >
+              <UserIcon className="h-6 w-6 text-white" />
+            </div>
 
-        {isAuthenticated && user?.role === "vendedor" && (
-          <div>
-            <Link href="/panel/pedidos">
-              <Button
-                variant="default"
-                className="bg-yellow-400 hover:bg-yellow-500"
+            {showUserMenu && (
+              <div
+                className="absolute top-8 right-0 mt-1 w-48 bg-black border border-gray-700 rounded-md shadow-lg py-2 z-50"
+                onMouseEnter={handleUserMouseEnter}
+                onMouseLeave={handleUserMouseLeave}
               >
-                <span className="text-black">Ir al panel</span>
-              </Button>
-            </Link>
+                <div className="px-4 py-2 border-b border-gray-700">
+                  <p className="text-yellow-300 font-medium text-sm">
+                    {user?.name} {user?.surname}
+                  </p>
+                  <p className="text-gray-400 text-xs truncate">
+                    {user?.email}
+                  </p>
+                </div>
+
+                <div className="py-1">
+                  <Link href="/profile">
+                    <div className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-yellow-300">
+                      Mi Perfil
+                    </div>
+                  </Link>
+
+                  {(user?.role === "admin_tienda" ||
+                    user?.role === "superadmin") && (
+                    <Link href="/panel/dashboard">
+                      <div className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-yellow-300">
+                        Panel de Administración
+                      </div>
+                    </Link>
+                  )}
+
+                  {user?.role === "vendedor" && (
+                    <Link href="/panel/pedidos">
+                      <div className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-yellow-300">
+                        Panel de Vendedor
+                      </div>
+                    </Link>
+                  )}
+
+                  <div
+                    className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-yellow-300 cursor-pointer"
+                    onClick={handleLogout}
+                  >
+                    Cerrar Sesión
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

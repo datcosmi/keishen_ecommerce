@@ -86,7 +86,9 @@ export default function ProductPage() {
       }
 
       const data = await response.json();
-      return data.id_cart; // Assuming the returned cart ID field name
+      console.log("Cart creation response:", data);
+
+      return data.id || data.cart_id || data.id_cart;
     } catch (error) {
       console.error("Error creating cart:", error);
       throw error;
