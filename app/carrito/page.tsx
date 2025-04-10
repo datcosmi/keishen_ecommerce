@@ -342,7 +342,7 @@ export default function CartPage() {
     <div className="min-h-screen bg-white">
       <NavbarWhite />
 
-      <main className="max-w-7xl mx-auto px-8 py-12">
+      <main className="max-w-7xl mx-auto px-8 py-12 pb-36">
         <h1 className="text-3xl font-medium text-gray-800 mb-12">
           Carrito de compras
         </h1>
@@ -533,23 +533,9 @@ export default function CartPage() {
                 className="w-full bg-black text-white py-4 rounded-xl font-medium hover:bg-gray-900 transition-colors"
                 onClick={handleCheckout}
               >
-                Pagar
+                Proceder al pago
               </button>
             </div>
-          </div>
-        </div>
-
-        <div className="mt-16">
-          <h3 className="text-xl font-medium text-gray-800 mb-8">
-            También podría interesarte
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((item) => (
-              <div
-                key={item}
-                className="aspect-square bg-gray-100 rounded-lg shadow-sm"
-              />
-            ))}
           </div>
         </div>
       </main>

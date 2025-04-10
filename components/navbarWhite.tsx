@@ -36,6 +36,7 @@ export default function NavbarWhite() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const dropdownRef = useRef<NodeJS.Timeout | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Search for products
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,7 +46,12 @@ export default function NavbarWhite() {
   const router = useRouter();
 
   // Authentication
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/");
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -174,6 +180,23 @@ export default function NavbarWhite() {
       router.push(`/productos?search=${encodeURIComponent(searchTerm)}`);
       setShowResults(false);
     }
+  };
+
+  const userMenuRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleUserMouseLeave = () => {
+    const timer = setTimeout(() => {
+      setShowUserMenu(false);
+    }, 300); // Delay before hiding the menu
+
+    userMenuRef.current = timer;
+  };
+
+  const handleUserMouseEnter = () => {
+    if (userMenuRef.current) {
+      clearTimeout(userMenuRef.current);
+    }
+    setShowUserMenu(true);
   };
 
   return (
@@ -390,9 +413,64 @@ export default function NavbarWhite() {
           </Link>
 
           {isAuthenticated && (
-            <Link href="/panel/dashboard">
-              <UserIcon className="h-6 w-6 text-black cursor-pointer" />
-            </Link>
+            <div className="relative">
+              <div
+                className="cursor-pointer"
+                onMouseEnter={handleUserMouseEnter}
+                onMouseLeave={handleUserMouseLeave}
+              >
+                <UserIcon className="h-6 w-6 text-black" />
+              </div>
+
+              {showUserMenu && (
+                <div
+                  className="absolute top-8 right-0 mt-1 w-48 bg-white  rounded-md shadow-lg py-2 z-50"
+                  onMouseEnter={handleUserMouseEnter}
+                  onMouseLeave={handleUserMouseLeave}
+                >
+                  <div className="px-4 py-2 border-b border-gray-200">
+                    <p className="text-yellow-300 font-medium text-sm">
+                      {user?.name} {user?.surname}
+                    </p>
+                    <p className="text-gray-600 text-xs truncate">
+                      {user?.email}
+                    </p>
+                  </div>
+
+                  <div className="py-1">
+                    <Link href="/profile">
+                      <div className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-yellow-400">
+                        Mi Perfil
+                      </div>
+                    </Link>
+
+                    {(user?.role === "admin_tienda" ||
+                      user?.role === "superadmin") && (
+                      <Link href="/panel/dashboard">
+                        <div className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-yellow-400">
+                          Panel de Administración
+                        </div>
+                      </Link>
+                    )}
+
+                    {user?.role === "vendedor" && (
+                      <Link href="/panel/pedidos">
+                        <div className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-yellow-400">
+                          Panel de Vendedor
+                        </div>
+                      </Link>
+                    )}
+
+                    <div
+                      className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-yellow-400 cursor-pointer"
+                      onClick={handleLogout}
+                    >
+                      Cerrar Sesión
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

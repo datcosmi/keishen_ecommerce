@@ -26,7 +26,7 @@ import {
   CircleIcon,
   Plus,
 } from "lucide-react";
-import Sidebar from "@/components/sidebar";
+import OrderDetailsModal from "@/components/orderDetailModal";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,6 +99,7 @@ const OrderDashboard: React.FC = () => {
 
   // Modal de detalles
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   // Modal de creación y edición
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -242,10 +243,10 @@ const OrderDashboard: React.FC = () => {
 
   // Calcular el total de un pedido
   const calculateOrderTotal = (order: Order): number => {
-    return order.detalles.reduce(
-      (total, item) => total + item.unit_price * item.amount,
-      0
-    );
+    return order.detalles.reduce((total, item) => {
+      const discountMultiplier = 1 - item.discount / 100;
+      return total + item.unit_price * item.amount * discountMultiplier;
+    }, 0);
   };
 
   // Formatear fecha
@@ -453,6 +454,22 @@ const OrderDashboard: React.FC = () => {
         {variant.detail_desc}
       </span>
     );
+  };
+
+  const openOrderDetails = (order: Order) => {
+    setSelectedOrder(order);
+    setIsDetailsModalOpen(true);
+  };
+
+  const calculateDiscountedPrice = (
+    price: number,
+    discountPercentage: number
+  ): number => {
+    return price * (1 - discountPercentage / 100);
+  };
+
+  const orderHasDiscounts = (order: Order): boolean => {
+    return order.detalles.some((item) => item.discount > 0);
   };
 
   // Comprobar si hay un único pedido seleccionado para mostrar el botón de editar
@@ -693,6 +710,7 @@ const OrderDashboard: React.FC = () => {
                           </div>
                         </TableHead>
                         <TableHead>Productos totales</TableHead>
+                        <TableHead>Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -745,124 +763,33 @@ const OrderDashboard: React.FC = () => {
                           <TableCell>
                             <div className="font-medium">
                               ${calculateOrderTotal(order).toLocaleString()}
+                              {order.detalles.some(
+                                (item) => item.discount > 0
+                              ) && (
+                                <Badge className="ml-2 bg-orange-50 text-orange-600 border-orange-200">
+                                  Con descuento
+                                </Badge>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleViewDetails(order)}
-                                    className="text-blue-600 hover:text-blue-800"
-                                  >
-                                    <Eye size={18} />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-md">
-                                  <DialogHeader>
-                                    <DialogTitle>
-                                      Detalles del Pedido #{order.pedido_id}
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                      Información completa del pedido
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <div className="mt-4 space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                        <p className="text-sm font-medium text-gray-500">
-                                          Cliente
-                                        </p>
-                                        <p className="text-sm">
-                                          {order.cliente || "No especificado"}
-                                        </p>
-                                      </div>
-                                      <div>
-                                        <p className="text-sm font-medium text-gray-500">
-                                          Fecha
-                                        </p>
-                                        <p className="text-sm">
-                                          {formatDate(order.fecha_pedido)}
-                                        </p>
-                                      </div>
-                                      <div>
-                                        <p className="text-sm font-medium text-gray-500">
-                                          Estado
-                                        </p>
-                                        <div className="mt-1">
-                                          {renderStatusBadge(order.status)}
-                                        </div>
-                                      </div>
-                                      <div>
-                                        <p className="text-sm font-medium text-gray-500">
-                                          Método de pago
-                                        </p>
-                                        <p className="text-sm">
-                                          {order.metodo_pago
-                                            .charAt(0)
-                                            .toUpperCase() +
-                                            order.metodo_pago.slice(1)}
-                                        </p>
-                                      </div>
-                                    </div>
-
-                                    <div>
-                                      <p className="text-sm font-medium text-gray-500 mb-2">
-                                        Productos
-                                      </p>
-                                      <Table>
-                                        <TableHeader>
-                                          <TableRow>
-                                            <TableHead>Producto</TableHead>
-                                            <TableHead>Cantidad</TableHead>
-                                            <TableHead>
-                                              Precio unitario
-                                            </TableHead>
-                                            <TableHead>Subtotal</TableHead>
-                                          </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                          {order.detalles.map((item, index) => (
-                                            <TableRow key={index}>
-                                              <TableCell>
-                                                {item.producto.producto_nombre}
-                                              </TableCell>
-                                              <TableCell>
-                                                {item.amount}
-                                              </TableCell>
-                                              <TableCell>
-                                                $
-                                                {item.unit_price.toLocaleString()}
-                                              </TableCell>
-                                              <TableCell>
-                                                $
-                                                {(
-                                                  item.amount * item.unit_price
-                                                ).toLocaleString()}
-                                              </TableCell>
-                                            </TableRow>
-                                          ))}
-                                        </TableBody>
-                                      </Table>
-                                      <div className="text-right mt-2">
-                                        <p className="font-medium">
-                                          Total: $
-                                          {calculateOrderTotal(
-                                            order
-                                          ).toLocaleString()}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
                               {order.detalles.length}{" "}
                               {order.detalles.length === 1
                                 ? "producto"
                                 : "productos"}
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant={"outline"}
+                              size={"sm"}
+                              className="flex-1"
+                              onClick={() => openOrderDetails(order)}
+                            >
+                              <Eye size={16} />
+                              Ver detalles
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -954,144 +881,37 @@ const OrderDashboard: React.FC = () => {
 
                         <div className="flex justify-between items-center mb-4">
                           <span className="text-sm text-gray-500">Total:</span>
-                          <span className="font-semibold">
-                            ${calculateOrderTotal(order).toLocaleString()}
-                          </span>
+                          <div>
+                            <span className="font-semibold">
+                              ${calculateOrderTotal(order).toLocaleString()}
+                            </span>
+                            {order.detalles.some(
+                              (item) => item.discount > 0
+                            ) && (
+                              <Badge className="ml-2 bg-orange-50 text-orange-600 border-orange-200 text-xs">
+                                Con descuento
+                              </Badge>
+                            )}
+                          </div>
                         </div>
 
                         <div className="flex justify-between space-x-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => handleViewDetails(order)}
-                              >
-                                <Eye size={16} className="mr-1" />
-                                Ver detalles
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-md">
-                              <DialogHeader>
-                                <DialogTitle>
-                                  Detalles del Pedido #{order.pedido_id}
-                                </DialogTitle>
-                                <DialogDescription>
-                                  Información completa del pedido
-                                </DialogDescription>
-                              </DialogHeader>
-                              <div className="mt-4 space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">
-                                      Cliente
-                                    </p>
-                                    <p className="text-sm">
-                                      {order.cliente || "No especificado"}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">
-                                      Fecha
-                                    </p>
-                                    <p className="text-sm">
-                                      {formatDate(order.fecha_pedido)}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">
-                                      Estado
-                                    </p>
-                                    <div className="mt-1">
-                                      {renderStatusBadge(order.status)}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-500">
-                                      Método de pago
-                                    </p>
-                                    <p className="text-sm">
-                                      {order.metodo_pago
-                                        .charAt(0)
-                                        .toUpperCase() +
-                                        order.metodo_pago.slice(1)}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <p className="text-sm font-medium text-gray-500 mb-2">
-                                    Productos
-                                  </p>
-                                  <div className="rounded-md border border-gray-200 overflow-hidden">
-                                    <Table>
-                                      <TableHeader className="bg-gray-50">
-                                        <TableRow>
-                                          <TableHead>Producto</TableHead>
-                                          <TableHead>Cantidad</TableHead>
-                                          <TableHead>Precio unitario</TableHead>
-                                          <TableHead>Subtotal</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {order.detalles.map((item, index) => (
-                                          <TableRow
-                                            key={index}
-                                            className="group hover:bg-gray-50"
-                                          >
-                                            <TableCell className="py-3">
-                                              <div>
-                                                <div className="font-medium">
-                                                  {
-                                                    item.producto
-                                                      .producto_nombre
-                                                  }
-                                                </div>
-                                                {item.producto.variantes &&
-                                                  item.producto.variantes
-                                                    .length > 0 && (
-                                                    <div className="mt-2 flex flex-wrap gap-1">
-                                                      {item.producto.variantes.map(
-                                                        (variant, vIdx) => (
-                                                          <VariantBadge
-                                                            key={vIdx}
-                                                            variant={variant}
-                                                          />
-                                                        )
-                                                      )}
-                                                    </div>
-                                                  )}
-                                              </div>
-                                            </TableCell>
-                                            <TableCell>{item.amount}</TableCell>
-                                            <TableCell>
-                                              $
-                                              {item.unit_price.toLocaleString()}
-                                            </TableCell>
-                                            <TableCell className="font-medium">
-                                              $
-                                              {(
-                                                item.amount * item.unit_price
-                                              ).toLocaleString()}
-                                            </TableCell>
-                                          </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
-                                  </div>
-                                  <div className="text-right mt-4 p-2 bg-gray-50 rounded-md border border-gray-100">
-                                    <p className="font-medium text-lg">
-                                      Total: $
-                                      {calculateOrderTotal(
-                                        order
-                                      ).toLocaleString()}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
+                          <Button
+                            variant={isGridView ? "outline" : "ghost"}
+                            size={isGridView ? "sm" : "icon"}
+                            className={
+                              isGridView
+                                ? "flex-1"
+                                : "text-blue-600 hover:text-blue-800"
+                            }
+                            onClick={() => openOrderDetails(order)}
+                          >
+                            <Eye
+                              size={isGridView ? 16 : 18}
+                              className={isGridView ? "mr-1" : ""}
+                            />
+                            {isGridView && "Ver detalles"}
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -1178,6 +998,12 @@ const OrderDashboard: React.FC = () => {
           </Card>
         )}
       </div>
+      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+        <OrderDetailsModal
+          order={selectedOrder}
+          onClose={() => setIsDetailsModalOpen(false)}
+        />
+      </Dialog>
     </div>
   );
 };

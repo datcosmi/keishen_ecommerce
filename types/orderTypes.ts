@@ -17,6 +17,7 @@ export interface OrderDetail {
   amount: number;
   unit_price: number;
   producto: Product;
+  discount: number;
 }
 
 export interface Order {
