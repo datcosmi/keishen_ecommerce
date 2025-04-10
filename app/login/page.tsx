@@ -185,17 +185,11 @@ export default function Login() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">O inicia sesión con</p>
             <div className="mt-3">
-<<<<<<< HEAD
-              <button 
-              onClick={() => signIn("google", { callbackUrl: "/panel/dashboard"})} // para ingresar con google, preguntarle a Iván
-              className="flex items-center justify-center w-full border border-gray-300 rounded-lg py-2 px-4 hover:bg-gray-50 transition duration-200">
-=======
               <button
                 onClick={() => signIn("google", { callbackUrl: "/" })}
                 className="flex items-center justify-center w-full border border-gray-300 rounded-lg py-2 px-4 hover:bg-gray-50 transition duration-200"
                 disabled={loading}
               >
->>>>>>> e1c68d61592ea7d57031f056377e7d676f95e2fa
                 <Image
                   src="/google-icon.png"
                   alt="Google"

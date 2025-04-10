@@ -1,5 +1,6 @@
 'use client';
 
+// import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
 import Footer from "@/components/footer";
 import NavbarWhite from "@/components/navbarWhite";
@@ -12,22 +13,33 @@ interface PaymentResponse {
 
 const PaymentPage = () => {
   // Configuración de animaciones de entrada
+  // const [userId, setUserId] = useState<string | null>(null);
   const [ref5, inView5] = useInView({
     triggerOnce: true,
     threshold: 0.1,
   });
 
-  const userId = localStorage.getItem("user_id");
-
+  // useEffect(() => {
+  //   const storedUserId = localStorage.getItem("user_id");
+  //   if (storedUserId) {
+  //     setUserId(storedUserId);
+  //   }
+  // }, []);
   // Función que maneja el checkout y redirige al usuario
   const handleCheckout = async () => {
+
+    // if (!userId) {
+    //   alert("usuario no identificado");
+    //   return;
+    // }
+
     try {
       const res = await fetch("http://localhost:3001/api/pago/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ user_id: userId }),
+        // body: JSON.stringify({ user_id: userId }),
       });
 
       if (!res.ok) {
@@ -35,7 +47,6 @@ const PaymentPage = () => {
       } 
 
       const data: PaymentResponse = await res.json();
-      console.log("Respuesta del backend:", data);
 
       if (data && data.url) {
         setTimeout(() => {

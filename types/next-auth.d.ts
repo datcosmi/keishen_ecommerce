@@ -12,10 +12,6 @@ export interface CustomUser {
 }
 
 declare module "next-auth" {
-<<<<<<< HEAD
-  interface Session {
-    user: CustomUser;
-=======
   interface User {
     id_user?: number;
     role?: string;
@@ -30,7 +26,6 @@ declare module "next-auth" {
       image?: string | null;
     };
     token?: string;
->>>>>>> e1c68d61592ea7d57031f056377e7d676f95e2fa
   }
 }
 

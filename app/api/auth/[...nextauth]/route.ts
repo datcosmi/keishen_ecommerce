@@ -1,18 +1,12 @@
-<<<<<<< HEAD
-=======
 // /app/api/auth/[...nextauth]/route.ts
->>>>>>> e1c68d61592ea7d57031f056377e7d676f95e2fa
 import NextAuth from "next-auth/next";
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { SupabaseAdapter } from "@auth/supabase-adapter";
 import { createClient } from "@supabase/supabase-js";
-<<<<<<< HEAD
-=======
-import { CustomUser } from "@/types/usersTypes";
+// import { CustomUser } from "@/types/usersTypes";
 import bcrypt from "bcryptjs";
->>>>>>> e1c68d61592ea7d57031f056377e7d676f95e2fa
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -30,21 +24,6 @@ export const authOptions: NextAuthOptions = {
         },
       },
     }),
-<<<<<<< HEAD
-  ],
-  adapter: SupabaseAdapter({
-    url: process.env.SUPABASE_URL!,
-    secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  }),
-  events: {
-    async signIn({ user, account }) {
-      try {
-        const email = user.email;
-
-        if (!email) return;
-
-        const { data: existingUser, error: lookupError } = await supabase
-=======
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -119,19 +98,11 @@ export const authOptions: NextAuthOptions = {
         const email = user.email;
         //checar si existe
         const { data: existingUser } = await supabase
->>>>>>> e1c68d61592ea7d57031f056377e7d676f95e2fa
           .from("users")
           .select("id_user")
           .eq("email", email)
           .single();
 
-<<<<<<< HEAD
-        if (lookupError && lookupError.code !== "PGRST116") {
-          console.error("Error looking up user:", lookupError);
-        }
-
-=======
->>>>>>> e1c68d61592ea7d57031f056377e7d676f95e2fa
         if (!existingUser) {
           const nameParts = user.name?.split(" ") || [];
           const name = nameParts[0] || "";
@@ -145,26 +116,11 @@ export const authOptions: NextAuthOptions = {
               pass: "",
               phone: "",
               role: "cliente",
-<<<<<<< HEAD
-              provider: account?.provider || "google",
-=======
               provider: account?.provider || "credentials",
->>>>>>> e1c68d61592ea7d57031f056377e7d676f95e2fa
             },
           ]);
 
           if (insertError) {
-<<<<<<< HEAD
-            console.error("Error inserting user in public.users:", insertError);
-          } else {
-            console.log("Usuario insertado correctamente en public.users:", user);
-          }
-        } else {
-          console.log("Usuario ya existe en public.users", user);
-        }
-      } catch (err) {
-        console.error("Error en events.signIn:", err);
-=======
             console.error("Error inserting user:", insertError);
           } else {
             console.log("User inserted successfully:", user);
@@ -172,37 +128,10 @@ export const authOptions: NextAuthOptions = {
         }
       } catch (err) {
         console.error("Error signing in:", err);
->>>>>>> e1c68d61592ea7d57031f056377e7d676f95e2fa
       }
     },
   },
   callbacks: {
-<<<<<<< HEAD
-    async session({ session }) {
-      const email = session.user.email;
-
-      const { data: userData, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("email", email)
-        .single();
-
-      if (error) {
-        console.error("Error fetching user data from public.users:", error);
-        return session;
-      }
-
-      if (userData) {
-        session.user = {
-          id_user: userData.id_user,
-          name: userData.name,
-          surname: userData.surname,
-          email: userData.email,
-          pass: userData.pass,
-          phone: userData.phone,
-          role: userData.role,
-        };
-=======
     async jwt({ token, user, account }) {
       // Add user fields to the token
       if (user) {
@@ -242,16 +171,12 @@ export const authOptions: NextAuthOptions = {
         session.user.id_user = token.id_user as number;
         session.user.role = token.role as string;
         session.token = token.accessToken || "";
->>>>>>> e1c68d61592ea7d57031f056377e7d676f95e2fa
       }
 
       return session;
     },
   },
-<<<<<<< HEAD
-=======
   secret: process.env.NEXTAUTH_SECRET,
->>>>>>> e1c68d61592ea7d57031f056377e7d676f95e2fa
 };
 
 const handler = NextAuth(authOptions);
