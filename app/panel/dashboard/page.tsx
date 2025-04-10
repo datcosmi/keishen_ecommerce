@@ -25,15 +25,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import {
-  RefreshCcw,
-  ShoppingCart,
-  Package,
-  Truck,
-  CheckCircle,
-} from "lucide-react";
+import { ShoppingCart, Package, Truck, CheckCircle } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import { Order } from "@/types/orderTypes";
+import { useAuth } from "@/hooks/useAuth";
 
 // Función para formatear moneda
 const formatCurrency = (value: number) => {
@@ -49,15 +44,28 @@ export default function DashboardHome() {
   const [pedidos, setPedidos] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // const { getAuthToken } = useAuth();
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
+        // const token = await getAuthToken();
 
-        const pedidosResponse = await fetch(`${API_BASE_URL}/pedidos/details`);
+        // if (token) {
+        const pedidosResponse = await fetch(
+          `${API_BASE_URL}/pedidos/details`
+          // ,
+          // {
+          //   headers: {
+          //     Authorization: `Bearer ${token}`,
+          //   },
+          // }
+        );
         const pedidosData = await pedidosResponse.json();
 
         setPedidos(pedidosData);
+        // }
       } catch (error) {
         console.error("Error obteniendo datos:", error);
       } finally {
@@ -203,8 +211,7 @@ export default function DashboardHome() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-2 min-h-screen bg-[#eaeef6]">
-      <Sidebar />
+    <div className="flex flex-col md:flex-row gap-2 min-h-screen">
       <div className="p-6 flex-1">
         <div className="mb-6 flex justify-between items-center">
           <div>

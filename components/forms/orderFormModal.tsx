@@ -24,15 +24,44 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 
 // Define types
+interface ProductDetail {
+  detail_id: number;
+  detail_name: string;
+  detail_desc: string;
+  stock: number;
+}
+
+interface ProductImage {
+  image_id: number;
+  image_url: string;
+}
+
+interface Discount {
+  id_discount: number;
+  percent_discount: number;
+  start_date_discount: string;
+  end_date_discount: string;
+}
+
 interface User {
   id_user: string | number;
   name: string;
 }
 
 interface Product {
-  id_prod: string | number;
-  name: string;
-  price: number;
+  id_prod?: string | number;
+  id_product?: string | number;
+  name?: string;
+  product_name?: string;
+  price?: number;
+  description?: string;
+  category_id?: number;
+  category?: string;
+  stock?: number;
+  product_details?: ProductDetail[];
+  product_images?: ProductImage[];
+  discount_product?: Discount[];
+  discount_category?: Discount[];
 }
 
 interface OrderData {
@@ -47,17 +76,56 @@ interface OrderDetail {
   amount: number;
   unit_price: number;
   productName?: string;
+  selected_details?: number[];
 }
 
 interface OrderFormModalProps {
   onOrderAdded?: () => void;
+  onOrderUpdated?: () => void;
+  existingOrder?: {
+    id_pedido?: string | number;
+    cliente?: string;
+    fecha_pedido: string;
+    status: "pendiente" | "enviado" | "finalizado";
+    metodo_pago: "efectivo" | "mercado pago" | "paypal";
+    detalles?: OrderDetail[];
+  };
+  isEditMode?: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  buttonLabel?: string;
+  buttonIcon?: React.ReactNode;
+  hideButton?: boolean;
 }
 
 const API_BASE_URL = "http://localhost:3001/api";
 
-const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
+const OrderFormModal: React.FC<OrderFormModalProps> = ({
+  onOrderAdded,
+  onOrderUpdated,
+  existingOrder,
+  isEditMode,
+  isOpen,
+  onOpenChange,
+  buttonLabel = "Añadir Producto",
+  buttonIcon = <Plus className="h-5 w-5 mr-2" />,
+  hideButton,
+}) => {
   // Dialog state
-  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+  const [open, setOpen] = useState(false);
+
+  // Sync open state with isOpen prop
+  useEffect(() => {
+    if (isOpen !== undefined) {
+      setOpen(isOpen);
+    }
+  }, [isOpen]);
+
+  // Handle internal open state changes
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    onOpenChange?.(newOpen);
+  };
 
   // Form data
   const [orderData, setOrderData] = useState<OrderData>({
@@ -74,6 +142,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
     prod_id: "",
     amount: 1,
     unit_price: 0,
+    selected_details: [],
   });
 
   // Data sources
@@ -115,7 +184,9 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
         setUsers(usersData);
 
         // Fetch products
-        const productsResponse = await fetch(`${API_BASE_URL}/product`);
+        const productsResponse = await fetch(
+          `${API_BASE_URL}/products/full-details`
+        );
         if (!productsResponse.ok) {
           throw new Error(
             `Error fetching products: ${productsResponse.statusText}`
@@ -133,6 +204,33 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (existingOrder && isEditMode) {
+      // Set order data
+      setOrderData({
+        fecha_pedido: existingOrder.fecha_pedido,
+        status: existingOrder.status,
+        metodo_pago: existingOrder.metodo_pago,
+      });
+
+      // Set order details if available
+      if (existingOrder.detalles && existingOrder.detalles.length > 0) {
+        setOrderDetails(existingOrder.detalles);
+      }
+
+      // If there's a client, set the search and selected user
+      if (existingOrder.cliente) {
+        setUserSearch(existingOrder.cliente);
+        const foundUser = users.find(
+          (user) => user.name === existingOrder.cliente
+        );
+        if (foundUser) {
+          setSelectedUser(foundUser);
+        }
+      }
+    }
+  }, [existingOrder, isEditMode, users]);
+
   // Filter users based on search input
   useEffect(() => {
     if (userSearch) {
@@ -148,9 +246,10 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
   // Filter products based on search input
   useEffect(() => {
     if (productSearch) {
-      const filtered = products.filter((product) =>
-        product.name.toLowerCase().includes(productSearch.toLowerCase())
-      );
+      const filtered = products.filter((product) => {
+        const productName = product.product_name || product.name || "";
+        return productName.toLowerCase().includes(productSearch.toLowerCase());
+      });
       setFilteredProducts(filtered);
     } else {
       setFilteredProducts([]);
@@ -203,11 +302,12 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
   // Handle product selection
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
-    setProductSearch(product.name);
+    setProductSearch(product.product_name || product.name || "");
     setCurrentDetail({
       ...currentDetail,
-      prod_id: product.id_prod,
-      unit_price: product.price,
+      prod_id: product.id_product || product.id_prod || "",
+      unit_price: product.price || 0,
+      selected_details: [],
     });
     setShowProductDropdown(false);
   };
@@ -222,10 +322,64 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
       return;
     }
 
-    // Check if product already exists in order
-    const existingProductIndex = orderDetails.findIndex(
-      (detail) => detail.prod_id === currentDetail.prod_id
-    );
+    // If the product has variants but none are selected, show an error
+    if (
+      selectedProduct.product_details &&
+      selectedProduct.product_details.length > 0 &&
+      (!currentDetail.selected_details ||
+        currentDetail.selected_details.length === 0)
+    ) {
+      toast.error("Por favor, selecciona las variantes del producto");
+      return;
+    }
+
+    // Validate main product stock
+    const currentStock = selectedProduct.stock || 0;
+
+    // Create a unique identifier for the product+variants combination
+    const productVariantKey = `${currentDetail.prod_id}-${
+      currentDetail.selected_details?.sort().join("-") || ""
+    }`;
+
+    // Check if the same product with same variants exists in order
+    const existingProductIndex = orderDetails.findIndex((detail) => {
+      const detailVariantKey = `${detail.prod_id}-${
+        detail.selected_details?.sort().join("-") || ""
+      }`;
+      return detailVariantKey === productVariantKey;
+    });
+
+    // Calculate total amount including existing amount in order if any
+    let totalAmount = currentDetail.amount;
+    if (existingProductIndex >= 0) {
+      totalAmount += orderDetails[existingProductIndex].amount;
+    }
+
+    // Check if we have enough stock
+    if (totalAmount > currentStock) {
+      toast.error(
+        `Stock insuficiente. Solo hay ${currentStock} unidades disponibles.`
+      );
+      return;
+    }
+
+    // Also validate stock for each selected detail
+    if (
+      currentDetail.selected_details &&
+      currentDetail.selected_details.length > 0
+    ) {
+      for (const detailId of currentDetail.selected_details) {
+        const detail = selectedProduct.product_details?.find(
+          (d) => d.detail_id === detailId
+        );
+        if (detail && detail.stock < totalAmount) {
+          toast.error(
+            `Stock insuficiente para variante ${detail.detail_name}: ${detail.detail_desc}. Solo hay ${detail.stock} unidades disponibles.`
+          );
+          return;
+        }
+      }
+    }
 
     if (existingProductIndex >= 0) {
       // Update existing product quantity
@@ -238,7 +392,10 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
         ...orderDetails,
         {
           ...currentDetail,
-          productName: selectedProduct.name,
+          productName:
+            selectedProduct.product_name ||
+            selectedProduct.name ||
+            "Unknown Product",
         },
       ]);
     }
@@ -248,6 +405,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
       prod_id: "",
       amount: 1,
       unit_price: 0,
+      selected_details: [],
     });
     setSelectedProduct(null);
     setProductSearch("");
@@ -288,6 +446,30 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
     });
   };
 
+  // Handle variant selection
+  const handleVariantSelect = (detailName: string, detailId: number) => {
+    // First, find all details with the same detail_name
+    const detailsWithSameName =
+      selectedProduct?.product_details?.filter(
+        (d) => d.detail_name === detailName
+      ) || [];
+
+    // Get IDs of those details
+    const detailIdsWithSameName = detailsWithSameName.map((d) => d.detail_id);
+
+    // Remove any previously selected detail with the same name
+    const filteredDetails =
+      currentDetail.selected_details?.filter(
+        (id) => !detailIdsWithSameName.includes(id)
+      ) || [];
+
+    // Add the newly selected detail
+    setCurrentDetail({
+      ...currentDetail,
+      selected_details: [...filteredDetails, detailId],
+    });
+  };
+
   // Reset form
   const resetForm = () => {
     setOrderData({
@@ -307,14 +489,137 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
     setProductSearch("");
   };
 
-  // Submit order
-  const handleSubmit = async () => {
-    // Validate order
-    if (orderDetails.length === 0) {
-      alert("Por favor, agrega al menos un producto al pedido");
-      return;
-    }
+  const updateProductStocks = async () => {
+    try {
+      // Track products that need updating and their quantities
+      const productUpdates = new Map<string | number, number>();
+      // Track product details that need updating and their quantities
+      const detailUpdates = new Map<number, number>();
 
+      // Collect all updates needed
+      orderDetails.forEach((detail) => {
+        const productId = detail.prod_id;
+        const quantity = detail.amount;
+
+        // Add to product updates
+        if (productUpdates.has(productId)) {
+          productUpdates.set(
+            productId,
+            productUpdates.get(productId)! + quantity
+          );
+        } else {
+          productUpdates.set(productId, quantity);
+        }
+
+        // Add to product detail updates if applicable
+        if (detail.selected_details && detail.selected_details.length > 0) {
+          detail.selected_details.forEach((detailId) => {
+            if (detailUpdates.has(detailId)) {
+              detailUpdates.set(
+                detailId,
+                detailUpdates.get(detailId)! + quantity
+              );
+            } else {
+              detailUpdates.set(detailId, quantity);
+            }
+          });
+        }
+      });
+
+      // Process product stock updates
+      const productUpdatePromises = Array.from(productUpdates.entries()).map(
+        ([productId, quantity]) => {
+          // Find current stock
+          const product = products.find(
+            (p) =>
+              (p.id_product &&
+                p.id_product.toString() === productId.toString()) ||
+              (p.id_prod && p.id_prod.toString() === productId.toString())
+          );
+
+          if (!product) return Promise.resolve();
+
+          const currentStock = product.stock || 0;
+          const newStock = Math.max(0, currentStock - quantity); // Ensure stock doesn't go negative
+
+          return fetch(`${API_BASE_URL}/product/${productId}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              stock: newStock,
+            }),
+          }).then((response) => {
+            if (!response.ok) {
+              throw new Error(
+                `Failed to update stock for product ${productId}`
+              );
+            }
+            return response;
+          });
+        }
+      );
+
+      // Process product detail stock updates
+      // Prepare the bulk update format
+      const detailUpdateData = Array.from(detailUpdates.entries()).map(
+        ([detailId, quantity]) => {
+          // Find current stock for this detail
+          let currentStock = 0;
+          products.some((product) => {
+            const detail = product.product_details?.find(
+              (d) => d.detail_id === detailId
+            );
+            if (detail) {
+              currentStock = detail.stock || 0;
+              return true;
+            }
+            return false;
+          });
+
+          const newStock = Math.max(0, currentStock - quantity); // Ensure stock doesn't go negative
+
+          return {
+            id_pd: detailId.toString(),
+            data: { stock: newStock },
+          };
+        }
+      );
+
+      // Only call the API if there are details to update
+      let detailUpdatePromise: Promise<any> = Promise.resolve();
+      if (detailUpdateData.length > 0) {
+        detailUpdatePromise = fetch(
+          `${API_BASE_URL}/products/details/bulk-update`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(detailUpdateData),
+          }
+        ).then((response) => {
+          if (!response.ok) {
+            throw new Error(`Failed to update stock for product details`);
+          }
+          return response;
+        });
+      }
+
+      // Wait for all updates to complete
+      await Promise.all([...productUpdatePromises, detailUpdatePromise]);
+
+      console.log("Stock updated successfully for all products and details");
+    } catch (error) {
+      console.error("Error updating product stocks:", error);
+      toast.error(
+        "Se creó el pedido pero hubo un error actualizando el inventario"
+      );
+    }
+  };
+
+  const createOrder = async () => {
     setIsSubmitting(true);
 
     try {
@@ -349,15 +654,19 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
             prod_id: detail.prod_id,
             amount: detail.amount,
             unit_price: detail.unit_price,
+            product_detail_ids: detail.selected_details || [],
           }),
         });
       });
 
       await Promise.all(detailPromises);
 
+      // Step 3: Update product stock levels
+      await updateProductStocks();
+
       // Success!
       resetForm();
-      setIsDialogOpen(false);
+      setOpen(false);
       onOrderAdded && onOrderAdded();
 
       // Show success message
@@ -374,18 +683,185 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
     }
   };
 
+  const updateOrder = async () => {
+    setIsSubmitting(true);
+
+    try {
+      // Update the order data
+      const orderResponse = await fetch(
+        `${API_BASE_URL}/pedidos/${existingOrder?.id_pedido}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(orderData),
+        }
+      );
+
+      if (!orderResponse.ok) {
+        throw new Error(`Error updating order: ${orderResponse.statusText}`);
+      }
+
+      // Handle order details
+      await fetch(
+        `${API_BASE_URL}/pedido/details/${existingOrder?.id_pedido}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      // Then create new details
+      const detailPromises = orderDetails.map((detail) => {
+        return fetch(`${API_BASE_URL}/pedido/details`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            pedido_id: existingOrder?.id_pedido,
+            prod_id: detail.prod_id,
+            amount: detail.amount,
+            unit_price: detail.unit_price,
+            product_detail_ids: detail.selected_details || [],
+          }),
+        });
+      });
+
+      await Promise.all(detailPromises);
+
+      // Handle stock updates
+      resetForm();
+      setOpen(false);
+      onOrderUpdated && onOrderUpdated();
+
+      toast.success("Pedido actualizado correctamente");
+    } catch (error) {
+      console.error("Error updating order:", error);
+      alert(
+        `Error al actualizar el pedido: ${
+          error instanceof Error ? error.message : "Error desconocido"
+        }`
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Submit order
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+
+    try {
+      const orderDataToSubmit = {
+        ...orderData,
+        user_id: selectedUser?.id_user,
+      };
+
+      let response;
+      if (isEditMode && existingOrder?.id_pedido) {
+        // Update existing order
+        response = await fetch(
+          `${API_BASE_URL}/pedidos/${existingOrder.id_pedido}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(orderDataToSubmit),
+          }
+        );
+      } else {
+        // Create new order
+        response = await fetch(`${API_BASE_URL}/pedidos`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(orderDataToSubmit),
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error(`Error ${isEditMode ? "updating" : "creating"} order`);
+      }
+
+      const result = await response.json();
+      const orderId = isEditMode ? existingOrder?.id_pedido : result.id_pedido;
+
+      // Handle order details
+      if (isEditMode) {
+        // Delete existing details first
+        await fetch(`${API_BASE_URL}/pedido/details/${orderId}`, {
+          method: "DELETE",
+        });
+      }
+
+      // Create new details
+      const detailPromises = orderDetails.map((detail) =>
+        fetch(`${API_BASE_URL}/pedido/details`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            pedido_id: orderId,
+            prod_id: detail.prod_id,
+            amount: detail.amount,
+            unit_price: detail.unit_price,
+            product_detail_ids: detail.selected_details || [],
+          }),
+        })
+      );
+
+      await Promise.all(detailPromises);
+
+      // Update stocks
+      await updateProductStocks();
+
+      toast.success(
+        isEditMode
+          ? "Pedido actualizado correctamente"
+          : "Pedido creado correctamente"
+      );
+
+      // Call the appropriate callback
+      if (isEditMode) {
+        onOrderUpdated && onOrderUpdated();
+      } else {
+        onOrderAdded && onOrderAdded();
+      }
+
+      setOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error("Error processing order:", error);
+      toast.error(
+        isEditMode
+          ? "Error al actualizar el pedido"
+          : "Error al crear el pedido"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogTrigger asChild>
-          <Button className="bg-black hover:bg-gray-800">
-            <Plus className="mr-2 h-4 w-4" />
-            Nuevo Pedido
-          </Button>
-        </DialogTrigger>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        {!hideButton && (
+          <DialogTrigger asChild>
+            <Button variant="default" className="bg-black hover:bg-gray-800">
+              {buttonIcon}
+              {buttonLabel}
+            </Button>
+          </DialogTrigger>
+        )}
         <DialogContent className="sm:max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Crear Nuevo Pedido</DialogTitle>
+            <DialogTitle>
+              {isEditMode ? "Editar Pedido" : "Crear Nuevo Pedido"}
+            </DialogTitle>
             <DialogDescription>
               Agrega la información del pedido y sus productos
             </DialogDescription>
@@ -598,6 +1074,70 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
                       />
                     </div>
 
+                    {selectedProduct &&
+                      selectedProduct.product_details &&
+                      selectedProduct.product_details.length > 0 && (
+                        <div className="mt-4 border rounded-md p-4 bg-gray-50">
+                          <h4 className="text-sm font-medium mb-2">
+                            Variantes del Producto
+                          </h4>
+
+                          {/* Group details by detail_name */}
+                          {Object.entries(
+                            selectedProduct.product_details.reduce(
+                              (acc, detail) => {
+                                if (!acc[detail.detail_name]) {
+                                  acc[detail.detail_name] = [];
+                                }
+                                acc[detail.detail_name].push(detail);
+                                return acc;
+                              },
+                              {} as Record<string, ProductDetail[]>
+                            )
+                          ).map(([detailName, details]) => (
+                            <div key={detailName} className="mb-3">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                {detailName}
+                              </label>
+                              <div className="flex flex-wrap gap-2">
+                                {details.map((detail) => (
+                                  <Button
+                                    key={detail.detail_id}
+                                    type="button"
+                                    variant={
+                                      currentDetail.selected_details?.includes(
+                                        detail.detail_id
+                                      )
+                                        ? "default"
+                                        : "outline"
+                                    }
+                                    className={
+                                      currentDetail.selected_details?.includes(
+                                        detail.detail_id
+                                      )
+                                        ? "bg-black hover:bg-gray-800"
+                                        : ""
+                                    }
+                                    onClick={() =>
+                                      handleVariantSelect(
+                                        detailName,
+                                        detail.detail_id
+                                      )
+                                    }
+                                    disabled={detail.stock === 0}
+                                  >
+                                    {detail.detail_desc}
+                                    <span className="ml-1 text-xs">
+                                      ({detail.stock})
+                                    </span>
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                     {/* Dropdown de productos */}
                     {showProductDropdown && filteredProducts.length > 0 && (
                       <Card className="absolute z-10 w-full mt-1 max-h-48 overflow-auto">
@@ -605,11 +1145,31 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
                           <ul className="divide-y divide-gray-200">
                             {filteredProducts.map((product) => (
                               <li
-                                key={product.id_prod.toString()}
+                                key={(
+                                  product.id_product ||
+                                  product.id_prod ||
+                                  ""
+                                ).toString()}
                                 className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                                 onClick={() => handleProductSelect(product)}
                               >
-                                {product.name} - ${product.price}
+                                <div className="flex justify-between">
+                                  <span>
+                                    {product.product_name ||
+                                      product.name ||
+                                      "Unknown"}{" "}
+                                    - ${product.price || 0}
+                                  </span>
+                                  <span
+                                    className={`text-sm ${
+                                      (product.stock || 0) > 5
+                                        ? "text-green-600"
+                                        : "text-red-600"
+                                    }`}
+                                  >
+                                    Stock: {product.stock || 0}
+                                  </span>
+                                </div>
                               </li>
                             ))}
                           </ul>
@@ -678,7 +1238,30 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
                   <TableBody>
                     {orderDetails.map((detail, index) => (
                       <TableRow key={index}>
-                        <TableCell>{detail.productName}</TableCell>
+                        <TableCell>
+                          {detail.productName}
+                          {detail.selected_details &&
+                            detail.selected_details.length > 0 && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {detail.selected_details
+                                  .map((detailId) => {
+                                    // Find the detail in the products list
+                                    const product = products.find(
+                                      (p) => p.id_prod === detail.prod_id
+                                    );
+                                    const variantDetail =
+                                      product?.product_details?.find(
+                                        (d) => d.detail_id === detailId
+                                      );
+                                    return variantDetail
+                                      ? `${variantDetail.detail_name}: ${variantDetail.detail_desc}`
+                                      : "";
+                                  })
+                                  .filter(Boolean)
+                                  .join(", ")}
+                              </div>
+                            )}
+                        </TableCell>
                         <TableCell>{detail.amount}</TableCell>
                         <TableCell>
                           ${detail.unit_price.toLocaleString()}
@@ -731,7 +1314,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
             <Button
@@ -739,7 +1322,11 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({ onOrderAdded }) => {
               disabled={isSubmitting || orderDetails.length === 0}
               className="bg-black hover:bg-gray-800"
             >
-              {isSubmitting ? "Guardando..." : "Guardar Pedido"}
+              {isSubmitting
+                ? "Guardando..."
+                : isEditMode
+                ? "Actualizar Pedido"
+                : "Guardar Pedido"}
             </Button>
           </DialogFooter>
         </DialogContent>

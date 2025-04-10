@@ -2,8 +2,14 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { ChevronLeft, RefreshCw, AlertTriangle, Tag } from "lucide-react";
-import Sidebar from "@/components/sidebar";
+import {
+  ChevronLeft,
+  RefreshCw,
+  AlertTriangle,
+  Tag,
+  Edit,
+  Trash2,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -21,11 +27,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ProductDetail, ProductData } from "@/types/productTypes";
+import { toast } from "sonner";
+import { ProductDetail, ProductData, Product } from "@/types/productTypes";
+import ProductFormModal from "@/components/forms/productFormModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+const API_BASE_URL = "http://localhost:3001/api";
 
 // Group details by name
 const groupDetailsByName = (details: ProductDetail[]) => {
-  const grouped: Record<string, string[]> = {};
+  const grouped: Record<string, Array<{ desc: string; stock: number }>> = {};
 
   if (!details || !Array.isArray(details)) {
     return grouped;
@@ -35,10 +56,42 @@ const groupDetailsByName = (details: ProductDetail[]) => {
     if (!grouped[detail.detail_name]) {
       grouped[detail.detail_name] = [];
     }
-    grouped[detail.detail_name].push(detail.detail_desc);
+    grouped[detail.detail_name].push({
+      desc: detail.detail_desc,
+      stock: detail.stock || 0, // Assuming stock is now included in the detail object
+    });
   });
 
   return grouped;
+};
+
+// Helper functions for stock display
+const getStockLabel = (stock: number): string => {
+  if (stock <= 0) return "Agotado";
+  if (stock <= 3) return `¡Últimas ${stock} unidades!`;
+  if (stock <= 10) return `${stock} disponibles (Bajo)`;
+  return `${stock} en stock`;
+};
+
+const getStockTextColor = (stock: number): string => {
+  if (stock <= 0) return "text-red-600 font-medium";
+  if (stock <= 3) return "text-amber-600 font-medium";
+  if (stock <= 10) return "text-blue-600";
+  return "text-green-600";
+};
+
+const getStockBarColor = (stock: number): string => {
+  if (stock <= 0) return "bg-red-500";
+  if (stock <= 3) return "bg-amber-500";
+  if (stock <= 10) return "bg-blue-500";
+  return "bg-green-500";
+};
+
+const getStockBadgeClass = (stock: number): string => {
+  if (stock <= 0) return "bg-red-50 text-red-700 border-red-200";
+  if (stock <= 3) return "bg-amber-50 text-amber-700 border-amber-200";
+  if (stock <= 10) return "bg-blue-50 text-blue-700 border-blue-200";
+  return "bg-green-50 text-green-700 border-green-200";
 };
 
 // Check if discount is active
@@ -112,6 +165,9 @@ const AdminProductDetailPage: React.FC = () => {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [productData, setProductData] = useState<ProductData | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +182,7 @@ const AdminProductDetailPage: React.FC = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:3001/api/product/${params.id}/full-details`
+        `${API_BASE_URL}/product/${params.id}/full-details`
       );
 
       if (!response.ok) {
@@ -163,18 +219,51 @@ const AdminProductDetailPage: React.FC = () => {
     }
   }, [params.id]);
 
-  const handleEdit = () => {
-    alert("Implementation pending");
+  const handleRefresh = () => {
+    fetchProductDetails();
   };
 
-  const handleDelete = () => {
-    alert("Implementation pending");
+  const transformProductData = (data: ProductData): Product => {
+    return {
+      id: data.id_product,
+      name: data.product_name,
+      description: data.description,
+      id_cat: data.category_id,
+      price: data.price,
+      stock: data.stock,
+      category: data.category,
+      details: data.product_details,
+      images: data.product_images.map((img) => ({
+        image_id: img.image_id,
+        image_url: img.image_url,
+      })),
+      inStock: data.stock > 0,
+    };
+  };
+
+  const handleProductAdded = () => {
+    console.log("Product added successfully!");
+  };
+
+  const handleEdit = () => {
+    const productToEdit = transformProductData(productData!);
+    if (productToEdit) {
+      setEditingProduct(productToEdit);
+      setEditModalOpen(true);
+    }
+  };
+
+  const handleProductUpdated = (updatedProduct: ProductData) => {
+    setProductData(updatedProduct);
+    setEditingProduct(null);
+    setEditModalOpen(false);
+    toast.success("Producto actualizado correctamente");
+    handleRefresh();
   };
 
   if (loading) {
     return (
       <div className="flex flex-col md:flex-row gap-2 min-h-screen bg-[#eaeef6]">
-        <Sidebar />
         <div className="p-6 flex-1 flex items-center justify-center">
           <div className="text-center">
             <RefreshCw className="h-10 w-10 text-gray-400 animate-spin mx-auto mb-4" />
@@ -188,7 +277,6 @@ const AdminProductDetailPage: React.FC = () => {
   if (error || !productData) {
     return (
       <div className="flex flex-col md:flex-row gap-2 min-h-screen bg-[#eaeef6]">
-        <Sidebar />
         <div className="p-6 flex-1">
           <Button
             variant="outline"
@@ -222,6 +310,31 @@ const AdminProductDetailPage: React.FC = () => {
   const product_images = productData.product_images || [];
   const groupedDetails = groupDetailsByName(product_details);
 
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/product`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ids: [product.id_product] }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error eliminando producto: ${response.statusText}`);
+      }
+      toast.success("Producto eliminado correctamente");
+    } catch (error) {
+      console.error("Error eliminando productos:", error);
+      toast.error("Error al eliminar el producto");
+    } finally {
+      setLoading(false);
+      setDeleteDialogOpen(false);
+      router.push(`/panel/products`);
+    }
+  };
+
   const stockStatus = () => {
     if (product.stock <= 0) {
       return {
@@ -243,8 +356,7 @@ const AdminProductDetailPage: React.FC = () => {
   const status = stockStatus();
 
   return (
-    <div className="flex flex-col md:flex-row gap-2 min-h-screen bg-[#eaeef6]">
-      <Sidebar />
+    <div className="flex flex-col md:flex-row gap-2 min-h-screen ">
       <div className="p-6 flex-1">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center">
@@ -257,11 +369,77 @@ const AdminProductDetailPage: React.FC = () => {
             </Button>
             <h1 className="text-2xl font-bold ml-2">Detalle de Producto</h1>
           </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="ml-2"
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              <RefreshCw
+                className={`h-5 w-5 ${loading ? "animate-spin" : ""}`}
+              />
+              <span className="ml-2">Actualizar</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleEdit}
+              className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+            >
+              <Edit size={16} className="mr-1" />
+              Editar
+            </Button>
+
+            <AlertDialog
+              open={deleteDialogOpen}
+              onOpenChange={setDeleteDialogOpen}
+            >
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                >
+                  <Trash2 size={16} className="mr-1" />
+                  Eliminar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmar eliminación</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    ¿Estás seguro de que deseas eliminar este producto? Esta
+                    acción no se puede deshacer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    className="bg-red-600 hover:bg-red-700"
+                    disabled={loading}
+                  >
+                    {loading ? "Eliminando..." : "Eliminar"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+
+          {/* Edit Modal */}
+          <ProductFormModal
+            onProductAdded={handleProductAdded}
+            onProductUpdated={handleProductUpdated}
+            product={editingProduct}
+            buttonLabel="Editar Producto"
+            buttonIcon={<Edit className="h-5 w-5 mr-2" />}
+            isOpen={editModalOpen}
+            onOpenChange={setEditModalOpen}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Product Images */}
-          <Card className="lg:col-span-1 overflow-hidden">
+          <Card className="lg:col-span-1 overflow-hidden max-h-[90vh]">
             <CardHeader>
               <CardTitle>Imágenes del Producto</CardTitle>
             </CardHeader>
@@ -269,11 +447,12 @@ const AdminProductDetailPage: React.FC = () => {
               <div className="relative aspect-square w-full bg-gray-100">
                 {product_images.length > 0 ? (
                   <Image
-                    src={product_images[selectedImage].image_url}
+                    src={`http://localhost:3001${product_images[selectedImage].image_url}`}
                     alt={product.product_name}
                     fill
                     sizes="20vw"
                     priority
+                    unoptimized
                     className="object-contain p-4"
                   />
                 ) : (
@@ -297,11 +476,14 @@ const AdminProductDetailPage: React.FC = () => {
                       onClick={() => setSelectedImage(index)}
                     >
                       <Image
-                        src={image.image_url}
-                        alt={`${product.product_name} - vista ${index + 1}`}
+                        src={`http://localhost:3001${image.image_url}`}
+                        alt={`http://localhost:3001${
+                          product.product_name
+                        } - vista ${index + 1}`}
                         fill
                         sizes="5vw"
                         priority
+                        unoptimized
                         className="object-cover"
                       />
                     </div>
@@ -499,43 +681,84 @@ const AdminProductDetailPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               {Object.entries(groupedDetails).length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Atributo</TableHead>
-                      <TableHead>Valores</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {Object.entries(groupedDetails).map(([name, values]) => (
-                      <TableRow key={name}>
-                        <TableCell className="font-medium">{name}</TableCell>
-                        <TableCell>
-                          {name === "Color" ? (
-                            <div className="flex flex-wrap gap-1">
-                              {values.map((color, i) => (
+                <div className="space-y-6">
+                  {Object.entries(groupedDetails).map(([name, values]) => (
+                    <div
+                      key={name}
+                      className="bg-white rounded-lg shadow-sm border p-4"
+                    >
+                      <h3 className="text-md font-medium mb-3 pb-2 border-b">
+                        {name}
+                      </h3>
+
+                      {name === "Color" ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                          {values.map((value, i) => (
+                            <div
+                              key={i}
+                              className="flex items-center p-3 bg-gray-50 rounded-lg transition-all hover:shadow-md"
+                            >
+                              <div
+                                className="w-10 h-10 rounded-full border shadow-sm mr-3 flex-shrink-0"
+                                style={{ backgroundColor: value.desc }}
+                              />
+                              <div>
+                                <div className="font-medium text-sm">
+                                  {value.desc}
+                                </div>
                                 <div
-                                  key={i}
-                                  className="w-6 h-6 rounded-full border border-gray-300"
-                                  style={{ backgroundColor: color }}
-                                  title={color}
-                                />
-                              ))}
+                                  className={`text-sm ${getStockTextColor(
+                                    value.stock
+                                  )}`}
+                                >
+                                  {getStockLabel(value.stock)}
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                                  <div
+                                    className={`h-1.5 rounded-full ${getStockBarColor(
+                                      value.stock
+                                    )}`}
+                                    style={{
+                                      width: `${Math.min(
+                                        100,
+                                        (value.stock / 20) * 100
+                                      )}%`,
+                                    }}
+                                  />
+                                </div>
+                              </div>
                             </div>
-                          ) : (
-                            values.join(", ")
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {values.map((value, i) => (
+                            <div
+                              key={i}
+                              className="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all"
+                            >
+                              <span className="font-medium">{value.desc}</span>
+                              <Badge
+                                className={getStockBadgeClass(value.stock)}
+                              >
+                                {getStockLabel(value.stock)}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               ) : (
-                <div className="text-center py-4">
-                  <p className="text-gray-500">No hay detalles disponibles</p>
+                <div className="text-center py-6 bg-gray-50 rounded-lg">
+                  <p className="text-gray-500">
+                    No hay detalles disponibles para este producto
+                  </p>
                 </div>
               )}
             </CardContent>
+
             <CardHeader>
               <CardTitle>Inventario y Estado</CardTitle>
             </CardHeader>

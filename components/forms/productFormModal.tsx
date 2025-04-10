@@ -26,6 +26,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Image from "next/image";
 
 const API_BASE_URL = "http://localhost:3001/api";
 
@@ -37,6 +38,8 @@ interface Category {
 interface ProductDetail {
   detail_name: string;
   detail_desc: string;
+  stock?: number;
+  id_pd?: number;
 }
 
 interface ProductFormData {
@@ -93,26 +96,35 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   // Input states for product details/variants
   const [colorInput, setColorInput] = useState("#000000");
+  const [colorStockInput, setColorStockInput] = useState<number>(0);
   const [sizeInput, setSizeInput] = useState("");
+  const [sizeStockInput, setSizeStockInput] = useState<number>(0);
   const [tallaInput, setTallaInput] = useState("");
+  const [tallaStockInput, setTallaStockInput] = useState<number>(0);
   const [materialInput, setMaterialInput] = useState("");
+  const [materialStockInput, setMaterialStockInput] = useState<number>(0);
+
+  // Image states
+  const [images, setImages] = useState<File[]>([]);
+  const [productImages, setProductImages] = useState<any[]>([]);
+  const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
 
   // Fetch categories on component mount
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/categories`);
-        if (!response.ok) {
-          throw new Error(`Error fetching categories: ${response.statusText}`);
-        }
-        const data = await response.json();
-        setCategories(data);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-        toast.error("Error al cargar categorías");
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/categories`);
+      if (!response.ok) {
+        throw new Error(`Error fetching categories: ${response.statusText}`);
       }
-    };
+      const data = await response.json();
+      setCategories(data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      toast.error("Error al cargar categorías");
+    }
+  };
 
+  useEffect(() => {
     fetchCategories();
   }, []);
 
@@ -122,23 +134,46 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         name: product.name,
         description: product.description,
         price: product.price,
-        cat_id: product.category?.id_cat || 0,
+        cat_id: product.id_cat || 0,
         stock: product.stock,
-        colorDetails: product.details.filter(
-          (d: ProductDetail) => d.detail_name === "Color"
-        ),
-        sizeDetails: product.details.filter(
-          (d: ProductDetail) => d.detail_name === "Tamaño"
-        ),
-        tallaSizeDetails: product.details.filter(
-          (d: ProductDetail) => d.detail_name === "Talla"
-        ),
-        materialDetails: product.details.filter(
-          (d: ProductDetail) => d.detail_name === "Material"
-        ),
+        colorDetails: product.details
+          .filter((d: any) => d.detail_name === "Color")
+          .map((d: any) => ({ ...d })),
+        sizeDetails: product.details
+          .filter((d: any) => d.detail_name === "Tamaño")
+          .map((d: any) => ({ ...d })),
+        tallaSizeDetails: product.details
+          .filter((d: any) => d.detail_name === "Talla")
+          .map((d: any) => ({ ...d })),
+        materialDetails: product.details
+          .filter((d: any) => d.detail_name === "Material")
+          .map((d: any) => ({ ...d })),
       });
+      if (product.images && product.images.length > 0) {
+        setProductImages(product.images);
+        console.log("Product", product);
+      }
     }
   }, [product]);
+
+  // Manejador para seleccionar imágenes
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setImages((prev) => [...prev, ...newFiles]);
+    }
+  };
+
+  // Manejador para eliminar una imagen seleccionada (no subida aún)
+  const removeSelectedImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Manejador para marcar imágenes existentes para eliminar
+  const handleImageDelete = (imageId: number) => {
+    setImagesToDelete((prev) => [...prev, imageId]);
+    setProductImages((prev) => prev.filter((img) => img.image_id !== imageId));
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -169,10 +204,15 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         ...prev,
         colorDetails: [
           ...prev.colorDetails,
-          { detail_name: "Color", detail_desc: colorInput },
+          {
+            detail_name: "Color",
+            detail_desc: colorInput,
+            stock: colorStockInput,
+          },
         ],
       }));
       setColorInput("#000000");
+      setColorStockInput(0);
     }
   };
 
@@ -196,10 +236,15 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         ...prev,
         sizeDetails: [
           ...prev.sizeDetails,
-          { detail_name: "Tamaño", detail_desc: sizeInput.trim() },
+          {
+            detail_name: "Tamaño",
+            detail_desc: sizeInput.trim(),
+            stock: sizeStockInput,
+          },
         ],
       }));
       setSizeInput("");
+      setSizeStockInput(0);
     }
   };
 
@@ -223,10 +268,15 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         ...prev,
         tallaSizeDetails: [
           ...prev.tallaSizeDetails,
-          { detail_name: "Talla", detail_desc: tallaInput.trim() },
+          {
+            detail_name: "Talla",
+            detail_desc: tallaInput.trim(),
+            stock: tallaStockInput,
+          },
         ],
       }));
       setTallaInput("");
+      setTallaStockInput(0);
     }
   };
 
@@ -250,10 +300,15 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         ...prev,
         materialDetails: [
           ...prev.materialDetails,
-          { detail_name: "Material", detail_desc: materialInput.trim() },
+          {
+            detail_name: "Material",
+            detail_desc: materialInput.trim(),
+            stock: materialStockInput,
+          },
         ],
       }));
       setMaterialInput("");
+      setMaterialStockInput(0);
     }
   };
 
@@ -275,6 +330,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         prod_id: productId,
         detail_name: detail.detail_name,
         detail_desc: detail.detail_desc,
+        stock: detail.stock || 0,
       }));
 
       console.log(
@@ -381,18 +437,118 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       ];
 
       if (product) {
-        const existingDetails = product.details;
+        // Track existing detail IDs
+        const existingDetailIds = new Set(
+          product.details.map((detail: any) => detail.id_pd)
+        );
+        const detailsByType: Record<string, Set<string>> = {
+          Color: new Set(
+            product.details
+              .filter((d: any) => d.detail_name === "Color")
+              .map((d: any) => d.detail_desc)
+          ),
+          Tamaño: new Set(
+            product.details
+              .filter((d: any) => d.detail_name === "Tamaño")
+              .map((d: any) => d.detail_desc)
+          ),
+          Talla: new Set(
+            product.details
+              .filter((d: any) => d.detail_name === "Talla")
+              .map((d: any) => d.detail_desc)
+          ),
+          Material: new Set(
+            product.details
+              .filter((d: any) => d.detail_name === "Material")
+              .map((d: any) => d.detail_desc)
+          ),
+        };
 
-        for (const detail of existingDetails) {
-          await fetch(`${API_BASE_URL}/product/${detail.id_pd}/detail`, {
+        // Find details to delete (ones that exist in original but not in form)
+        const detailsToDelete = product.details.filter((detail: any) => {
+          if (detail.detail_name === "Color") {
+            return !formData.colorDetails.some(
+              (d: ProductDetail) => d.detail_desc === detail.detail_desc
+            );
+          } else if (detail.detail_name === "Tamaño") {
+            return !formData.sizeDetails.some(
+              (d: ProductDetail) => d.detail_desc === detail.detail_desc
+            );
+          } else if (detail.detail_name === "Talla") {
+            return !formData.tallaSizeDetails.some(
+              (d: ProductDetail) => d.detail_desc === detail.detail_desc
+            );
+          } else if (detail.detail_name === "Material") {
+            return !formData.materialDetails.some(
+              (d: ProductDetail) => d.detail_desc === detail.detail_desc
+            );
+          }
+          return true; // Delete any unrecognized types
+        });
+
+        // Delete only removed details
+        for (const detail of detailsToDelete) {
+          console.log("Deleting detail:", detail);
+          await fetch(`${API_BASE_URL}/product/${detail.detail_id}/detail`, {
             method: "DELETE",
           });
         }
+
+        // Only add new details
+        const newDetails = [
+          ...formData.colorDetails.filter(
+            (d: ProductDetail) => !detailsByType["Color"].has(d.detail_desc)
+          ),
+          ...formData.sizeDetails.filter(
+            (d: ProductDetail) => !detailsByType["Tamaño"].has(d.detail_desc)
+          ),
+          ...formData.tallaSizeDetails.filter(
+            (d: ProductDetail) => !detailsByType["Talla"].has(d.detail_desc)
+          ),
+          ...formData.materialDetails.filter(
+            (d: ProductDetail) => !detailsByType["Material"].has(d.detail_desc)
+          ),
+        ];
+
+        if (newDetails.length > 0) {
+          await createProductDetails(productId, newDetails);
+        }
+      } else {
+        // For new products, add all details
+        const allDetails = [
+          ...formData.colorDetails,
+          ...formData.sizeDetails,
+          ...formData.tallaSizeDetails,
+          ...formData.materialDetails,
+        ];
+
+        if (allDetails.length > 0) {
+          await createProductDetails(productId, allDetails);
+        }
       }
 
-      // Only send details if there are any
-      if (allDetails.length > 0) {
-        await createProductDetails(productId, allDetails);
+      // Si hay imágenes para eliminar
+      if (imagesToDelete.length > 0) {
+        await fetch(`${API_BASE_URL}/images`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ imageIds: imagesToDelete }),
+        });
+      }
+
+      // Si hay nuevas imágenes para subir
+      if (images.length > 0) {
+        const formData = new FormData();
+        images.forEach((image) => {
+          formData.append("images", image);
+        });
+
+        await fetch(`${API_BASE_URL}/images/upload-multiple/${productId}`, {
+          method: "POST",
+          body: formData,
+        });
       }
 
       // Fetch the complete updated product
@@ -411,14 +567,10 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       // Call the appropriate callback
       if (product) {
         if (onProductUpdated) onProductUpdated(completeProduct);
-        toast.success("Producto actualizado", {
-          description: `${formData.name} ha sido actualizado correctamente.`,
-        });
+        toast.success(`${formData.name} ha sido actualizado correctamente`);
       } else {
         onProductAdded(completeProduct);
-        toast.success("Producto añadido", {
-          description: `${formData.name} ha sido añadido correctamente.`,
-        });
+        toast.success(`${formData.name} ha sido añadido correctamente`);
       }
 
       // Reset form and close modal
@@ -427,10 +579,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     } catch (error) {
       console.error("Error processing product:", error);
       toast.error(
-        product ? "Error al actualizar producto" : "Error al añadir producto",
-        {
-          description: "Ha ocurrido un error al procesar el producto.",
-        }
+        product ? "Error al actualizar producto" : "Error al añadir producto"
       );
     } finally {
       setIsSubmitting(false);
@@ -453,6 +602,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     setSizeInput("");
     setTallaInput("");
     setMaterialInput("");
+    setImages([]);
+    setProductImages([]);
+    setImagesToDelete([]);
   };
 
   return (
@@ -477,8 +629,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-6 py-4">
           <Tabs defaultValue="basicInfo">
-            <TabsList className="grid grid-cols-2 mb-6">
+            <TabsList className="grid grid-cols-3 mb-6">
               <TabsTrigger value="basicInfo">Información Básica</TabsTrigger>
+              <TabsTrigger value="images">Imágenes</TabsTrigger>
               <TabsTrigger value="variants">Variantes</TabsTrigger>
             </TabsList>
 
@@ -566,6 +719,104 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </div>
             </TabsContent>
 
+            <TabsContent value="images" className="space-y-4">
+              <div className="space-y-4">
+                <Label>Imágenes del Producto</Label>
+
+                {/* Área para cargar nuevas imágenes */}
+                <div className="border-2 border-dashed rounded-md p-6 text-center cursor-pointer hover:bg-gray-50 transition-colors">
+                  <Input
+                    type="file"
+                    id="product-images"
+                    className="hidden"
+                    onChange={handleFileChange}
+                    multiple
+                    accept="image/*"
+                  />
+                  <Label
+                    htmlFor="product-images"
+                    className="cursor-pointer flex flex-col items-center"
+                  >
+                    <Upload className="h-8 w-8 mb-2 text-gray-400" />
+                    <span className="text-sm font-medium">
+                      Haz clic para seleccionar imágenes
+                    </span>
+                    <span className="text-xs text-gray-500 mt-1">
+                      o arrastra y suelta tus archivos aquí
+                    </span>
+                  </Label>
+                </div>
+
+                {/* Vista previa de imágenes nuevas */}
+                {images.length > 0 && (
+                  <div className="mt-4">
+                    <Label className="mb-2 block">
+                      Imágenes nuevas seleccionadas
+                    </Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {images.map((image, idx) => (
+                        <div
+                          key={idx}
+                          className="relative rounded-md overflow-hidden h-32 bg-gray-100"
+                        >
+                          <Image
+                            src={URL.createObjectURL(image)}
+                            alt={`Preview ${idx}`}
+                            width={500}
+                            height={500}
+                            className="w-full h-full object-cover"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-1 right-1 h-6 w-6 rounded-full"
+                            onClick={() => removeSelectedImage(idx)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Imágenes existentes del producto (para modo edición) */}
+                {productImages.length > 0 && (
+                  <div className="mt-6">
+                    <Label className="mb-2 block">
+                      Imágenes actuales del producto
+                    </Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {productImages.map((image) => (
+                        <div
+                          key={image.image_id}
+                          className="relative rounded-md overflow-hidden h-32 bg-gray-100"
+                        >
+                          <Image
+                            src={`http://localhost:3001${image.image_url}`}
+                            alt={`Image not found`}
+                            width={500}
+                            height={500}
+                            className="w-full h-full object-cover"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-1 right-1 h-6 w-6 rounded-full"
+                            onClick={() => handleImageDelete(image.image_id)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
             {/* Variants Tab */}
             <TabsContent value="variants" className="space-y-6">
               {/* Colors */}
@@ -577,6 +828,16 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     value={colorInput}
                     onChange={(e) => setColorInput(e.target.value)}
                     className="w-16"
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Stock"
+                    value={colorStockInput}
+                    onChange={(e) =>
+                      setColorStockInput(parseInt(e.target.value) || 0)
+                    }
+                    className="w-24"
                   />
                   <Button
                     type="button"
@@ -599,6 +860,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                           style={{ backgroundColor: detail.detail_desc }}
                         />
                         <span className="text-sm">{detail.detail_desc}</span>
+                        <span className="text-xs text-gray-500 ml-1">
+                          Stock: {detail.stock || 0}
+                        </span>
                         <X
                           className="h-3 w-3 ml-1 cursor-pointer"
                           onClick={() => removeColor(detail.detail_desc)}
@@ -623,6 +887,16 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     placeholder="Añadir tamaño (ej: 10cm x 15cm)"
                     className="flex-1"
                   />
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Stock"
+                    value={sizeStockInput}
+                    onChange={(e) =>
+                      setSizeStockInput(parseInt(e.target.value) || 0)
+                    }
+                    className="w-24"
+                  />
                   <Button type="button" onClick={addSize} variant="outline">
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -636,6 +910,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                         className="px-3 py-1"
                       >
                         {detail.detail_desc}
+                        <span className="text-xs text-gray-500 ml-1">
+                          Stock: {detail.stock || 0}
+                        </span>
                         <X
                           className="h-3 w-3 ml-1 cursor-pointer"
                           onClick={() => removeSize(detail.detail_desc)}
@@ -660,6 +937,16 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     placeholder="Añadir talla (ej: S, M, L, XL)"
                     className="flex-1"
                   />
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Stock"
+                    value={tallaStockInput}
+                    onChange={(e) =>
+                      setTallaStockInput(parseInt(e.target.value) || 0)
+                    }
+                    className="w-24"
+                  />
                   <Button type="button" onClick={addTalla} variant="outline">
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -673,6 +960,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                         className="px-3 py-1"
                       >
                         {detail.detail_desc}
+                        <span className="text-xs text-gray-500 ml-1">
+                          Stock: {detail.stock || 0}
+                        </span>
                         <X
                           className="h-3 w-3 ml-1 cursor-pointer"
                           onClick={() => removeTalla(detail.detail_desc)}
@@ -697,6 +987,16 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     placeholder="Añadir material (ej: Algodón, Poliéster)"
                     className="flex-1"
                   />
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="Stock"
+                    value={materialStockInput}
+                    onChange={(e) =>
+                      setMaterialStockInput(parseInt(e.target.value) || 0)
+                    }
+                    className="w-24"
+                  />
                   <Button type="button" onClick={addMaterial} variant="outline">
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -710,6 +1010,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                         className="px-3 py-1"
                       >
                         {detail.detail_desc}
+                        <span className="text-xs text-gray-500 ml-1">
+                          Stock: {detail.stock || 0}
+                        </span>
                         <X
                           className="h-3 w-3 ml-1 cursor-pointer"
                           onClick={() => removeMaterial(detail.detail_desc)}

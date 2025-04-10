@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ChevronDown, ChevronUp, SlidersHorizontal, Tag } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import NavbarWhite from "@/components/navbarWhite";
 import Footer from "@/components/footer";
 
@@ -22,45 +23,66 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface Product {
-  id: string;
-  name: string;
-  brand: string;
-  description: string;
-  price: number;
-  rating: number;
-  reviews: number;
-  sizes: string[];
-  colors: string[];
-  straps: string[];
-  image: string;
-  inStock: boolean;
-  categoryId: string;
-  addedDate: string;
-  discountedPrice?: number;
-  discountPercentage?: number;
-  isDiscounted?: boolean;
-}
+const API_BASE_URL = "http://localhost:3001/api";
 
 interface ProductDiscount {
-  id: string;
-  productId: string;
-  discountPercentage: number;
-  startDate: string;
-  endDate: string;
+  id_discount: number;
+  percent_discount: number;
+  start_date_discount: string;
+  end_date_discount: string;
 }
 
 interface CategoryDiscount {
-  id: string;
-  categoryId: string;
-  discountPercentage: number;
-  startDate: string;
-  endDate: string;
+  id_discount: number;
+  percent_discount: number;
+  start_date_discount: string;
+  end_date_discount: string;
 }
 
-interface Discounts {
-  products: ProductDiscount[];
-  categories: CategoryDiscount[];
+interface ProductDetail {
+  detail_id: number;
+  detail_name: string;
+  detail_desc: string;
+}
+
+interface ProductImage {
+  image_id: number;
+  image_url: string;
+}
+
+interface ProductData {
+  id_product: number;
+  product_name: string;
+  description: string;
+  price: number;
+  category_id: number;
+  category: string;
+  stock: number;
+  product_details: ProductDetail[];
+  product_images: ProductImage[];
+  discount_product: ProductDiscount[];
+  discount_category: CategoryDiscount[];
+}
+
+interface Category {
+  id_cat: number;
+  name: string;
+}
+
+interface DisplayProduct {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  originalPrice?: number;
+  discountPercentage?: number;
+  endDate?: string;
+  categoryId: number;
+  category: string;
+  inStock: boolean;
+  image: string;
+  variables: { [key: string]: string[] };
+  isDiscounted: boolean;
 }
 
 interface FilterCategoryProps {
@@ -69,31 +91,37 @@ interface FilterCategoryProps {
 }
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [discounts, setDiscounts] = useState<Discounts | null>(null);
+  const [products, setProducts] = useState<DisplayProduct[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState("newest");
+
+  // Search
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get("search") || "";
 
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetch products and discounts in parallel
-        const [productsResponse, discountsResponse] = await Promise.all([
-          fetch("/api/products"),
-          fetch("/api/discounts"),
+        setLoading(true);
+        // Fetch products and categories in parallel
+        const [productsResponse, categoriesResponse] = await Promise.all([
+          fetch(
+            `${API_BASE_URL}/products/full-details${
+              searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ""
+            }`
+          ),
+          fetch(`${API_BASE_URL}/categories`),
         ]);
 
-        const productsData = await productsResponse.json();
-        const discountsData = await discountsResponse.json();
+        const productsData: ProductData[] = await productsResponse.json();
+        const categoriesData: Category[] = await categoriesResponse.json();
 
-        setDiscounts(discountsData);
+        setCategories(categoriesData);
 
-        // Apply discounts to products
-        const productsWithDiscounts = applyDiscounts(
-          productsData,
-          discountsData
-        );
-        setProducts(productsWithDiscounts);
+        // Transform raw products to display products
+        const transformedProducts = transformProducts(productsData);
+        setProducts(transformedProducts);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -102,78 +130,124 @@ export default function ProductsPage() {
     }
 
     fetchData();
-  }, []);
+  }, [searchQuery]);
 
-  // Function to apply discounts to products
-  const applyDiscounts = (
-    products: Product[],
-    discounts: Discounts
-  ): Product[] => {
+  // Function to transform raw product data to display format
+  const transformProducts = (productsData: ProductData[]): DisplayProduct[] => {
     const currentDate = new Date();
 
-    return products.map((product) => {
+    return productsData.map((product) => {
+      // Group product details by detail_name
+      const variables: { [key: string]: string[] } = {};
+      product.product_details.forEach((detail) => {
+        if (!variables[detail.detail_name]) {
+          variables[detail.detail_name] = [];
+        }
+        if (!variables[detail.detail_name].includes(detail.detail_desc)) {
+          variables[detail.detail_name].push(detail.detail_desc);
+        }
+      });
+
       // Check for product-specific discount
-      const productDiscount = discounts.products.find(
+      const productDiscount = product.discount_product.find(
         (d) =>
-          d.productId === product.id &&
-          new Date(d.startDate) <= currentDate &&
-          new Date(d.endDate) >= currentDate
+          new Date(d.start_date_discount) <= currentDate &&
+          new Date(d.end_date_discount) >= currentDate
       );
 
       // Check for category-specific discount
-      const categoryDiscount = discounts.categories.find(
+      const categoryDiscount = product.discount_category.find(
         (d) =>
-          d.categoryId === product.categoryId &&
-          new Date(d.startDate) <= currentDate &&
-          new Date(d.endDate) >= currentDate
+          new Date(d.start_date_discount) <= currentDate &&
+          new Date(d.end_date_discount) >= currentDate
       );
 
       // Use the highest discount (product-specific or category-specific)
       let appliedDiscount = 0;
+      let discountEndDate = "";
+
       if (productDiscount && categoryDiscount) {
-        appliedDiscount = Math.max(
-          productDiscount.discountPercentage,
-          categoryDiscount.discountPercentage
-        );
+        if (
+          productDiscount.percent_discount > categoryDiscount.percent_discount
+        ) {
+          appliedDiscount = productDiscount.percent_discount;
+          discountEndDate = productDiscount.end_date_discount;
+        } else {
+          appliedDiscount = categoryDiscount.percent_discount;
+          discountEndDate = categoryDiscount.end_date_discount;
+        }
       } else if (productDiscount) {
-        appliedDiscount = productDiscount.discountPercentage;
+        appliedDiscount = productDiscount.percent_discount;
+        discountEndDate = productDiscount.end_date_discount;
       } else if (categoryDiscount) {
-        appliedDiscount = categoryDiscount.discountPercentage;
+        appliedDiscount = categoryDiscount.percent_discount;
+        discountEndDate = categoryDiscount.end_date_discount;
       }
+
+      // Calculate discounted price if applicable
+      let discountedPrice = product.price;
+      let isDiscounted = false;
 
       if (appliedDiscount > 0) {
-        const discountedPrice = product.price * (1 - appliedDiscount / 100);
-        return {
-          ...product,
-          discountedPrice: Math.round(discountedPrice * 100) / 100,
-          discountPercentage: appliedDiscount,
-          isDiscounted: true,
-        };
+        discountedPrice = product.price * (1 - appliedDiscount / 100);
+        isDiscounted = true;
       }
 
-      return { ...product, isDiscounted: false };
+      // Get the first image or use a placeholder
+      const imageUrl =
+        product.product_images.length > 0
+          ? product.product_images[0].image_url
+          : "/images/placeholder.png";
+
+      return {
+        id: product.id_product,
+        name: product.product_name,
+        description: product.description,
+        price: isDiscounted
+          ? Math.round(discountedPrice * 100) / 100
+          : product.price,
+        originalPrice: isDiscounted ? product.price : undefined,
+        discountPercentage: isDiscounted ? appliedDiscount : undefined,
+        endDate: isDiscounted ? discountEndDate : undefined,
+        categoryId: product.category_id,
+        category: product.category,
+        inStock: product.stock > 0,
+        image: imageUrl,
+        variables,
+        isDiscounted,
+      };
     });
   };
 
   const [filters, setFilters] = useState({
     showFilters: true,
-    categories: {
-      relojes: true,
-      ropa: false,
-      accesorios: false,
-      calzado: false,
-    },
+    categories: {} as Record<number, boolean>,
     price: {
       low: false,
       medium: false,
       high: false,
     },
     inStock: false,
-    onSale: false, // New filter for discounted items
+    onSale: false,
   });
 
-  const [showCollectionFilter, setShowCollectionFilter] = useState(true);
+  // Initialize category filters when categories are loaded
+  useEffect(() => {
+    if (categories.length > 0) {
+      const categoryFilters = categories.reduce((acc, category) => {
+        acc[category.id_cat] = false;
+        return acc;
+      }, {} as Record<number, boolean>);
+
+      setFilters((prev) => ({
+        ...prev,
+        categories: categoryFilters,
+      }));
+    }
+  }, [categories]);
+
   const [showPriceFilter, setShowPriceFilter] = useState(true);
+  const [showCategoryFilter, setShowCategoryFilter] = useState(true);
 
   const formatPrice = (price: number) => {
     return `$${price.toLocaleString("es-MX")}`;
@@ -191,6 +265,36 @@ export default function ProductsPage() {
       return false;
     }
 
+    // Category filter
+    const anyCategorySelected = Object.values(filters.categories).some(
+      (v) => v
+    );
+    if (anyCategorySelected && !filters.categories[product.categoryId]) {
+      return false;
+    }
+
+    // Price filter
+    const anyPriceSelected =
+      filters.price.low || filters.price.medium || filters.price.high;
+    if (anyPriceSelected) {
+      const effectivePrice = product.price; // Already calculated with discount
+
+      if (filters.price.low && effectivePrice >= 0 && effectivePrice <= 1000) {
+        return true;
+      }
+      if (
+        filters.price.medium &&
+        effectivePrice > 1000 &&
+        effectivePrice <= 3000
+      ) {
+        return true;
+      }
+      if (filters.price.high && effectivePrice > 3000) {
+        return true;
+      }
+      return false;
+    }
+
     return true;
   });
 
@@ -198,14 +302,15 @@ export default function ProductsPage() {
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
       case "price-asc":
-        return (a.discountedPrice || a.price) - (b.discountedPrice || b.price);
+        return a.price - b.price;
       case "price-desc":
-        return (b.discountedPrice || b.price) - (a.discountedPrice || a.price);
+        return b.price - a.price;
       case "discount":
         // Sort by discount percentage (highest first)
         return (b.discountPercentage || 0) - (a.discountPercentage || 0);
       case "bestsellers":
-        return b.reviews - a.reviews;
+        // Since we don't have reviews count, fallback to newest
+        return 0;
       case "newest":
       default:
         return 0; // Assuming they're already sorted by newest
@@ -240,13 +345,20 @@ export default function ProductsPage() {
     </Card>
   );
 
+  // Count total variables for a product
+  const countVariables = (product: DisplayProduct) => {
+    return Object.keys(product.variables).length;
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <NavbarWhite />
       <div className="max-w-8xl mx-auto px-2 sm:px-4 lg:px-6 py-8">
         <div className="flex justify-between items-center mb-8 px-2">
           <h1 className="text-2xl font-semibold">
-            Artículos para Hombre ({sortedProducts.length})
+            {searchQuery
+              ? `Resultados para "${searchQuery}" (${sortedProducts.length})`
+              : `Artículos para Hombre (${sortedProducts.length})`}
           </h1>
 
           <div className="flex items-center gap-4">
@@ -267,60 +379,32 @@ export default function ProductsPage() {
                   <div className="space-y-8">
                     <FilterCategory title="Categorías">
                       <div className="space-y-3">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="relojes"
-                            checked={filters.categories.relojes}
-                            onCheckedChange={(checked) =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                categories: {
-                                  ...prev.categories,
-                                  relojes: !!checked,
-                                },
-                              }))
-                            }
-                          />
-                          <label htmlFor="relojes" className="text-gray-700">
-                            Relojes
-                          </label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="ropa"
-                            checked={filters.categories.ropa}
-                            onCheckedChange={(checked) =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                categories: {
-                                  ...prev.categories,
-                                  ropa: !!checked,
-                                },
-                              }))
-                            }
-                          />
-                          <label htmlFor="ropa" className="text-gray-700">
-                            Ropa
-                          </label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="accesorios"
-                            checked={filters.categories.accesorios}
-                            onCheckedChange={(checked) =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                categories: {
-                                  ...prev.categories,
-                                  accesorios: !!checked,
-                                },
-                              }))
-                            }
-                          />
-                          <label htmlFor="accesorios" className="text-gray-700">
-                            Accesorios
-                          </label>
-                        </div>
+                        {categories.map((category) => (
+                          <div
+                            key={category.id_cat}
+                            className="flex items-center space-x-2"
+                          >
+                            <Checkbox
+                              id={`category-${category.id_cat}-mobile`}
+                              checked={filters.categories[category.id_cat]}
+                              onCheckedChange={(checked) =>
+                                setFilters((prev) => ({
+                                  ...prev,
+                                  categories: {
+                                    ...prev.categories,
+                                    [category.id_cat]: !!checked,
+                                  },
+                                }))
+                              }
+                            />
+                            <label
+                              htmlFor={`category-${category.id_cat}-mobile`}
+                              className="text-gray-700"
+                            >
+                              {category.name}
+                            </label>
+                          </div>
+                        ))}
                       </div>
                     </FilterCategory>
 
@@ -330,7 +414,7 @@ export default function ProductsPage() {
                       <div className="space-y-3">
                         <div className="flex items-center space-x-2">
                           <Checkbox
-                            id="price-low"
+                            id="price-low-mobile"
                             checked={filters.price.low}
                             onCheckedChange={(checked) =>
                               setFilters((prev) => ({
@@ -339,13 +423,16 @@ export default function ProductsPage() {
                               }))
                             }
                           />
-                          <label htmlFor="price-low" className="text-gray-700">
+                          <label
+                            htmlFor="price-low-mobile"
+                            className="text-gray-700"
+                          >
                             $0 - $1,000
                           </label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Checkbox
-                            id="price-medium"
+                            id="price-medium-mobile"
                             checked={filters.price.medium}
                             onCheckedChange={(checked) =>
                               setFilters((prev) => ({
@@ -355,7 +442,7 @@ export default function ProductsPage() {
                             }
                           />
                           <label
-                            htmlFor="price-medium"
+                            htmlFor="price-medium-mobile"
                             className="text-gray-700"
                           >
                             $1,000 - $3,000
@@ -363,7 +450,7 @@ export default function ProductsPage() {
                         </div>
                         <div className="flex items-center space-x-2">
                           <Checkbox
-                            id="price-high"
+                            id="price-high-mobile"
                             checked={filters.price.high}
                             onCheckedChange={(checked) =>
                               setFilters((prev) => ({
@@ -372,7 +459,10 @@ export default function ProductsPage() {
                               }))
                             }
                           />
-                          <label htmlFor="price-high" className="text-gray-700">
+                          <label
+                            htmlFor="price-high-mobile"
+                            className="text-gray-700"
+                          >
                             $3,000+
                           </label>
                         </div>
@@ -397,7 +487,6 @@ export default function ProductsPage() {
                       </label>
                     </div>
 
-                    {/* New filter for discounted items - mobile */}
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="onSale-mobile"
@@ -457,70 +546,54 @@ export default function ProductsPage() {
             <div className="w-64 flex-shrink-0 hidden lg:block">
               <div className="pr-4">
                 <div className="space-y-8">
-                  <FilterCategory title="Categorías">
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="relojes-desktop"
-                          checked={filters.categories.relojes}
-                          onCheckedChange={(checked) =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              categories: {
-                                ...prev.categories,
-                                relojes: !!checked,
-                              },
-                            }))
-                          }
-                        />
-                        <label
-                          htmlFor="relojes-desktop"
-                          className="text-gray-700"
-                        >
-                          Relojes
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="ropa-desktop"
-                          checked={filters.categories.ropa}
-                          onCheckedChange={(checked) =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              categories: {
-                                ...prev.categories,
-                                ropa: !!checked,
-                              },
-                            }))
-                          }
-                        />
-                        <label htmlFor="ropa-desktop" className="text-gray-700">
-                          Ropa
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="accesorios-desktop"
-                          checked={filters.categories.accesorios}
-                          onCheckedChange={(checked) =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              categories: {
-                                ...prev.categories,
-                                accesorios: !!checked,
-                              },
-                            }))
-                          }
-                        />
-                        <label
-                          htmlFor="accesorios-desktop"
-                          className="text-gray-700"
-                        >
-                          Accesorios
-                        </label>
-                      </div>
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-medium">Categorías</h3>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          setShowCategoryFilter(!showCategoryFilter)
+                        }
+                      >
+                        {showCategoryFilter ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
                     </div>
-                  </FilterCategory>
+                    {showCategoryFilter && (
+                      <div className="space-y-3">
+                        {categories.map((category) => (
+                          <div
+                            key={category.id_cat}
+                            className="flex items-center space-x-2"
+                          >
+                            <Checkbox
+                              id={`category-${category.id_cat}-desktop`}
+                              checked={filters.categories[category.id_cat]}
+                              onCheckedChange={(checked) =>
+                                setFilters((prev) => ({
+                                  ...prev,
+                                  categories: {
+                                    ...prev.categories,
+                                    [category.id_cat]: !!checked,
+                                  },
+                                }))
+                              }
+                            />
+                            <label
+                              htmlFor={`category-${category.id_cat}-desktop`}
+                              className="text-gray-700"
+                            >
+                              {category.name}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
                   <Separator />
 
@@ -617,7 +690,6 @@ export default function ProductsPage() {
                     </label>
                   </div>
 
-                  {/* New filter for discounted items - desktop */}
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="onSale-desktop"
@@ -658,10 +730,16 @@ export default function ProductsPage() {
                       <CardContent className="p-0">
                         <div className="relative aspect-square bg-gray-100">
                           <Image
-                            src={product.image}
+                            src={
+                              product.image === "/images/placeholder.png"
+                                ? product.image
+                                : `http://localhost:3001${product.image}`
+                            }
                             alt={product.name}
                             fill
+                            priority
                             className="object-cover p-6 transition-transform duration-300 group-hover:scale-105"
+                            sizes="(max-width: 768px) 100vw, 50vw"
                           />
                           {/* Badges overlay */}
                           <div className="absolute top-2 left-2 flex flex-col gap-2">
@@ -692,7 +770,7 @@ export default function ProductsPage() {
                           <div className="flex items-start justify-between">
                             <div>
                               <p className="text-sm text-gray-600 mb-1">
-                                {product.brand}
+                                {product.category}
                               </p>
                               <h3 className="text-base font-semibold">
                                 {product.name}
@@ -702,10 +780,10 @@ export default function ProductsPage() {
                               {product.isDiscounted ? (
                                 <>
                                   <span className="text-base font-bold">
-                                    {formatPrice(product.discountedPrice!)}
+                                    {formatPrice(product.price)}
                                   </span>
                                   <p className="text-xs text-gray-500 line-through">
-                                    {formatPrice(product.price)}
+                                    {formatPrice(product.originalPrice!)}
                                   </p>
                                 </>
                               ) : (
@@ -717,24 +795,26 @@ export default function ProductsPage() {
                           </div>
                           <div className="mt-2 flex items-center justify-between">
                             <p className="text-xs text-gray-500">
-                              {product.colors.length}{" "}
-                              {product.colors.length === 1
-                                ? "color"
-                                : "colores"}
+                              {countVariables(product)}{" "}
+                              {countVariables(product) === 1
+                                ? "variable"
+                                : "variables"}
                             </p>
                             <div className="flex gap-1">
-                              {product.colors
+                              {Object.keys(product.variables)
                                 .slice(0, 3)
-                                .map((color, index) => (
+                                .map((varName, index) => (
                                   <div
                                     key={index}
-                                    className="h-3 w-3 rounded-full border border-gray-300"
-                                    style={{ backgroundColor: color }}
-                                  />
+                                    className="h-4 w-4 rounded-full flex items-center justify-center bg-gray-100 text-xs"
+                                    title={varName}
+                                  >
+                                    {varName.charAt(0).toUpperCase()}
+                                  </div>
                                 ))}
-                              {product.colors.length > 3 && (
+                              {Object.keys(product.variables).length > 3 && (
                                 <div className="text-xs text-gray-500">
-                                  +{product.colors.length - 3}
+                                  +{Object.keys(product.variables).length - 3}
                                 </div>
                               )}
                             </div>

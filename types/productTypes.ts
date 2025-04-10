@@ -1,9 +1,10 @@
 import { ProductDiscount, CategoryDiscount } from "./discountTypes";
 
 export interface ProductDetail {
-  product_detail_id: number;
+  detail_id: number;
   detail_name: string;
   detail_desc: string;
+  stock: number;
 }
 
 export interface ProductImage {
@@ -30,11 +31,12 @@ export interface Product {
   id: number;
   name: string;
   description: string;
+  id_cat?: number;
   price: number;
   stock: number;
   category: string;
   details: ProductDetail[];
-  images: string[];
+  images: { image_id: number; image_url: string }[];
   inStock: boolean;
 }
 

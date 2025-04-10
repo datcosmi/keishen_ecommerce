@@ -20,6 +20,11 @@ import {
   X,
   CheckSquare,
   Square,
+  RulerIcon,
+  LayersIcon,
+  TagIcon,
+  CircleIcon,
+  Plus,
 } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 
@@ -62,8 +67,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import OrderFormModal from "@/components/orderFormModal";
-import { Order } from "@/types/orderTypes";
+import OrderFormModal from "@/components/forms/orderFormModal";
+import { Order, ProductVariant } from "@/types/orderTypes";
 
 type SortField = "id" | "date" | "status" | "paymentMethod" | "total";
 type SortDirection = "asc" | "desc";
@@ -94,6 +99,11 @@ const OrderDashboard: React.FC = () => {
 
   // Modal de detalles
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  // Modal de creación y edición
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [orderToEdit, setOrderToEdit] = useState<Order | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -145,6 +155,8 @@ const OrderDashboard: React.FC = () => {
 
   const handleClearSelection = () => {
     setSelectedOrders([]);
+    setOrderToEdit(null);
+    setIsEditModalOpen(false);
   };
 
   // Función para eliminar pedidos seleccionados
@@ -179,6 +191,38 @@ const OrderDashboard: React.FC = () => {
     } finally {
       setDeleteLoading(false);
       setConfirmDelete(false);
+    }
+  };
+
+  const transformOrderForEdit = (order: Order | null) => {
+    if (!order) return undefined;
+
+    return {
+      id_pedido: order.pedido_id,
+      fecha_pedido: order.fecha_pedido,
+      status: order.status as "pendiente" | "enviado" | "finalizado",
+      metodo_pago: order.metodo_pago as "efectivo" | "mercado pago" | "paypal",
+      cliente: order.cliente,
+      detalles: order.detalles.map((detail) => ({
+        prod_id: detail.producto.producto_id,
+        amount: detail.amount,
+        unit_price: detail.unit_price,
+        productName: detail.producto.producto_nombre,
+        selected_details: detail.producto.variantes?.map((v) => v.id_pd) || [],
+      })),
+    };
+  };
+
+  const handleEditOrder = () => {
+    if (selectedOrders.length === 1) {
+      const selectedOrderId = selectedOrders[0];
+      const orderToEdit = orders.find(
+        (order) => order.pedido_id === selectedOrderId
+      );
+      if (orderToEdit) {
+        setOrderToEdit(orderToEdit);
+        setIsEditModalOpen(true);
+      }
     }
   };
 
@@ -349,12 +393,73 @@ const OrderDashboard: React.FC = () => {
     );
   };
 
+  const VariantBadge: React.FC<{ variant: ProductVariant }> = ({ variant }) => {
+    // Check if it's a color variant
+    if (variant.detail_name.toLowerCase() === "color") {
+      const isHexColor = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(
+        variant.detail_desc
+      );
+
+      if (isHexColor) {
+        return (
+          <div className="inline-flex items-center bg-gray-50 rounded-full px-2 py-1 mr-1 mb-1 border border-gray-100">
+            <div
+              className="w-4 h-4 rounded-full mr-1.5 ring-1 ring-gray-200"
+              style={{ backgroundColor: variant.detail_desc }}
+            />
+            <span className="text-xs font-medium text-gray-700">
+              {variant.detail_desc}
+            </span>
+          </div>
+        );
+      }
+    }
+
+    // Regular variant display with appropriate styling based on type
+    const getVariantStyle = () => {
+      switch (variant.detail_name.toLowerCase()) {
+        case "tamaño":
+        case "talla":
+        case "size":
+          return "bg-blue-50 text-blue-700 border-blue-100";
+        case "material":
+          return "bg-amber-50 text-amber-700 border-amber-100";
+        case "estilo":
+        case "style":
+          return "bg-purple-50 text-purple-700 border-purple-100";
+        default:
+          return "bg-gray-50 text-gray-700 border-gray-100";
+      }
+    };
+
+    const getVariantIcon = (variantName: string) => {
+      const name = variantName.toLowerCase();
+      if (name === "color") return <div className="w-3 h-3 mr-1.5"></div>; // Placeholder for color circle
+      if (name === "tamaño" || name === "talla" || name === "size")
+        return <RulerIcon size={12} className="mr-1.5" />;
+      if (name === "material")
+        return <LayersIcon size={12} className="mr-1.5" />;
+      if (name === "estilo" || name === "style")
+        return <TagIcon size={12} className="mr-1.5" />;
+      return <CircleIcon size={12} className="mr-1.5" />;
+    };
+
+    return (
+      <span
+        className={`text-xs font-medium px-2 py-1 rounded-full inline-flex items-center mr-1 mb-1 border transition-all hover:-translate-y-0.5 hover:shadow-sm ${getVariantStyle()}`}
+      >
+        <span>{getVariantIcon(variant.detail_name)}</span>
+        <span className="font-semibold mr-1">{variant.detail_name}:</span>{" "}
+        {variant.detail_desc}
+      </span>
+    );
+  };
+
   // Comprobar si hay un único pedido seleccionado para mostrar el botón de editar
   const singleOrderSelected = selectedOrders.length === 1;
 
   return (
-    <div className="flex flex-col md:flex-row gap-2 min-h-screen bg-[#eaeef6]">
-      <Sidebar />
+    <div className="flex flex-col md:flex-row gap-2 min-h-screen">
       <div className="p-6 flex-1">
         <div className="mb-6 flex justify-between items-center">
           <div>
@@ -379,12 +484,12 @@ const OrderDashboard: React.FC = () => {
                   <Button
                     variant="outline"
                     className="bg-blue-50 text-blue-600 hover:text-blue-600 border-blue-200 hover:bg-blue-100"
+                    onClick={handleEditOrder}
                   >
                     <Edit size={16} className="mr-1" />
                     Editar
                   </Button>
                 )}
-
                 <AlertDialog
                   open={confirmDelete}
                   onOpenChange={setConfirmDelete}
@@ -422,7 +527,25 @@ const OrderDashboard: React.FC = () => {
                 </AlertDialog>
               </>
             )}
-            <OrderFormModal onOrderAdded={handleRefresh} />
+
+            <OrderFormModal
+              isEditMode={false}
+              onOrderAdded={handleRefresh}
+              buttonLabel="Nuevo Pedido"
+              buttonIcon={<Plus className="h-5 w-5 mr-2" />}
+            />
+
+            {/* Edit Modal */}
+            {orderToEdit && (
+              <OrderFormModal
+                existingOrder={transformOrderForEdit(orderToEdit)}
+                isEditMode={true}
+                onOrderUpdated={handleRefresh}
+                isOpen={isEditModalOpen}
+                onOpenChange={setIsEditModalOpen}
+                hideButton={true}
+              />
+            )}
           </div>
         </div>
 
@@ -704,7 +827,6 @@ const OrderDashboard: React.FC = () => {
                                           {order.detalles.map((item, index) => (
                                             <TableRow key={index}>
                                               <TableCell>
-                                                Producto{" "}
                                                 {item.producto.producto_nombre}
                                               </TableCell>
                                               <TableCell>
@@ -736,7 +858,10 @@ const OrderDashboard: React.FC = () => {
                                   </div>
                                 </DialogContent>
                               </Dialog>
-                              {order.detalles.length} productos
+                              {order.detalles.length}{" "}
+                              {order.detalles.length === 1
+                                ? "producto"
+                                : "productos"}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -818,7 +943,12 @@ const OrderDashboard: React.FC = () => {
                               size={16}
                               className="mr-2 text-gray-400"
                             />
-                            <span>{order.detalles.length} productos</span>
+                            <span>
+                              {order.detalles.length}{" "}
+                              {order.detalles.length === 1
+                                ? "producto"
+                                : "productos"}
+                            </span>
                           </div>
                         </div>
 
@@ -894,37 +1024,64 @@ const OrderDashboard: React.FC = () => {
                                   <p className="text-sm font-medium text-gray-500 mb-2">
                                     Productos
                                   </p>
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead>Producto</TableHead>
-                                        <TableHead>Cantidad</TableHead>
-                                        <TableHead>Precio unitario</TableHead>
-                                        <TableHead>Subtotal</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {order.detalles.map((item, index) => (
-                                        <TableRow key={index}>
-                                          <TableCell>
-                                            Producto {item.producto.producto_id}
-                                          </TableCell>
-                                          <TableCell>{item.amount}</TableCell>
-                                          <TableCell>
-                                            ${item.unit_price.toLocaleString()}
-                                          </TableCell>
-                                          <TableCell>
-                                            $
-                                            {(
-                                              item.amount * item.unit_price
-                                            ).toLocaleString()}
-                                          </TableCell>
+                                  <div className="rounded-md border border-gray-200 overflow-hidden">
+                                    <Table>
+                                      <TableHeader className="bg-gray-50">
+                                        <TableRow>
+                                          <TableHead>Producto</TableHead>
+                                          <TableHead>Cantidad</TableHead>
+                                          <TableHead>Precio unitario</TableHead>
+                                          <TableHead>Subtotal</TableHead>
                                         </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                  <div className="text-right mt-2">
-                                    <p className="font-medium">
+                                      </TableHeader>
+                                      <TableBody>
+                                        {order.detalles.map((item, index) => (
+                                          <TableRow
+                                            key={index}
+                                            className="group hover:bg-gray-50"
+                                          >
+                                            <TableCell className="py-3">
+                                              <div>
+                                                <div className="font-medium">
+                                                  {
+                                                    item.producto
+                                                      .producto_nombre
+                                                  }
+                                                </div>
+                                                {item.producto.variantes &&
+                                                  item.producto.variantes
+                                                    .length > 0 && (
+                                                    <div className="mt-2 flex flex-wrap gap-1">
+                                                      {item.producto.variantes.map(
+                                                        (variant, vIdx) => (
+                                                          <VariantBadge
+                                                            key={vIdx}
+                                                            variant={variant}
+                                                          />
+                                                        )
+                                                      )}
+                                                    </div>
+                                                  )}
+                                              </div>
+                                            </TableCell>
+                                            <TableCell>{item.amount}</TableCell>
+                                            <TableCell>
+                                              $
+                                              {item.unit_price.toLocaleString()}
+                                            </TableCell>
+                                            <TableCell className="font-medium">
+                                              $
+                                              {(
+                                                item.amount * item.unit_price
+                                              ).toLocaleString()}
+                                            </TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  </div>
+                                  <div className="text-right mt-4 p-2 bg-gray-50 rounded-md border border-gray-100">
+                                    <p className="font-medium text-lg">
                                       Total: $
                                       {calculateOrderTotal(
                                         order

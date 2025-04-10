@@ -157,8 +157,7 @@ const OrdersDashboard = () => {
     .slice(0, 5);
 
   return (
-    <div className="flex flex-col md:flex-row gap-2 min-h-screen bg-[#eaeef6]">
-      <Sidebar />
+    <div className="flex flex-col md:flex-row gap-2 min-h-screen">
       <div className="p-6 flex-1">
         <div className="mb-6 flex justify-between items-center">
           <div>
