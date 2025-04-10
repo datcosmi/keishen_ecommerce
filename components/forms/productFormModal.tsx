@@ -109,6 +109,26 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [productImages, setProductImages] = useState<any[]>([]);
   const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
 
+  const calculateTotalVariantStock = () => {
+    const colorStock = formData.colorDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const sizeStock = formData.sizeDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const tallaStock = formData.tallaSizeDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const materialStock = formData.materialDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    return colorStock + sizeStock + tallaStock + materialStock;
+  };
+
   // Fetch categories on component mount
   const fetchCategories = async () => {
     try {
@@ -127,6 +147,21 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    const totalVariantStock = calculateTotalVariantStock();
+    if (totalVariantStock > formData.stock && formData.stock > 0) {
+      toast.warning(
+        "Atención: El stock de variantes supera el stock total del producto"
+      );
+    }
+  }, [
+    formData.stock,
+    formData.colorDetails,
+    formData.sizeDetails,
+    formData.tallaSizeDetails,
+    formData.materialDetails,
+  ]);
 
   useEffect(() => {
     if (product) {
@@ -200,6 +235,17 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       colorInput &&
       !formData.colorDetails.some((detail) => detail.detail_desc === colorInput)
     ) {
+      // Calculate new total if this color is added
+      const currentTotal = calculateTotalVariantStock();
+      const newTotal = currentTotal + colorStockInput;
+
+      if (newTotal > formData.stock) {
+        toast.error(
+          "No se puede añadir más stock. Excedería el stock total del producto."
+        );
+        return;
+      }
+
       setFormData((prev) => ({
         ...prev,
         colorDetails: [
@@ -232,6 +278,17 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         (detail) => detail.detail_desc === sizeInput.trim()
       )
     ) {
+      // Calculate new total if this size is added
+      const currentTotal = calculateTotalVariantStock();
+      const newTotal = currentTotal + sizeStockInput;
+
+      if (newTotal > formData.stock) {
+        toast.error(
+          "No se puede añadir más stock. Excedería el stock total del producto."
+        );
+        return;
+      }
+
       setFormData((prev) => ({
         ...prev,
         sizeDetails: [
@@ -264,6 +321,17 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         (detail) => detail.detail_desc === tallaInput.trim()
       )
     ) {
+      // Calculate new total if this talla is added
+      const currentTotal = calculateTotalVariantStock();
+      const newTotal = currentTotal + tallaStockInput;
+
+      if (newTotal > formData.stock) {
+        toast.error(
+          "No se puede añadir más stock. Excedería el stock total del producto."
+        );
+        return;
+      }
+
       setFormData((prev) => ({
         ...prev,
         tallaSizeDetails: [
@@ -296,6 +364,17 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         (detail) => detail.detail_desc === materialInput.trim()
       )
     ) {
+      // Calculate new total if this material is added
+      const currentTotal = calculateTotalVariantStock();
+      const newTotal = currentTotal + materialStockInput;
+
+      if (newTotal > formData.stock) {
+        toast.error(
+          "No se puede añadir más stock. Excedería el stock total del producto."
+        );
+        return;
+      }
+
       setFormData((prev) => ({
         ...prev,
         materialDetails: [
@@ -377,6 +456,15 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    // Validation for stock
+    const totalVariantStock = calculateTotalVariantStock();
+    if (totalVariantStock > formData.stock) {
+      toast.error(
+        "La suma del stock de todas las variantes no puede superar el stock total del producto"
+      );
+      return;
+    }
 
     try {
       const productData = {

@@ -85,12 +85,12 @@ const Sidebar = () => {
       href: "/panel/vendedores",
       roles: ["admin_tienda", "superadmin"],
     },
-    {
-      name: "Configuración",
-      icon: Settings,
-      href: "/panel/settings",
-      roles: ["admin_tienda", "vendedor", "cliente", "superadmin"],
-    },
+    // {
+    //   name: "Configuración",
+    //   icon: Settings,
+    //   href: "/panel/settings",
+    //   roles: ["admin_tienda", "vendedor", "cliente", "superadmin"],
+    // },
   ];
 
   // Filter menu items based on user role
