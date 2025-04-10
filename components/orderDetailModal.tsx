@@ -242,14 +242,14 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             </Table>
           </div>
           <div className="text-right mt-4 p-2 bg-gray-50 rounded-md border border-gray-100">
-            <p className="font-medium text-lg">
+            <div className="font-medium text-lg">
               Total: ${calculateOrderTotal(order).toLocaleString()}
               {orderHasDiscounts(order) && (
                 <Badge className="ml-2 bg-orange-50 text-orange-600 border-orange-200">
                   Incluye descuento(s)
                 </Badge>
               )}
-            </p>
+            </div>
           </div>
         </div>
       </div>

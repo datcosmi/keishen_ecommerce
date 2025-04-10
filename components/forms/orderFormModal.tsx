@@ -77,6 +77,7 @@ interface OrderDetail {
   unit_price: number;
   productName?: string;
   selected_details?: number[];
+  discount?: number;
 }
 
 interface OrderFormModalProps {
@@ -299,16 +300,59 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
     setOrderData(restOrderData);
   };
 
+  // Calculate the combined discount for a product
+  const calculateCombinedDiscount = (product: Product): number => {
+    const currentDate = new Date();
+    let totalDiscount = 0;
+
+    // Check product discounts
+    if (product.discount_product && product.discount_product.length > 0) {
+      product.discount_product.forEach((discount) => {
+        const startDate = new Date(discount.start_date_discount);
+        const endDate = new Date(discount.end_date_discount);
+
+        if (currentDate >= startDate && currentDate <= endDate) {
+          totalDiscount += discount.percent_discount;
+        }
+      });
+    }
+
+    // Check category discounts
+    if (product.discount_category && product.discount_category.length > 0) {
+      product.discount_category.forEach((discount) => {
+        const startDate = new Date(discount.start_date_discount);
+        const endDate = new Date(discount.end_date_discount);
+
+        if (currentDate >= startDate && currentDate <= endDate) {
+          totalDiscount += discount.percent_discount;
+        }
+      });
+    }
+
+    return totalDiscount;
+  };
+
   // Handle product selection
   const handleProductSelect = (product: Product) => {
     setSelectedProduct(product);
     setProductSearch(product.product_name || product.name || "");
+
+    // Calculate discount
+    const discount = calculateCombinedDiscount(product);
+
+    // Calculate discounted price
+    const originalPrice = product.price || 0;
+    const discountedPrice =
+      discount > 0 ? originalPrice * (1 - discount / 100) : originalPrice;
+
     setCurrentDetail({
       ...currentDetail,
       prod_id: product.id_product || product.id_prod || "",
-      unit_price: product.price || 0,
+      unit_price: discountedPrice,
+      discount: discount > 0 ? discount : undefined,
       selected_details: [],
     });
+
     setShowProductDropdown(false);
   };
 
@@ -388,6 +432,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
       setOrderDetails(updatedDetails);
     } else {
       // Add new product
+      // Add new product
       setOrderDetails([
         ...orderDetails,
         {
@@ -396,8 +441,17 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
             selectedProduct.product_name ||
             selectedProduct.name ||
             "Unknown Product",
+          discount: currentDetail.discount,
         },
       ]);
+      console.log("Added new product:", {
+        ...currentDetail,
+        productName:
+          selectedProduct.product_name ||
+          selectedProduct.name ||
+          "Unknown Product",
+        discount: currentDetail.discount,
+      });
     }
 
     // Reset current detail
@@ -643,8 +697,8 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
       const orderId = newOrder.id_pedido || newOrder.pedido_id;
 
       // Step 2: Create order details
-      const detailPromises = orderDetails.map((detail) => {
-        return fetch(`${API_BASE_URL}/pedido/details`, {
+      const detailPromises = orderDetails.map((detail) =>
+        fetch(`${API_BASE_URL}/pedido/details`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -655,9 +709,10 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
             amount: detail.amount,
             unit_price: detail.unit_price,
             product_detail_ids: detail.selected_details || [],
+            discount: detail.discount || 0,
           }),
-        });
-      });
+        })
+      );
 
       await Promise.all(detailPromises);
 
@@ -724,6 +779,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
             amount: detail.amount,
             unit_price: detail.unit_price,
             product_detail_ids: detail.selected_details || [],
+            discount: detail.discount || 0,
           }),
         });
       });
@@ -810,6 +866,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
             amount: detail.amount,
             unit_price: detail.unit_price,
             product_detail_ids: detail.selected_details || [],
+            discount: detail.discount || 0,
           }),
         })
       );
@@ -1159,6 +1216,11 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
                                       product.name ||
                                       "Unknown"}{" "}
                                     - ${product.price || 0}
+                                    {calculateCombinedDiscount(product) > 0 && (
+                                      <span className="ml-2 text-green-600">
+                                        (-{calculateCombinedDiscount(product)}%)
+                                      </span>
+                                    )}
                                   </span>
                                   <span
                                     className={`text-sm ${
@@ -1265,6 +1327,11 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
                         <TableCell>{detail.amount}</TableCell>
                         <TableCell>
                           ${detail.unit_price.toLocaleString()}
+                          {detail.discount && detail.discount > 0 && (
+                            <div className="text-xs text-green-600">
+                              (-{detail.discount}% descuento)
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           $
