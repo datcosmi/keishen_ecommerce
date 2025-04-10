@@ -10,7 +10,6 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
-import Sidebar from "@/components/sidebar";
 import {
   Card,
   CardContent,
@@ -265,7 +264,6 @@ const AdminProductDetailPage: React.FC = () => {
   if (loading) {
     return (
       <div className="flex flex-col md:flex-row gap-2 min-h-screen bg-[#eaeef6]">
-        <Sidebar />
         <div className="p-6 flex-1 flex items-center justify-center">
           <div className="text-center">
             <RefreshCw className="h-10 w-10 text-gray-400 animate-spin mx-auto mb-4" />
@@ -358,8 +356,7 @@ const AdminProductDetailPage: React.FC = () => {
   const status = stockStatus();
 
   return (
-    <div className="flex flex-col md:flex-row gap-2 min-h-screen bg-[#eaeef6]">
-      <Sidebar />
+    <div className="flex flex-col md:flex-row gap-2 min-h-screen ">
       <div className="p-6 flex-1">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center">

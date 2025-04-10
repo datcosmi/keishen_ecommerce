@@ -31,6 +31,7 @@ export default function ProductPage() {
   const [selectedDetails, setSelectedDetails] = useState<
     Record<string, string>
   >({});
+  const [selectedDetailIds, setSelectedDetailIds] = useState<number[]>([]);
   const [activeDiscount, setActiveDiscount] = useState<number>(0);
   const [originalPrice, setOriginalPrice] = useState<number>(0);
   const [discountedPrice, setDiscountedPrice] = useState<number>(0);
@@ -114,7 +115,7 @@ export default function ProductPage() {
         currentCartId = await createCart();
       }
 
-      // Add product to cart
+      // Add product to cart with selected details
       const response = await fetch(`${API_BASE_URL}/cart/product`, {
         method: "POST",
         headers: {
@@ -124,6 +125,7 @@ export default function ProductPage() {
           cart_id: currentCartId,
           prod_id: id,
           amount: quantity,
+          product_detail_ids: selectedDetailIds, // Add the selected detail IDs
         }),
       });
 
@@ -153,10 +155,27 @@ export default function ProductPage() {
 
           // Initialize selected details
           const initialDetails: Record<string, string> = {};
-          data.product_details.forEach((detail) => {
-            initialDetails[detail.detail_name] = detail.detail_desc;
+          const initialDetailIds: number[] = [];
+
+          // Group details by name to get unique detail names
+          const detailNames = [
+            ...new Set(data.product_details.map((d) => d.detail_name)),
+          ];
+
+          // For each detail name, select the first available option
+          detailNames.forEach((name) => {
+            const firstDetail = data.product_details.find(
+              (d) => d.detail_name === name
+            );
+            if (firstDetail) {
+              initialDetails[name] = firstDetail.detail_desc;
+              initialDetailIds.push(firstDetail.detail_id);
+            }
           });
+
           setSelectedDetails(initialDetails);
+          setSelectedDetailIds(initialDetailIds);
+          console.log("Initial selected detail IDs:", initialDetailIds);
         })
         .catch((err) => {
           console.error(err);
@@ -232,11 +251,39 @@ export default function ProductPage() {
   };
 
   // Handle detail selection
-  const handleDetailSelection = (detailName: string, value: string) => {
+  const handleDetailSelection = (
+    detailName: string,
+    value: string,
+    detailId: number
+  ) => {
     setSelectedDetails((prev) => ({
       ...prev,
       [detailName]: value,
     }));
+
+    setSelectedDetailIds((prevIds) => {
+      // Create a new array by removing any previous IDs for this detail type
+      const updatedIds = [...prevIds];
+
+      // Find the index of any detail of the same type
+      const indexToRemove = product?.product_details.findIndex(
+        (detail) =>
+          detail.detail_name === detailName &&
+          updatedIds.includes(detail.detail_id)
+      );
+
+      // If found, remove it
+      if (indexToRemove !== -1 && indexToRemove !== undefined && product) {
+        const idToRemove = product.product_details[indexToRemove].detail_id;
+        const removeIndex = updatedIds.indexOf(idToRemove);
+        if (removeIndex !== -1) {
+          updatedIds.splice(removeIndex, 1);
+        }
+      }
+
+      // Add the new ID
+      return [...updatedIds, detailId];
+    });
   };
 
   if (!product) {
@@ -369,36 +416,60 @@ export default function ProductPage() {
                 <h3 className="font-medium mb-3">{detailName}</h3>
                 {isColorDetail(detailName) ? (
                   <div className="flex gap-3">
-                    {values.map((color) => (
-                      <Button
-                        key={color}
-                        variant="outline"
-                        className={`w-8 h-8 rounded-full p-0 ${
-                          selectedDetails[detailName] === color
-                            ? "ring-2 ring-black ring-offset-2"
-                            : ""
-                        }`}
-                        style={{ backgroundColor: color }}
-                        onClick={() => handleDetailSelection(detailName, color)}
-                      />
-                    ))}
+                    {values.map((color) => {
+                      // Find the detail object to get its ID
+                      const detailObj = product.product_details.find(
+                        (d) =>
+                          d.detail_name === detailName &&
+                          d.detail_desc === color
+                      );
+                      const detailId = detailObj ? detailObj.detail_id : 0;
+
+                      return (
+                        <Button
+                          key={color}
+                          variant="outline"
+                          className={`w-8 h-8 rounded-full p-0 ${
+                            selectedDetails[detailName] === color
+                              ? "ring-2 ring-black ring-offset-2"
+                              : ""
+                          }`}
+                          style={{ backgroundColor: color }}
+                          onClick={() =>
+                            handleDetailSelection(detailName, color, detailId)
+                          }
+                        />
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="flex gap-3 flex-wrap">
-                    {values.map((value) => (
-                      <Button
-                        key={value}
-                        variant={
-                          selectedDetails[detailName] === value
-                            ? "default"
-                            : "outline"
-                        }
-                        className="rounded-full"
-                        onClick={() => handleDetailSelection(detailName, value)}
-                      >
-                        {value}
-                      </Button>
-                    ))}
+                    {values.map((value) => {
+                      // Find the detail object to get its ID
+                      const detailObj = product.product_details.find(
+                        (d) =>
+                          d.detail_name === detailName &&
+                          d.detail_desc === value
+                      );
+                      const detailId = detailObj ? detailObj.detail_id : 0;
+
+                      return (
+                        <Button
+                          key={value}
+                          variant={
+                            selectedDetails[detailName] === value
+                              ? "default"
+                              : "outline"
+                          }
+                          className="rounded-full"
+                          onClick={() =>
+                            handleDetailSelection(detailName, value, detailId)
+                          }
+                        >
+                          {value}
+                        </Button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
