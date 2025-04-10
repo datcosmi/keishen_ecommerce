@@ -49,7 +49,7 @@ export default function LandingPage() {
       image:
         product.product_images.length > 0
           ? product.product_images[0].image_url
-          : "/images/placeholder.png",
+          : "/uploads/placeholder.png",
     }));
   };
 

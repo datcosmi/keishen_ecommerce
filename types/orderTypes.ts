@@ -1,8 +1,15 @@
+export interface ProductVariant {
+  id_pd: number;
+  detail_name: string;
+  detail_desc: string;
+}
+
 export interface Product {
   producto_id: number;
   producto_nombre: string;
   producto_precio: number;
   producto_imagenes: string[];
+  variantes: ProductVariant[];
 }
 
 export interface OrderDetail {

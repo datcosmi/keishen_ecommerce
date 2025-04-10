@@ -46,7 +46,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import CategoryModal from "@/components/categoryModal";
+import CategoryModal from "@/components/forms/categoryModal";
 import { Category } from "@/types/categoryTypes";
 
 type SortField = "id_cat" | "name";
@@ -300,8 +300,7 @@ const CategoriesDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-[#eaeef6]">
-      <Sidebar />
+    <div className="flex flex-col md:flex-row min-h-screen">
       {/* Main Content */}
       <div className="p-6 flex-1">
         <div className="mb-6">

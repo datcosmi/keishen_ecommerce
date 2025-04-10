@@ -52,7 +52,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import ProductFormModal from "@/components/productFormModal";
+import ProductFormModal from "@/components/forms/productFormModal";
 import { Product, ProductData } from "@/types/productTypes";
 
 type SortField = "name" | "price" | "stock" | "inStock";
@@ -91,11 +91,15 @@ const ProductDashboard: React.FC = () => {
       id: item.id_product,
       name: item.product_name,
       description: item.description,
+      id_cat: item.category_id,
       price: item.price,
       stock: item.stock,
       category: item.category,
       details: item.product_details,
-      images: item.product_images.map((img) => img.image_url),
+      images: item.product_images.map((img) => ({
+        image_id: img.image_id,
+        image_url: img.image_url,
+      })),
       inStock: item.stock > 0,
     }));
   };
@@ -174,7 +178,6 @@ const ProductDashboard: React.FC = () => {
     setEditingProduct(null);
     setEditModalOpen(false);
     setSelectedProducts([]);
-    toast.success("Producto actualizado correctamente");
     handleRefresh();
   };
 
@@ -199,8 +202,18 @@ const ProductDashboard: React.FC = () => {
         products.filter((product) => !selectedProducts.includes(product.id))
       );
       setSelectedProducts([]);
+      toast.success(
+        selectedProducts.length > 1
+          ? "Productos eliminados correctamente"
+          : "Producto eliminado correctamente"
+      );
     } catch (error) {
       console.error("Error eliminando productos:", error);
+      toast.error(
+        selectedProducts.length > 1
+          ? "Error al eliminar productos"
+          : "Error al eliminar el producto"
+      );
     } finally {
       setLoading(false);
       setDeleteDialogOpen(false);
@@ -220,8 +233,8 @@ const ProductDashboard: React.FC = () => {
   // Aplicar los filtros por búsqueda y estado
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase());
+      product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.category?.toLowerCase().includes(searchQuery.toLowerCase());
 
     // Aplicar filtro por estado
     if (selectedStatus === "En existencia" && !product.inStock) return false;
@@ -374,8 +387,7 @@ const ProductDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-2 min-h-screen bg-[#eaeef6]">
-      <Sidebar />
+    <div className="flex flex-col md:flex-row gap-2 min-h-screen">
       <div className="p-6 flex-1">
         <div className="mb-6 flex justify-between items-center">
           <div>
@@ -637,9 +649,15 @@ const ProductDashboard: React.FC = () => {
                                 <div className="w-6 h-6 relative">
                                   {product.images.length > 0 ? (
                                     <Image
-                                      src={product.images[0]}
+                                      src={
+                                        product.images.length > 0
+                                          ? `http://localhost:3001${product.images[0].image_url}`
+                                          : "/images/placeholder.png"
+                                      }
                                       alt={product.name}
                                       fill
+                                      unoptimized
+                                      priority
                                       style={{ objectFit: "contain" }}
                                       sizes="30px"
                                     />
@@ -754,7 +772,11 @@ const ProductDashboard: React.FC = () => {
                             <div className="w-8 h-8 relative">
                               {product.images.length > 0 ? (
                                 <Image
-                                  src={product.images[0]}
+                                  src={
+                                    product.images.length > 0
+                                      ? `http://localhost:3001${product.images[0].image_url}`
+                                      : "/images/placeholder.png"
+                                  }
                                   alt={product.name}
                                   layout="fill"
                                   objectFit="contain"
