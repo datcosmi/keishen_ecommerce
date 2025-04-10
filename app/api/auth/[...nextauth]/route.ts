@@ -5,7 +5,7 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { SupabaseAdapter } from "@auth/supabase-adapter";
 import { createClient } from "@supabase/supabase-js";
-import { CustomUser } from "@/types/usersTypes";
+// import { CustomUser } from "@/types/usersTypes";
 import bcrypt from "bcryptjs";
 
 const supabase = createClient(
