@@ -52,6 +52,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Discount } from "@/types/discountTypes";
+import DiscountFormModal from "@/components/forms/discountFormModal";
 
 // Types for discounts
 type DiscountType = "product" | "category";
@@ -80,6 +81,18 @@ const DiscountDashboard: React.FC = () => {
   // Sorting
   const [sortField, setSortField] = useState<SortField>("percent");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  const [editingDiscount, setEditingDiscount] = useState<Discount | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+
+  const handleEditDiscount = async (discountId: number) => {
+    // Find the discount in the current list
+    const discountToEdit = discounts.find((d) => d.id_discount === discountId);
+    if (discountToEdit) {
+      setEditingDiscount(discountToEdit);
+      setEditModalOpen(true);
+    }
+  };
 
   // Fetch discounts based on type
   const fetchDiscounts = async (type: DiscountType) => {
@@ -293,6 +306,17 @@ const DiscountDashboard: React.FC = () => {
                   Cancelar ({selectedDiscounts.length})
                 </Button>
 
+                {selectedDiscounts.length === 1 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleEditDiscount(selectedDiscounts[0])}
+                    className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                  >
+                    <Edit size={16} className="mr-1" />
+                    Editar
+                  </Button>
+                )}
+
                 <AlertDialog
                   open={deleteDialogOpen}
                   onOpenChange={setDeleteDialogOpen}
@@ -332,14 +356,31 @@ const DiscountDashboard: React.FC = () => {
                 </AlertDialog>
               </>
             )}
+            <DiscountFormModal
+              onDiscountAdded={(discount) => {
+                // Handle the newly added discount, e.g., update your list
+                console.log("New discount added:", discount);
+                fetchDiscounts(
+                  discountType === "product" ? "product" : "category"
+                ); // Refresh your discount list
+              }}
+              buttonLabel="Añadir Descuento"
+            />
 
-            <Button
-              variant="outline"
-              className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
-            >
-              <Plus size={16} className="mr-1" />
-              Añadir Descuento
-            </Button>
+            {editingDiscount && (
+              <DiscountFormModal
+                discount={editingDiscount}
+                isOpen={editModalOpen}
+                onOpenChange={setEditModalOpen}
+                onDiscountAdded={() => {}} // Add this line with an empty function
+                onDiscountUpdated={(updatedDiscount) => {
+                  // Update the discount in the list
+                  fetchDiscounts(discountType);
+                  setSelectedDiscounts([]);
+                  setEditingDiscount(null);
+                }}
+              />
+            )}
           </div>
         </div>
 
