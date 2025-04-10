@@ -6,6 +6,7 @@ import NavbarWhite from "@/components/navbarWhite";
 import Footer from "@/components/footer";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import Link from "next/link";
 
 interface CartItem {
   id: number;
@@ -363,22 +364,29 @@ export default function CartPage() {
                 </button>
 
                 <div className="w-full md:w-32 h-32 bg-gray-100 rounded-lg relative flex-shrink-0">
-                  <Image
-                    src={
-                      item.image.length > 0
-                        ? `http://localhost:3001${item.image}`
-                        : "/images/placeholder.png"
-                    }
-                    alt={item.name}
-                    fill
-                    className="object-cover rounded-lg"
-                  />
+                  <Link href={`/productos/${item.product_id}`}>
+                    <Image
+                      src={
+                        item.image.length > 0
+                          ? `http://localhost:3001${item.image}`
+                          : "/images/placeholder.png"
+                      }
+                      alt={item.name}
+                      fill
+                      className="object-cover rounded-lg"
+                    />
+                  </Link>
                 </div>
 
                 <div className="flex-1 space-y-1">
                   <p className="text-sm text-gray-500">{item.type}</p>
                   <h3 className="flex gap-3 text-lg font-medium text-gray-900">
-                    {item.name}{" "}
+                    <Link
+                      href={`/productos/${item.product_id}`}
+                      className="hover:underline hover:text-blue-500"
+                    >
+                      {item.name}
+                    </Link>{" "}
                     {item.discount_percent > 0 && (
                       <div className="flex items-center mt-1">
                         <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded">
