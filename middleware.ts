@@ -17,8 +17,8 @@ const protectedRoutes = [
     roles: ["vendedor", "admin_tienda", "superadmin"],
   },
   {
-    path: "/panel/profile",
-    roles: ["admin_tienda", "cliente", "vendedor", "superadmin"],
+    path: "/panel/users",
+    roles: ["superadmin"],
   },
 ];
 
@@ -61,6 +61,6 @@ export const config = {
     "/panel/dashboard/:path*",
     "/panel/products/:path*",
     "/panel/pedidos/:path*",
-    "/panel/profile/:path*",
+    "/panel/users/:path*",
   ],
 };

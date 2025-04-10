@@ -19,6 +19,7 @@ export default function DashboardLayout({
     "/panel/products": ["admin_tienda", "vendedor", "superadmin"],
     "/panel/pedidos": ["admin_tienda", "vendedor", "superadmin"],
     "/panel/ventas": ["admin_tienda", "vendedor", "superadmin"],
+    "/panel/users": ["superadmin"],
   };
 
   // Find the current path in the map

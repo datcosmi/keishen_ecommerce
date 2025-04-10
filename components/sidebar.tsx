@@ -73,17 +73,12 @@ const Sidebar = () => {
       href: "/panel/ventas",
       roles: ["admin_tienda", "superadmin"],
     },
+
     {
-      name: "Administradores",
-      icon: User,
-      href: "/panel/administradores",
-      roles: ["admin_tienda", "superadmin"],
-    },
-    {
-      name: "Vendedores",
+      name: "Usuarios",
       icon: Users,
-      href: "/panel/vendedores",
-      roles: ["admin_tienda", "superadmin"],
+      href: "/panel/users",
+      roles: ["superadmin"],
     },
     // {
     //   name: "Configuración",
