@@ -46,7 +46,12 @@ export default function NavbarBlack() {
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Authentication
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/");
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -384,11 +389,19 @@ export default function NavbarBlack() {
             <Link href="/panel/dashboard">
               <UserIcon className="h-6 w-6 text-white" />
             </Link>
+
+            <Button
+              variant="default"
+              onClick={handleLogout}
+              className="bg-yellow-400 hover:bg-yellow-500"
+            >
+              <span className="text-black">Cerrar sesión</span>
+            </Button>
           </>
         )}
 
         {!isAuthenticated && (
-          <>
+          <div className="flex gap-3">
             <Link href="/login">
               <Button
                 variant="default"
@@ -406,7 +419,35 @@ export default function NavbarBlack() {
                 <span>Registrarse</span>
               </Button>
             </Link>
-          </>
+          </div>
+        )}
+
+        {isAuthenticated &&
+          (user?.role === "admin_tienda" ||
+            (user?.role === "superadmin" && (
+              <div>
+                <Link href="/panel/dashboard">
+                  <Button
+                    variant="default"
+                    className="bg-yellow-400 hover:bg-yellow-500"
+                  >
+                    <span className="text-black">Ir al panel</span>
+                  </Button>
+                </Link>
+              </div>
+            )))}
+
+        {isAuthenticated && user?.role === "vendedor" && (
+          <div>
+            <Link href="/panel/pedidos">
+              <Button
+                variant="default"
+                className="bg-yellow-400 hover:bg-yellow-500"
+              >
+                <span className="text-black">Ir al panel</span>
+              </Button>
+            </Link>
+          </div>
         )}
       </div>
     </nav>

@@ -41,55 +41,55 @@ const Sidebar = () => {
       name: "Inicio",
       icon: Home,
       href: "/panel/dashboard",
-      roles: ["admin", "vendedor", "cliente", "superadmin"],
+      roles: ["admin_tienda", "cliente", "superadmin"],
     },
     {
       name: "Productos",
       icon: Archive,
       href: "/panel/products",
-      roles: ["admin", "vendedor", "superadmin"],
+      roles: ["admin_tienda", "superadmin"],
     },
     {
       name: "Categorias",
       icon: Layers2,
       href: "/panel/categories",
-      roles: ["admin", "superadmin"],
+      roles: ["admin_tienda", "superadmin"],
     },
     {
       name: "Descuentos",
       icon: Tags,
       href: "/panel/discounts",
-      roles: ["admin", "superadmin"],
+      roles: ["admin_tienda", "superadmin"],
     },
     {
       name: "Pedidos",
       icon: CreditCard,
       href: "/panel/pedidos",
-      roles: ["admin", "vendedor", "superadmin"],
+      roles: ["admin_tienda", "vendedor", "superadmin"],
     },
     {
       name: "Ventas",
       icon: BarChart2,
       href: "/panel/ventas",
-      roles: ["admin", "vendedor", "superadmin"],
+      roles: ["admin_tienda", "superadmin"],
     },
     {
       name: "Administradores",
       icon: User,
       href: "/panel/administradores",
-      roles: ["admin", "superadmin"],
+      roles: ["admin_tienda", "superadmin"],
     },
     {
       name: "Vendedores",
       icon: Users,
       href: "/panel/vendedores",
-      roles: ["admin", "superadmin"],
+      roles: ["admin_tienda", "superadmin"],
     },
     {
       name: "Configuración",
       icon: Settings,
       href: "/panel/settings",
-      roles: ["admin", "vendedor", "cliente", "superadmin"],
+      roles: ["admin_tienda", "vendedor", "cliente", "superadmin"],
     },
   ];
 
@@ -148,7 +148,7 @@ const Sidebar = () => {
             collapsed ? "py-4" : "p-4"
           )}
         >
-          <Link href="/panel/dashboard" className="flex justify-center">
+          <Link href="/" className="flex justify-center">
             {collapsed ? (
               <span className="text-2xl font-bold text-black">K</span>
             ) : (

@@ -10,6 +10,7 @@ import {
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
+import { Button } from "./ui/button";
 
 interface Category {
   id_cat: number;
@@ -193,6 +194,27 @@ export default function NavbarWhite() {
             KEISHEN
           </span>
         </Link>
+        {!isAuthenticated && (
+          <div className="absolute right-4 flex gap-3">
+            <Link href="/login">
+              <Button
+                variant="default"
+                className="bg-yellow-300 hover:bg-yellow-500"
+              >
+                <span className="text-black">Iniciar sesión</span>
+              </Button>
+            </Link>
+
+            <Link href="/login">
+              <Button
+                variant="default"
+                className="bg-whites text-black hover:bg-black hover:text-white"
+              >
+                <span>Registrarse</span>
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Sección inferior */}
@@ -366,9 +388,12 @@ export default function NavbarWhite() {
               )}
             </div>
           </Link>
-          <Link href="/login">
-            <UserIcon className="h-6 w-6 text-black cursor-pointer" />
-          </Link>
+
+          {isAuthenticated && (
+            <Link href="/panel/dashboard">
+              <UserIcon className="h-6 w-6 text-black cursor-pointer" />
+            </Link>
+          )}
         </div>
       </div>
     </nav>

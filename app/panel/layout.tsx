@@ -13,13 +13,12 @@ export default function DashboardLayout({
   const pathname = usePathname();
   // Define role-based path protection
   const rolePathMap: Record<string, string[]> = {
-    "/panel/administradores": ["admin", "superadmin"],
-    "/panel/vendedores": ["admin", "superadmin"],
-    "/panel/categories": ["admin", "superadmin"],
-    "/panel/discounts": ["admin", "superadmin"],
-    "/panel/products": ["admin", "vendedor", "superadmin"],
-    "/panel/pedidos": ["admin", "vendedor", "superadmin"],
-    "/panel/ventas": ["admin", "vendedor", "superadmin"],
+    "/panel/dashboard": ["admin_tienda", "superadmin"],
+    "/panel/categories": ["admin_tienda", "superadmin"],
+    "/panel/discounts": ["admin_tienda", "superadmin"],
+    "/panel/products": ["admin_tienda", "vendedor", "superadmin"],
+    "/panel/pedidos": ["admin_tienda", "vendedor", "superadmin"],
+    "/panel/ventas": ["admin_tienda", "vendedor", "superadmin"],
   };
 
   // Find the current path in the map
@@ -30,7 +29,7 @@ export default function DashboardLayout({
   // Get the required roles for the current path
   const requiredRoles = currentPath
     ? rolePathMap[currentPath]
-    : ["admin", "vendedor", "cliente", "superadmin"];
+    : ["admin_tienda", "vendedor", "cliente", "superadmin"];
 
   // Use the hook with the required roles
   const { isAuthenticated, isLoading, user } = useProtectedRoute(requiredRoles);

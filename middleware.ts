@@ -6,19 +6,19 @@ import { getToken } from "next-auth/jwt";
 const protectedRoutes = [
   {
     path: "/panel/dashboard",
-    roles: ["admin", "cliente", "vendedor", "superadmin"],
+    roles: ["admin_tienda", "superadmin"],
   },
   {
     path: "/panel/products",
-    roles: ["admin", "superadmin"],
+    roles: ["admin_tienda", "superadmin"],
   },
   {
     path: "/panel/pedidos",
-    roles: ["vendedor", "admin", "superadmin"],
+    roles: ["vendedor", "admin_tienda", "superadmin"],
   },
   {
     path: "/panel/profile",
-    roles: ["admin", "cliente", "vendedor", "superadmin"],
+    roles: ["admin_tienda", "cliente", "vendedor", "superadmin"],
   },
 ];
 

@@ -186,9 +186,7 @@ export default function Login() {
             <p className="text-sm text-gray-600">O inicia sesión con</p>
             <div className="mt-3">
               <button
-                onClick={() =>
-                  signIn("google", { callbackUrl: "/panel/dashboard" })
-                }
+                onClick={() => signIn("google", { callbackUrl: "/" })}
                 className="flex items-center justify-center w-full border border-gray-300 rounded-lg py-2 px-4 hover:bg-gray-50 transition duration-200"
                 disabled={loading}
               >

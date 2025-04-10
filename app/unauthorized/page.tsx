@@ -41,12 +41,12 @@ export default function UnauthorizedPage() {
 
         <div className="flex flex-col space-y-3">
           <Link
-            href="/panel/dashboard"
+            href="/"
             className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition duration-200"
           >
             <span className="flex items-center justify-center">
               <ChevronLeftIcon className="h-4 w-4 mr-1" />
-              Ir al Dashboard
+              Ir a la página de inicio
             </span>
           </Link>
 
