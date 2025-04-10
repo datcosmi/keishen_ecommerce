@@ -64,6 +64,7 @@ interface PayPalOrderData {
 const PaymentPage = () => {
   const { user } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartId, setCartId] = useState<number | null>(null);
   const [cartSummary, setCartSummary] = useState<CartSummary>({
     subtotal: 0,
     shipping: 0,
@@ -202,10 +203,32 @@ const PaymentPage = () => {
     }
   };
 
+  const updateCartStatus = async (cartId: number) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/cart/${cartId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "finalizado" }),
+      });
+
+      if (!response.ok) {
+        console.error("Error updating cart status");
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error updating cart status:", error);
+      return false;
+    }
+  };
+
   // Save order to backend
   const saveOrder = async (transactionId: string, paymentMethod: string) => {
     try {
-      if (!user?.id_user) return null;
+      if (!user?.id_user || cartId === null) return null;
 
       console.log("Creating order with payment method:", paymentMethod);
 
@@ -285,6 +308,11 @@ const PaymentPage = () => {
         }
       }
 
+      const cartStatusUpdated = await updateCartStatus(cartId);
+      if (!cartStatusUpdated) {
+        console.warn("Order created but cart status could not be updated");
+      }
+
       return pedidoId;
     } catch (error) {
       console.error("Error saving order:", error);
@@ -332,8 +360,29 @@ const PaymentPage = () => {
         return;
       }
 
-      // Process cart data
-      const cartData = data[0]; // Get first cart
+      const activeCart = data.find((cart: any) => cart.status === "pendiente");
+
+      if (!activeCart) {
+        // No active carts found
+        setCartItems([]);
+        updateCartSummary([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Process the active cart data
+      const cartData = activeCart;
+
+      // Check if cart status is "finalizado" (completed)
+      if (cartData.status === "finalizado") {
+        setCartItems([]);
+        updateCartSummary([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Store the cart ID
+      setCartId(cartData.cart_id);
 
       // Transform cart items
       const transformedItems = cartData.items.map((item: any) => {

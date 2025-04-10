@@ -68,8 +68,26 @@ export default function CartPage() {
         return;
       }
 
-      // Process cart data
-      const cartData = data[0]; // Get first cart (assuming only one active cart per user)
+      const activeCart = data.find((cart: any) => cart.status === "pendiente");
+
+      if (!activeCart) {
+        // No active carts found
+        setCartItems([]);
+        updateCartSummary([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Process the active cart data
+      const cartData = activeCart;
+
+      // Check if cart status is "finalizado" (completed)
+      if (cartData.status === "finalizado") {
+        setCartItems([]);
+        updateCartSummary([]);
+        setIsLoading(false);
+        return;
+      }
 
       // Transform cart items to match our interface
       const transformedItems = cartData.items.map((item: any) => {
