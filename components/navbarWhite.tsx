@@ -9,11 +9,19 @@ import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Category {
-  id: number;
+  id_cat: number;
   name: string;
 }
+
+interface CartItems {
+  cart_id: number;
+  total_items: number;
+}
+
+const API_BASE_URL = "http://localhost:3001/api";
 
 export default function NavbarWhite() {
   const pathname = usePathname();
@@ -21,6 +29,10 @@ export default function NavbarWhite() {
   const [isFocused, setIsFocused] = useState(false);
   const [showProductsMenu, setShowProductsMenu] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [cartItems, setCartItems] = useState<CartItems>({
+    cart_id: 0,
+    total_items: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
   const dropdownRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -31,6 +43,9 @@ export default function NavbarWhite() {
   const searchRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  // Authentication
+  const { isAuthenticated, user } = useAuth();
+
   useEffect(() => {
     const handleScroll = () => {
       setIsShrunk(window.scrollY > 50);
@@ -39,26 +54,51 @@ export default function NavbarWhite() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  useEffect(() => {
-    // Fetch categories from the API
-    const fetchCategories = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch("/api/categories");
-        if (!response.ok) {
-          throw new Error("Failed to fetch categories");
-        }
-        const data = await response.json();
-        setCategories(data);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      } finally {
-        setIsLoading(false);
+  // Fetch categories from the API
+  const fetchCategories = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${API_BASE_URL}/categories`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch categories");
       }
-    };
+      const data = await response.json();
+      setCategories(data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  const fetchCartItems = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(
+        `${API_BASE_URL}/cart/user/${user?.id_user}/count`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch cart items");
+      }
+      const data = await response.json();
+      setCartItems(data);
+      console.log("Cart items:", data);
+    } catch (error) {
+      console.error("Error fetching cart items:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    if (user?.id_user) {
+      fetchCartItems();
+    }
+  }, [user]);
 
   // Create a buffer zone between the menu item and dropdown
   const handleMouseLeave = () => {
@@ -211,7 +251,7 @@ export default function NavbarWhite() {
                   <div className="py-2">
                     {categories.map((category) => (
                       <Link
-                        key={category.id}
+                        key={category.id_cat}
                         href={`/categoria/${category.name}`}
                       >
                         <div className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-yellow-500 transition-colors">
@@ -319,9 +359,11 @@ export default function NavbarWhite() {
           <Link href="/carrito">
             <div className="relative">
               <ShoppingCartIcon className="h-6 w-6 text-black cursor-pointer" />
-              <span className="absolute -top-3 -right-3 bg-yellow-300 text-black text-xs px-2 py-1 rounded-full">
-                0
-              </span>
+              {isAuthenticated && (
+                <span className="absolute -top-3 -right-3 bg-yellow-300 text-black text-xs px-2 py-1 rounded-full">
+                  {cartItems.total_items || 0}
+                </span>
+              )}
             </div>
           </Link>
           <Link href="/login">

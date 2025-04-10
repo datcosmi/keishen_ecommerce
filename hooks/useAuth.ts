@@ -18,7 +18,7 @@ export const useAuth = () => {
 
   const login = async (
     provider: string = "google",
-    callbackUrl: string = "/panel/dashboard"
+    callbackUrl: string = "/"
   ) => {
     localStorage.removeItem("auth_token");
     await signIn(provider, { callbackUrl });

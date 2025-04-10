@@ -9,12 +9,23 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import NavbarWhite from "@/components/navbarWhite";
 import { ProductData } from "@/types/productTypes";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+
+interface CartItems {
+  cart_id: number | null;
+  total_items: number;
+}
 
 const API_BASE_URL = "http://localhost:3001/api";
 
 export default function ProductPage() {
   const { id } = useParams();
   const [product, setProduct] = useState<ProductData | null>(null);
+  const [cartItems, setCartItems] = useState<CartItems>({
+    cart_id: null,
+    total_items: 0,
+  });
   const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedDetails, setSelectedDetails] = useState<
@@ -23,11 +34,113 @@ export default function ProductPage() {
   const [activeDiscount, setActiveDiscount] = useState<number>(0);
   const [originalPrice, setOriginalPrice] = useState<number>(0);
   const [discountedPrice, setDiscountedPrice] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const router = useRouter();
 
   // Default rating values since not implemented yet
   const defaultRating = 4.5;
   const defaultReviews = 18;
+
+  // Authentication
+  const { isAuthenticated, user } = useAuth();
+
+  const fetchCartItems = async () => {
+    try {
+      setIsLoading(true);
+      if (!user?.id_user) return;
+
+      const response = await fetch(
+        `${API_BASE_URL}/cart/user/${user.id_user}/count`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch cart items");
+      }
+      const data = await response.json();
+      setCartItems(data);
+      console.log("Cart items:", data);
+    } catch (error) {
+      console.error("Error fetching cart items:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Create a new cart
+  const createCart = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cart`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: user?.id_user,
+          status: "pendiente",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create cart");
+      }
+
+      const data = await response.json();
+      return data.id_cart; // Assuming the returned cart ID field name
+    } catch (error) {
+      console.error("Error creating cart:", error);
+      throw error;
+    }
+  };
+
+  // Add product to cart
+  const addToCart = async () => {
+    if (!isAuthenticated || !user) {
+      toast.error("Por favor inicia sesión para agregar productos al carrito");
+      router.push("/login");
+      return;
+    }
+
+    if (!product) {
+      toast.error("Producto no disponible");
+      return;
+    }
+
+    try {
+      setIsAddingToCart(true);
+      let currentCartId = cartItems.cart_id;
+
+      // If no cart exists, create one
+      if (!currentCartId) {
+        currentCartId = await createCart();
+      }
+
+      // Add product to cart
+      const response = await fetch(`${API_BASE_URL}/cart/product`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cart_id: currentCartId,
+          prod_id: id,
+          amount: quantity,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add product to cart");
+      }
+
+      // Refresh cart count
+      await fetchCartItems();
+      toast.success("Producto agregado al carrito");
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast.error("Error al agregar el producto al carrito");
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
 
   useEffect(() => {
     if (id) {
@@ -45,9 +158,18 @@ export default function ProductPage() {
           });
           setSelectedDetails(initialDetails);
         })
-        .catch((err) => console.error(err));
+        .catch((err) => {
+          console.error(err);
+          toast.error("Error al cargar el producto");
+        });
     }
   }, [id]);
+
+  useEffect(() => {
+    if (user?.id_user) {
+      fetchCartItems();
+    }
+  }, [user]);
 
   // Calculate applicable discount
   useEffect(() => {
@@ -330,9 +452,14 @@ export default function ProductPage() {
                 </div>
                 <Button
                   className="bg-black hover:bg-gray-800"
-                  disabled={product.stock <= 0}
+                  disabled={product.stock <= 0 || isAddingToCart}
+                  onClick={addToCart}
                 >
-                  {product.stock > 0 ? "Añadir al carrito" : "Agotado"}
+                  {isAddingToCart
+                    ? "Agregando..."
+                    : product.stock > 0
+                    ? "Añadir al carrito"
+                    : "Agotado"}
                 </Button>
               </div>
             </CardContent>

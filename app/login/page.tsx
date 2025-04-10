@@ -11,7 +11,7 @@ import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth"; // Import our custom hook
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -24,7 +24,7 @@ export default function Login() {
 
   // Redirect if already logged in
   if (isAuthenticated) {
-    router.push("/panel/dashboard");
+    router.push("/");
   }
 
   const validateEmail = (email: string) => {
@@ -72,7 +72,7 @@ export default function Login() {
         setError("Email o contraseña incorrectos");
       } else {
         // Redirect to dashboard on success
-        router.push("/panel/dashboard");
+        router.push("/");
       }
     } catch (error) {
       console.error("Error en la solicitud de login:", error);

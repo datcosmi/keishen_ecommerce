@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Image from "next/image";
-import { useAuth } from "@/hooks/useAuth"; // Import our custom hook
+import { useAuth } from "@/hooks/useAuth";
 
 const Sidebar = () => {
   const router = useRouter();
