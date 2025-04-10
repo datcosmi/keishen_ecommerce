@@ -62,6 +62,7 @@ interface ProductFormModalProps {
   buttonIcon?: React.ReactNode;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  existingProducts?: any[];
 }
 
 const ProductFormModal: React.FC<ProductFormModalProps> = ({
@@ -72,6 +73,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   buttonIcon = <Plus className="h-5 w-5 mr-2" />,
   isOpen,
   onOpenChange,
+  existingProducts,
 }) => {
   const router = useRouter();
   const [internalOpen, setInternalOpen] = useState(false);
@@ -455,7 +457,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
     // Validation for stock
     const totalVariantStock = calculateTotalVariantStock();
@@ -465,6 +466,22 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       );
       return;
     }
+
+    // Check for duplicate product names
+    if (!product && existingProducts) {
+      // Only check when adding new products, not when editing
+      const isDuplicate = existingProducts.some(
+        (existingProduct) =>
+          existingProduct.name.toLowerCase() === formData.name.toLowerCase()
+      );
+
+      if (isDuplicate) {
+        toast.error("Ya existe un producto con este nombre");
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
 
     try {
       const productData = {

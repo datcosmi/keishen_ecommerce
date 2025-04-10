@@ -463,6 +463,7 @@ const ProductDashboard: React.FC = () => {
               onProductUpdated={handleProductUpdated}
               buttonLabel="Añadir Producto"
               buttonIcon={<Plus className="h-5 w-5 mr-2" />}
+              existingProducts={products}
             />
 
             {/* Edit Modal */}
@@ -474,6 +475,7 @@ const ProductDashboard: React.FC = () => {
               buttonIcon={<Edit className="h-5 w-5 mr-2" />}
               isOpen={editModalOpen}
               onOpenChange={setEditModalOpen}
+              existingProducts={products}
             />
           </div>
         </div>
