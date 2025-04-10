@@ -7,6 +7,7 @@ import Footer from "@/components/footer";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface CartItem {
   id: number;
@@ -40,6 +41,7 @@ export default function CartPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const fetchCart = async () => {
     if (!user?.id_user) {
@@ -268,10 +270,10 @@ export default function CartPage() {
       // });
 
       // Placeholder for checkout functionality
-      toast.info("Redirigiendo al proceso de pago...");
+      toast.loading("Redirigiendo al proceso de pago...");
 
       // Redirect to checkout page or payment gateway
-      // router.push('/checkout');
+      router.push("/payment");
     } catch (err) {
       console.error("Error during checkout:", err);
       toast.error("Ocurrió un error al procesar el pago. Inténtalo más tarde.");
