@@ -373,6 +373,9 @@ const OrderDashboard: React.FC = () => {
       case "finalizado":
         colorClass = "bg-green-50 text-green-600 border-green-300";
         break;
+      case "cancelado":
+        colorClass = "bg-red-50 text-red-600 border-red-300";
+        break;
       default:
         colorClass = "bg-gray-50 text-gray-600 border-gray-300";
     }
@@ -675,7 +678,8 @@ const OrderDashboard: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <div className="text-sm text-gray-600">
-                              {order.cliente || "No especificado"}
+                              {order.cliente || "No especificado"}{" "}
+                              {order.surname || ""}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -767,7 +771,8 @@ const OrderDashboard: React.FC = () => {
                                 Pedido #{order.pedido_id}
                               </h3>
                               <p className="text-sm text-gray-500">
-                                {order.cliente || "No especificado"}
+                                {order.cliente || "No especificado"}{" "}
+                                {order.surname || ""}
                               </p>
                             </div>
                           </div>

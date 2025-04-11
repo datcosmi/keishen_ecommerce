@@ -108,6 +108,11 @@ export default function ProductPage() {
       return;
     }
 
+    if (product.is_deleted) {
+      toast.error("Este producto ya no está disponible");
+      return;
+    }
+
     try {
       setIsAddingToCart(true);
       let currentCartId = cartItems.cart_id;
@@ -335,19 +340,19 @@ export default function ProductPage() {
             <Image
               src={`http://localhost:3001${product.product_images[currentImageIndex].image_url}`}
               alt={product.product_name}
-              width={500}
-              height={500}
-              className="p-8"
+              fill
               priority
+              className="object-cover transition-transform duration-300"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           ) : (
             <Image
               src={"/images/placeholder.png"}
               alt={product.product_name}
-              width={500}
-              height={500}
-              className="p-8"
+              fill
               priority
+              className="object-cover transition-transform duration-300"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           )}
 
@@ -374,6 +379,13 @@ export default function ProductPage() {
 
           <h1 className="text-3xl font-bold mb-2">{product.product_name}</h1>
 
+          {product.is_deleted && (
+            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md mb-6">
+              <strong>Este producto ya no está disponible.</strong> Ha sido
+              retirado de nuestro catálogo.
+            </div>
+          )}
+
           <div className="flex items-center gap-2 mb-4">
             <div className="flex items-center">
               {[...Array(5)].map((_, i) => (
@@ -397,13 +409,19 @@ export default function ProductPage() {
               <Badge variant="outline" className="mb-2">
                 {product.category}
               </Badge>
-              {/* Stock information */}
-              <Badge
-                variant={product.stock > 0 ? "outline" : "destructive"}
-                className="mb-2"
-              >
-                {product.stock > 0 ? "En stock" : "Agotado"}
-              </Badge>
+              {/* Stock and availability information */}
+              {product.is_deleted ? (
+                <Badge variant="destructive" className="mb-2">
+                  Producto no disponible
+                </Badge>
+              ) : (
+                <Badge
+                  variant={product.stock > 0 ? "outline" : "destructive"}
+                  className="mb-2"
+                >
+                  {product.stock > 0 ? "En stock" : "Agotado"}
+                </Badge>
+              )}
             </div>
             <p className="text-gray-600">{product.description}</p>
           </div>
@@ -525,11 +543,20 @@ export default function ProductPage() {
                 </div>
                 <Button
                   className="bg-black hover:bg-gray-800"
-                  disabled={product.stock <= 0 || isAddingToCart}
+                  disabled={
+                    product.stock <= 0 ||
+                    isAddingToCart ||
+                    product.is_deleted ||
+                    user?.role !== "cliente"
+                  }
                   onClick={addToCart}
                 >
                   {isAddingToCart
                     ? "Agregando..."
+                    : product.is_deleted
+                    ? "No disponible"
+                    : user?.role !== "cliente"
+                    ? "No puedes agregar productos al carrito"
                     : product.stock > 0
                     ? "Añadir al carrito"
                     : "Agotado"}

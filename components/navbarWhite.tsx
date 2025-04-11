@@ -273,41 +273,6 @@ export default function NavbarWhite() {
                 </span>
               </Link>
             </div>
-
-            {/* Dropdown menu with a larger design and title */}
-            {showProductsMenu && (
-              <div
-                className="absolute top-6 left-1/2 transform -translate-x-1/2 mt-2 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50"
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-              >
-                {/* Title for the dropdown */}
-                <div className="px-4 py-2 border-b border-gray-200">
-                  <h3 className="text-yellow-500 font-medium text-sm uppercase tracking-wider">
-                    Categorías
-                  </h3>
-                </div>
-
-                {isLoading ? (
-                  <div className="px-4 py-3 text-sm text-gray-500">
-                    Cargando...
-                  </div>
-                ) : (
-                  <div className="py-2">
-                    {categories.map((category) => (
-                      <Link
-                        key={category.id_cat}
-                        href={`/categoria/${category.name}`}
-                      >
-                        <div className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-yellow-500 transition-colors">
-                          {category.name}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           <Link href="/contacto">
@@ -401,16 +366,18 @@ export default function NavbarWhite() {
               )}
           </div>
 
-          <Link href="/carrito">
-            <div className="relative">
-              <ShoppingCartIcon className="h-6 w-6 text-black cursor-pointer" />
-              {isAuthenticated && (
-                <span className="absolute -top-3 -right-3 bg-yellow-300 text-black text-xs px-2 py-1 rounded-full">
-                  {cartItems.total_items || 0}
-                </span>
-              )}
-            </div>
-          </Link>
+          {user?.role === "cliente" && (
+            <Link href="/carrito">
+              <div className="relative">
+                <ShoppingCartIcon className="h-6 w-6 text-black cursor-pointer" />
+                {isAuthenticated && (
+                  <span className="absolute -top-3 -right-3 bg-yellow-300 text-black text-xs px-2 py-1 rounded-full">
+                    {cartItems.total_items || 0}
+                  </span>
+                )}
+              </div>
+            </Link>
+          )}
 
           {isAuthenticated && (
             <div className="relative">
@@ -429,7 +396,7 @@ export default function NavbarWhite() {
                   onMouseLeave={handleUserMouseLeave}
                 >
                   <div className="px-4 py-2 border-b border-gray-200">
-                    <p className="text-yellow-300 font-medium text-sm">
+                    <p className="text-yellow-400 font-medium text-sm">
                       {user?.name} {user?.surname}
                     </p>
                     <p className="text-gray-600 text-xs truncate">
@@ -443,6 +410,14 @@ export default function NavbarWhite() {
                         Mi Perfil
                       </div>
                     </Link>
+
+                    {user?.role === "cliente" && (
+                      <Link href="/pedidos">
+                        <div className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-yellow-400">
+                          Mis Pedidos
+                        </div>
+                      </Link>
+                    )}
 
                     {(user?.role === "admin_tienda" ||
                       user?.role === "superadmin") && (

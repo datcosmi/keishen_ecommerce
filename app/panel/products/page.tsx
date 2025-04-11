@@ -478,7 +478,7 @@ const ProductDashboard: React.FC = () => {
               onProductUpdated={handleProductUpdated}
               buttonLabel="Añadir Producto"
               buttonIcon={<Plus className="h-5 w-5 mr-2" />}
-              existingProducts={products}
+              existingProducts={activeProducts}
             />
 
             {/* Edit Modal */}
@@ -662,8 +662,8 @@ const ProductDashboard: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center">
-                              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100">
-                                <div className="w-6 h-6 relative">
+                              <div className="w-10 h-10 rounded-sm flex items-center justify-center bg-gray-100">
+                                <div className="w-10 h-10 relative">
                                   {product.images.length > 0 ? (
                                     <Image
                                       src={
@@ -675,7 +675,7 @@ const ProductDashboard: React.FC = () => {
                                       fill
                                       unoptimized
                                       priority
-                                      style={{ objectFit: "contain" }}
+                                      className="object-cover w-full h-full"
                                       sizes="30px"
                                     />
                                   ) : (

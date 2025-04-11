@@ -20,6 +20,14 @@ const protectedRoutes = [
     path: "/panel/users",
     roles: ["superadmin"],
   },
+  {
+    path: "/payment",
+    roles: ["cliente"],
+  },
+  {
+    path: "/compra-confirmada",
+    roles: ["cliente"],
+  },
 ];
 
 export async function middleware(request: NextRequest) {
@@ -62,5 +70,7 @@ export const config = {
     "/panel/products/:path*",
     "/panel/pedidos/:path*",
     "/panel/users/:path*",
+    "/payment/:path*",
+    "/compra-confirmada/:path*",
   ],
 };

@@ -148,7 +148,7 @@ const CompraConfirmada = () => {
         </div>
 
         {/* Next steps */}
-        <div className="flex flex-cols-2 md:flex-row gap-4 md:gap-8">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-8">
           <Link href="/productos" className="flex-1">
             <div className="bg-white rounded-xl border border-gray-200 p-6 h-full hover:border-black transition-colors">
               <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -163,7 +163,7 @@ const CompraConfirmada = () => {
             </div>
           </Link>
 
-          {/* <Link href="/mis-pedidos" className="flex-1">
+          <Link href="/pedidos" className="flex-1">
             <div className="bg-white rounded-xl border border-gray-200 p-6 h-full hover:border-black transition-colors">
               <h3 className="text-lg font-medium text-gray-900 mb-2">
                 Ver mis pedidos
@@ -175,7 +175,7 @@ const CompraConfirmada = () => {
                 Mis pedidos <ChevronRight className="h-4 w-4 ml-1" />
               </div>
             </div>
-          </Link> */}
+          </Link>
         </div>
       </main>
 

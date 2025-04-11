@@ -151,10 +151,33 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   }, []);
 
   useEffect(() => {
-    const totalVariantStock = calculateTotalVariantStock();
-    if (totalVariantStock > formData.stock && formData.stock > 0) {
+    // Check each variant type individually
+    const colorStock = formData.colorDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const sizeStock = formData.sizeDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const tallaStock = formData.tallaSizeDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const materialStock = formData.materialDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+
+    if (
+      (colorStock > formData.stock ||
+        sizeStock > formData.stock ||
+        tallaStock > formData.stock ||
+        materialStock > formData.stock) &&
+      formData.stock > 0
+    ) {
       toast.warning(
-        "Atención: El stock de variantes supera el stock total del producto"
+        "Atención: El stock de alguna variante supera el stock total del producto"
       );
     }
   }, [
@@ -281,12 +304,15 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       )
     ) {
       // Calculate new total if this size is added
-      const currentTotal = calculateTotalVariantStock();
-      const newTotal = currentTotal + sizeStockInput;
+      const currentSizeStock = formData.sizeDetails.reduce(
+        (sum, detail) => sum + (detail.stock || 0),
+        0
+      );
+      const newTotal = currentSizeStock + sizeStockInput;
 
       if (newTotal > formData.stock) {
         toast.error(
-          "No se puede añadir más stock. Excedería el stock total del producto."
+          "La suma del stock de tamaños no puede superar el stock total del producto."
         );
         return;
       }
@@ -324,16 +350,18 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       )
     ) {
       // Calculate new total if this talla is added
-      const currentTotal = calculateTotalVariantStock();
-      const newTotal = currentTotal + tallaStockInput;
+      const currentTallaSizeStock = formData.tallaSizeDetails.reduce(
+        (sum, detail) => sum + (detail.stock || 0),
+        0
+      );
+      const newTotal = currentTallaSizeStock + tallaStockInput;
 
       if (newTotal > formData.stock) {
         toast.error(
-          "No se puede añadir más stock. Excedería el stock total del producto."
+          "La suma del stock de tallas no puede superar el stock total del producto."
         );
         return;
       }
-
       setFormData((prev) => ({
         ...prev,
         tallaSizeDetails: [
@@ -367,12 +395,15 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       )
     ) {
       // Calculate new total if this material is added
-      const currentTotal = calculateTotalVariantStock();
-      const newTotal = currentTotal + materialStockInput;
+      const currentMaterialStock = formData.materialDetails.reduce(
+        (sum, detail) => sum + (detail.stock || 0),
+        0
+      );
+      const newTotal = currentMaterialStock + materialStockInput;
 
       if (newTotal > formData.stock) {
         toast.error(
-          "No se puede añadir más stock. Excedería el stock total del producto."
+          "La suma del stock de materiales no puede superar el stock total del producto."
         );
         return;
       }
@@ -459,10 +490,40 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     e.preventDefault();
 
     // Validation for stock
-    const totalVariantStock = calculateTotalVariantStock();
-    if (totalVariantStock > formData.stock) {
+    // const totalVariantStock = calculateTotalVariantStock();
+    // if (totalVariantStock > formData.stock) {
+    //   toast.error(
+    //     "La suma del stock de todas las variantes no puede superar el stock total del producto"
+    //   );
+    //   return;
+    // }
+
+    // Check each variant type separately
+    const colorStock = formData.colorDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const sizeStock = formData.sizeDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const tallaStock = formData.tallaSizeDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const materialStock = formData.materialDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+
+    if (
+      colorStock > formData.stock ||
+      sizeStock > formData.stock ||
+      tallaStock > formData.stock ||
+      materialStock > formData.stock
+    ) {
       toast.error(
-        "La suma del stock de todas las variantes no puede superar el stock total del producto"
+        "La suma del stock de cada tipo de variante no puede superar el stock total del producto"
       );
       return;
     }

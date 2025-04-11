@@ -58,6 +58,7 @@ interface ProductData {
   category_id: number;
   category: string;
   stock: number;
+  is_deleted: boolean;
   product_details: ProductDetail[];
   product_images: ProductImage[];
   discount_product: ProductDiscount[];
@@ -136,7 +137,12 @@ export default function ProductsPage() {
   const transformProducts = (productsData: ProductData[]): DisplayProduct[] => {
     const currentDate = new Date();
 
-    return productsData.map((product) => {
+    // Filter out deleted products
+    const activeProducts = productsData.filter(
+      (product) => !product.is_deleted
+    );
+
+    return activeProducts.map((product) => {
       // Group product details by detail_name
       const variables: { [key: string]: string[] } = {};
       product.product_details.forEach((detail) => {
@@ -726,7 +732,7 @@ export default function ProductsPage() {
                     href={`/productos/${product.id}`}
                     className="block"
                   >
-                    <Card className="overflow-hidden h-full transition-all duration-300 hover:shadow-md">
+                    <Card className="overflow-hidden h-full transition-all duration-300 hover:shadow-md transform hover:scale-105">
                       <CardContent className="p-0">
                         <div className="relative aspect-square bg-gray-100">
                           <Image
@@ -738,7 +744,7 @@ export default function ProductsPage() {
                             alt={product.name}
                             fill
                             priority
-                            className="object-cover p-6 transition-transform duration-300 group-hover:scale-105"
+                            className="object-cover transition-transform duration-300 group-hover:scale-105"
                             sizes="(max-width: 768px) 100vw, 50vw"
                           />
                           {/* Badges overlay */}

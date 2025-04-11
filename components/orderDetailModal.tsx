@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -16,8 +17,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Order, ProductVariant } from "@/types/orderTypes";
-import { RulerIcon, LayersIcon, TagIcon, CircleIcon } from "lucide-react";
+import {
+  RulerIcon,
+  LayersIcon,
+  TagIcon,
+  CircleIcon,
+  XIcon,
+} from "lucide-react";
 
 interface OrderDetailsModalProps {
   order: Order | null;
@@ -115,6 +124,9 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       case "finalizado":
         colorClass = "bg-green-50 text-green-600 border-green-300";
         break;
+      case "cancelado":
+        colorClass = "bg-red-50 text-red-600 border-red-300";
+        break;
       default:
         colorClass = "bg-gray-50 text-gray-600 border-gray-300";
     }
@@ -134,13 +146,6 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     }, 0);
   };
 
-  const calculateDiscountedPrice = (
-    price: number,
-    discountPercentage: number
-  ): number => {
-    return price * (1 - discountPercentage / 100);
-  };
-
   const orderHasDiscounts = (order: Order): boolean => {
     return order.detalles.some((item) => item.discount > 0);
   };
@@ -148,111 +153,142 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   if (!order) return null;
 
   return (
-    <DialogContent className="sm:max-w-md" onInteractOutside={onClose}>
-      <DialogHeader>
-        <DialogTitle>Detalles del Pedido #{order.pedido_id}</DialogTitle>
-        <DialogDescription>Información completa del pedido</DialogDescription>
+    <DialogContent
+      className="sm:max-w-3xl max-h-screen flex flex-col"
+      onInteractOutside={onClose}
+    >
+      <DialogHeader className="space-y-1 pb-2 border-b">
+        <div className="flex items-center justify-between">
+          <DialogTitle className="text-xl">
+            Pedido #{order.pedido_id}
+            <span className="ml-2">{renderStatusBadge(order.status)}</span>
+          </DialogTitle>
+        </div>
+        <DialogDescription className="text-sm text-gray-500">
+          {formatDate(order.fecha_pedido)} •{" "}
+          {order.metodo_pago.charAt(0).toUpperCase() +
+            order.metodo_pago.slice(1)}
+        </DialogDescription>
       </DialogHeader>
-      <div className="mt-4 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm font-medium text-gray-500">Cliente</p>
-            <p className="text-sm">{order.cliente || "No especificado"}</p>
+
+      <ScrollArea className="flex-1 pr-4">
+        <div className="py-4 space-y-6">
+          {/* Customer Information */}
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">
+              Información del cliente
+            </h3>
+            <div className="text-sm">
+              <p className="font-medium">
+                {order.cliente || "No especificado"} {order.surname || ""}
+              </p>
+              {order.email && <p className="text-gray-600">{order.email}</p>}
+              {order.phone && <p className="text-gray-600">{order.phone}</p>}
+            </div>
           </div>
+
+          {/* Products */}
           <div>
-            <p className="text-sm font-medium text-gray-500">Fecha</p>
-            <p className="text-sm">{formatDate(order.fecha_pedido)}</p>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500">Estado</p>
-            <div className="mt-1">{renderStatusBadge(order.status)}</div>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500">Método de pago</p>
-            <p className="text-sm">
-              {order.metodo_pago.charAt(0).toUpperCase() +
-                order.metodo_pago.slice(1)}
-            </p>
+            <h3 className="text-sm font-medium text-gray-700 mb-3">
+              Productos
+            </h3>
+            <div className="rounded-lg border border-gray-200 overflow-hidden">
+              <Table>
+                <TableHeader className="bg-gray-50">
+                  <TableRow>
+                    <TableHead className="w-1/2">Producto</TableHead>
+                    <TableHead className="text-center">Cantidad</TableHead>
+                    <TableHead className="text-right">Precio</TableHead>
+                    <TableHead className="text-right">Subtotal</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {order.detalles.map((item, index) => (
+                    <TableRow key={index} className="group hover:bg-gray-50">
+                      <TableCell className="py-3">
+                        <div>
+                          <div className="font-medium">
+                            {item.producto.producto_nombre}
+                          </div>
+                          {item.producto.variantes &&
+                            item.producto.variantes.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {item.producto.variantes.map(
+                                  (variant, vIdx) => (
+                                    <VariantBadge
+                                      key={vIdx}
+                                      variant={variant}
+                                    />
+                                  )
+                                )}
+                              </div>
+                            )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {item.amount}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {item.discount > 0 ? (
+                          <div>
+                            <span className="line-through text-gray-400">
+                              ${item.unit_price.toLocaleString()}
+                            </span>
+                            <div className="text-green-600">
+                              $
+                              {(
+                                item.unit_price *
+                                (1 - item.discount / 100)
+                              ).toLocaleString()}
+                              <Badge className="ml-2 text-xs bg-green-50 text-green-600 border-green-200">
+                                {item.discount}% off
+                              </Badge>
+                            </div>
+                          </div>
+                        ) : (
+                          `$${item.unit_price.toLocaleString()}`
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium text-right">
+                        $
+                        {(
+                          item.unit_price *
+                          (1 - item.discount / 100) *
+                          item.amount
+                        ).toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
+      </ScrollArea>
 
-        <div>
-          <p className="text-sm font-medium text-gray-500 mb-2">Productos</p>
-          <div className="rounded-md border border-gray-200 overflow-hidden">
-            <Table>
-              <TableHeader className="bg-gray-50">
-                <TableRow>
-                  <TableHead>Producto</TableHead>
-                  <TableHead>Cantidad</TableHead>
-                  <TableHead>Precio unitario</TableHead>
-                  <TableHead>Subtotal</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {order.detalles.map((item, index) => (
-                  <TableRow key={index} className="group hover:bg-gray-50">
-                    <TableCell className="py-3">
-                      <div>
-                        <div className="font-medium">
-                          {item.producto.producto_nombre}
-                        </div>
-                        {item.producto.variantes &&
-                          item.producto.variantes.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              {item.producto.variantes.map((variant, vIdx) => (
-                                <VariantBadge key={vIdx} variant={variant} />
-                              ))}
-                            </div>
-                          )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{item.amount}</TableCell>
-                    <TableCell>
-                      {item.discount > 0 ? (
-                        <div>
-                          <span className="line-through text-gray-400">
-                            ${item.unit_price.toLocaleString()}
-                          </span>
-                          <div className="text-green-600">
-                            $
-                            {(
-                              item.unit_price *
-                              (1 - item.discount / 100)
-                            ).toLocaleString()}
-                            <Badge className="ml-2 bg-green-50 text-green-600 border-green-200">
-                              {item.discount}% off
-                            </Badge>
-                          </div>
-                        </div>
-                      ) : (
-                        `$${item.unit_price.toLocaleString()}`
-                      )}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      $
-                      {(
-                        item.unit_price *
-                        (1 - item.discount / 100) *
-                        item.amount
-                      ).toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+      <div className="mt-2 pt-4 border-t">
+        <div className="flex items-center justify-between">
+          <div>
+            {orderHasDiscounts(order) && (
+              <Badge className="bg-orange-50 text-orange-600 border-orange-200">
+                Incluye descuento(s)
+              </Badge>
+            )}
           </div>
-          <div className="text-right mt-4 p-2 bg-gray-50 rounded-md border border-gray-100">
-            <div className="font-medium text-lg">
-              Total: ${calculateOrderTotal(order).toLocaleString()}
-              {orderHasDiscounts(order) && (
-                <Badge className="ml-2 bg-orange-50 text-orange-600 border-orange-200">
-                  Incluye descuento(s)
-                </Badge>
-              )}
+          <div className="text-right">
+            <div className="text-sm text-gray-500">Total del pedido</div>
+            <div className="font-semibold text-xl">
+              ${calculateOrderTotal(order).toLocaleString()}
             </div>
           </div>
         </div>
       </div>
+
+      <DialogFooter className="pt-4">
+        <Button variant="outline" onClick={onClose} className="mr-2">
+          Cerrar
+        </Button>
+      </DialogFooter>
     </DialogContent>
   );
 };

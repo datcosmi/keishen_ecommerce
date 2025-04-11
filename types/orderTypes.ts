@@ -26,5 +26,8 @@ export interface Order {
   status: "pendiente" | "enviado" | "finalizado";
   metodo_pago: "mercado pago" | "paypal" | "efectivo";
   cliente: string;
+  surname: string;
+  email: string;
+  phone: string;
   detalles: OrderDetail[];
 }
