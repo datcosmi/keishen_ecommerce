@@ -101,6 +101,7 @@ const ProductDashboard: React.FC = () => {
         image_url: img.image_url,
       })),
       inStock: item.stock > 0,
+      is_deleted: item.is_deleted || false,
     }));
   };
 
@@ -185,22 +186,33 @@ const ProductDashboard: React.FC = () => {
   const handleDelete = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/product`, {
-        method: "DELETE",
+      // Format data for the bulk-update API
+      const updateData = selectedProducts.map((id) => ({
+        id_prod: id.toString(),
+        data: { is_deleted: true },
+      }));
+
+      const response = await fetch(`${API_BASE_URL}/products/bulk-update`, {
+        method: "PUT", // Using PUT for updates
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ids: selectedProducts }),
+        body: JSON.stringify(updateData),
       });
 
       if (!response.ok) {
-        throw new Error(`Error eliminando productos: ${response.statusText}`);
+        throw new Error(`Error actualizando productos: ${response.statusText}`);
       }
 
-      // Actualizar la lista de productos después de eliminar
+      // Update the local state to reflect the changes
       setProducts(
-        products.filter((product) => !selectedProducts.includes(product.id))
+        products.map((product) =>
+          selectedProducts.includes(product.id)
+            ? { ...product, is_deleted: true }
+            : product
+        )
       );
+
       setSelectedProducts([]);
       toast.success(
         selectedProducts.length > 1
@@ -221,17 +233,20 @@ const ProductDashboard: React.FC = () => {
   };
 
   // Calcular las cantidades para los filtros
-  const inStockCount = products.filter((p) => p.inStock).length;
-  const outOfStockCount = products.filter((p) => !p.inStock).length;
+  const activeProducts = products.filter((p) => !p.is_deleted);
+  const inStockCount = activeProducts.filter((p) => p.inStock).length;
+  const outOfStockCount = activeProducts.filter((p) => !p.inStock).length;
 
   const statusOptions = [
-    { id: "todos", label: "Todos", count: products.length },
+    { id: "todos", label: "Todos", count: activeProducts.length },
     { id: "existencia", label: "En existencia", count: inStockCount },
     { id: "agotados", label: "Agotados", count: outOfStockCount },
   ];
 
   // Aplicar los filtros por búsqueda y estado
   const filteredProducts = products.filter((product) => {
+    if (product.is_deleted) return false;
+
     const matchesSearch =
       product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.category?.toLowerCase().includes(searchQuery.toLowerCase());

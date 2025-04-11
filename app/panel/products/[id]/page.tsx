@@ -197,6 +197,12 @@ const AdminProductDetailPage: React.FC = () => {
 
       setProductData(formattedData);
 
+      if (formattedData && formattedData.is_deleted) {
+        setError("Este producto ha sido eliminado.");
+        setProductData(null);
+        return;
+      }
+
       // Calculate discounted price
       const discountInfo = calculateDiscountedPrice(
         formattedData.price,
@@ -238,6 +244,7 @@ const AdminProductDetailPage: React.FC = () => {
         image_url: img.image_url,
       })),
       inStock: data.stock > 0,
+      is_deleted: data.is_deleted || false,
     };
   };
 
@@ -313,12 +320,17 @@ const AdminProductDetailPage: React.FC = () => {
   const handleDelete = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/product`, {
-        method: "DELETE",
+      const response = await fetch(`${API_BASE_URL}/products/bulk-update`, {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ids: [product.id_product] }),
+        body: JSON.stringify([
+          {
+            id_prod: product.id_product,
+            data: { is_deleted: true },
+          },
+        ]),
       });
 
       if (!response.ok) {

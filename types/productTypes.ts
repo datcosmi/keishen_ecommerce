@@ -20,6 +20,7 @@ export interface ProductData {
   category_id: number;
   category: string;
   stock: number;
+  is_deleted: boolean;
   product_details: ProductDetail[];
   product_images: ProductImage[];
   discount_product: ProductDiscount[];
@@ -38,6 +39,7 @@ export interface Product {
   details: ProductDetail[];
   images: { image_id: number; image_url: string }[];
   inStock: boolean;
+  is_deleted: boolean;
 }
 
 export interface DisplayProduct extends Product {
