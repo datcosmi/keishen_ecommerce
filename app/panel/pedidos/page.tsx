@@ -47,14 +47,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -132,6 +125,13 @@ const OrderDashboard: React.FC = () => {
     fetchOrders();
   };
 
+  const canDeleteOrders = (selectedIds: number[]) => {
+    return selectedIds.every((id) => {
+      const order = orders.find((order) => order.pedido_id === id);
+      return order && order.status === "pendiente";
+    });
+  };
+
   // Funciones para manejar selección de pedidos
   const handleSelectOrder = (orderId: number) => {
     setSelectedOrders((prev) => {
@@ -163,6 +163,13 @@ const OrderDashboard: React.FC = () => {
   // Función para eliminar pedidos seleccionados
   const handleDeleteSelected = async () => {
     if (selectedOrders.length === 0) return;
+
+    // Check if all selected orders can be deleted
+    if (!canDeleteOrders(selectedOrders)) {
+      toast.error("Solo se pueden eliminar pedidos con estado 'pendiente'.");
+      setConfirmDelete(false);
+      return;
+    }
 
     setDeleteLoading(true);
     try {
@@ -342,23 +349,6 @@ const OrderDashboard: React.FC = () => {
     }
   };
 
-  // Actualizar el estado de un pedido
-  const handleUpdateStatus = (
-    orderId: number,
-    newStatus: "pendiente" | "enviado" | "finalizado"
-  ) => {
-    setOrders(
-      orders.map((order) =>
-        order.pedido_id === orderId ? { ...order, status: newStatus } : order
-      )
-    );
-  };
-
-  // Ver detalles de un pedido
-  const handleViewDetails = (order: Order) => {
-    setSelectedOrder(order);
-  };
-
   // Renderizar indicador de ordenamiento
   const renderSortIndicator = (field: SortField) => {
     if (sortField !== field) return null;
@@ -394,82 +384,9 @@ const OrderDashboard: React.FC = () => {
     );
   };
 
-  const VariantBadge: React.FC<{ variant: ProductVariant }> = ({ variant }) => {
-    // Check if it's a color variant
-    if (variant.detail_name.toLowerCase() === "color") {
-      const isHexColor = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(
-        variant.detail_desc
-      );
-
-      if (isHexColor) {
-        return (
-          <div className="inline-flex items-center bg-gray-50 rounded-full px-2 py-1 mr-1 mb-1 border border-gray-100">
-            <div
-              className="w-4 h-4 rounded-full mr-1.5 ring-1 ring-gray-200"
-              style={{ backgroundColor: variant.detail_desc }}
-            />
-            <span className="text-xs font-medium text-gray-700">
-              {variant.detail_desc}
-            </span>
-          </div>
-        );
-      }
-    }
-
-    // Regular variant display with appropriate styling based on type
-    const getVariantStyle = () => {
-      switch (variant.detail_name.toLowerCase()) {
-        case "tamaño":
-        case "talla":
-        case "size":
-          return "bg-blue-50 text-blue-700 border-blue-100";
-        case "material":
-          return "bg-amber-50 text-amber-700 border-amber-100";
-        case "estilo":
-        case "style":
-          return "bg-purple-50 text-purple-700 border-purple-100";
-        default:
-          return "bg-gray-50 text-gray-700 border-gray-100";
-      }
-    };
-
-    const getVariantIcon = (variantName: string) => {
-      const name = variantName.toLowerCase();
-      if (name === "color") return <div className="w-3 h-3 mr-1.5"></div>; // Placeholder for color circle
-      if (name === "tamaño" || name === "talla" || name === "size")
-        return <RulerIcon size={12} className="mr-1.5" />;
-      if (name === "material")
-        return <LayersIcon size={12} className="mr-1.5" />;
-      if (name === "estilo" || name === "style")
-        return <TagIcon size={12} className="mr-1.5" />;
-      return <CircleIcon size={12} className="mr-1.5" />;
-    };
-
-    return (
-      <span
-        className={`text-xs font-medium px-2 py-1 rounded-full inline-flex items-center mr-1 mb-1 border transition-all hover:-translate-y-0.5 hover:shadow-sm ${getVariantStyle()}`}
-      >
-        <span>{getVariantIcon(variant.detail_name)}</span>
-        <span className="font-semibold mr-1">{variant.detail_name}:</span>{" "}
-        {variant.detail_desc}
-      </span>
-    );
-  };
-
   const openOrderDetails = (order: Order) => {
     setSelectedOrder(order);
     setIsDetailsModalOpen(true);
-  };
-
-  const calculateDiscountedPrice = (
-    price: number,
-    discountPercentage: number
-  ): number => {
-    return price * (1 - discountPercentage / 100);
-  };
-
-  const orderHasDiscounts = (order: Order): boolean => {
-    return order.detalles.some((item) => item.discount > 0);
   };
 
   // Comprobar si hay un único pedido seleccionado para mostrar el botón de editar
@@ -490,6 +407,14 @@ const OrderDashboard: React.FC = () => {
           <div className="flex gap-2">
             {selectedOrders.length > 0 && (
               <>
+                {!canDeleteOrders(selectedOrders) &&
+                  selectedOrders.length > 0 && (
+                    <div className="flex items-center align-content-center">
+                      <span className="text-xs text-red-500 mr-2">
+                        Solo puedes eliminar pedidos pendientes
+                      </span>
+                    </div>
+                  )}
                 <Button
                   variant="outline"
                   onClick={handleClearSelection}
@@ -515,11 +440,13 @@ const OrderDashboard: React.FC = () => {
                     <Button
                       variant="outline"
                       className="bg-red-50 text-red-600 hover:text-red-600 border-red-200 hover:bg-red-100"
+                      disabled={!canDeleteOrders(selectedOrders)}
                     >
                       <Trash2 size={18} className="mr-1" />
                       Eliminar
                     </Button>
                   </AlertDialogTrigger>
+
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>
