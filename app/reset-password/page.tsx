@@ -47,6 +47,10 @@ export default function ResetPasswordPage() {
 
     if (res.ok) {
       setStatus('success');
+
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
     } else {
       setStatus('error');
     }
