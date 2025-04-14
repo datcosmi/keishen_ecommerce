@@ -2,6 +2,17 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import NavbarBlack from "@/components/navbarBlack";
+import Footer from "@/components/footer";
+import { Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 export default function ResetPasswordPage() {
   const searchParams = useSearchParams();
@@ -57,33 +68,58 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-20 p-6 border rounded shadow">
-      <h1 className="text-2xl font-semibold mb-4">Restablecer contraseña</h1>
+    <div className="flex flex-col min-h-screen bg-white">
+      <NavbarBlack />
 
-      {status === 'success' ? (
-        <p className="text-green-600">¡Contraseña actualizada! Ya puedes iniciar sesión </p>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="password"
-            placeholder="Nueva contraseña"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full px-4 py-2 border rounded"
-            required
-          />
-          <button
-            type="submit"
-            className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
-            disabled={status === 'loading'}
-          >
-            {status === 'loading' ? 'Actualizando...' : 'Cambiar contraseña'}
-          </button>
-          {status === 'error' && (
-            <p className="text-red-600 text-sm">Error al cambiar la contraseña.</p>
-          )}
-        </form>
-      )}
+      <main className="flex-grow flex items-center justify-center py-16 px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Restablecer contraseña</CardTitle>
+            <CardDescription>
+              Ingresá tu nueva contraseña para acceder nuevamente a tu cuenta.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {status === 'success' ? (
+              <Alert>
+                <AlertTitle>Contraseña actualizada</AlertTitle>
+                <AlertDescription>
+                  Serás redirigido al login en unos segundos...
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">Nueva contraseña</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                  />
+                </div>
+
+                {status === 'error' && (
+                  <Alert variant="destructive">
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>
+                      Ocurrió un error al cambiar la contraseña. Intentá nuevamente.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <Button className="w-full" type="submit" disabled={status === 'loading'}>
+                  {status === 'loading' ? 'Actualizando...' : 'Cambiar contraseña'}
+                </Button>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+      </main>
+
+      <Footer />
     </div>
   );
 }

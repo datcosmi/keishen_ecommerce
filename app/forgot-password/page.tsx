@@ -1,6 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import NavbarBlack from "@/components/navbarBlack";
+import Footer from "@/components/footer";
+import { Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -24,32 +35,54 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-20 p-6 border rounded shadow">
-      <h1 className="text-2xl font-semibold mb-4">Recuperar contraseña</h1>
-      {status === 'sent' ? (
-        <p className="text-green-600">Correo enviado. Revisa tu bandeja de entrada 📬</p>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            placeholder="Tu correo"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2 border rounded"
-            required
-          />
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-            disabled={status === 'loading'}
-          >
-            {status === 'loading' ? 'Enviando...' : 'Enviar enlace de recuperación'}
-          </button>
-          {status === 'error' && (
-            <p className="text-red-600 text-sm">Error al enviar el correo.</p>
-          )}
-        </form>
-      )}
+    <div className="flex flex-col min-h-screen bg-white">
+      <NavbarBlack />
+
+      <main className="flex-grow flex items-center justify-center py-16 px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Recuperar contraseña</CardTitle>
+            <CardDescription>
+              Ingresá tu correo y te enviaremos un enlace para restablecer tu contraseña.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {status === 'sent' ? (
+              <Alert>
+                <AlertTitle>Correo enviado</AlertTitle>
+                <AlertDescription>
+                  Revisa tu bandeja de entrada para restablecer tu contraseña
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Correo electrónico</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="tucorreo@ejemplo.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                {status === 'error' && (
+                  <Alert variant="destructive">
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>No se pudo enviar el correo. Intentalo más tarde.</AlertDescription>
+                  </Alert>
+                )}
+                <Button className="w-full" type="submit" disabled={status === 'loading'}>
+                  {status === 'loading' ? 'Enviando...' : 'Enviar enlace de recuperación'}
+                </Button>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+      </main>
+
+      <Footer />
     </div>
   );
 }
