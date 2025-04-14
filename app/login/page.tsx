@@ -35,11 +35,11 @@ export default function Login() {
     return emailRegex.test(email);
   };
 
-  const validatePassword = (password: string) => {
-    const passwordRegex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).{8,}$/;
-    return passwordRegex.test(password);
-  };
+  // const validatePassword = (password: string) => {
+  //   const passwordRegex =
+  //     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).{8,}$/;
+  //   return passwordRegex.test(password);
+  // };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,13 +54,13 @@ export default function Login() {
       return;
     }
 
-    if (!validatePassword(password)) {
-      setError(
-        "La contraseña debe tener al menos 8 caracteres, incluyendo mayúsculas, minúsculas, números y símbolos."
-      );
-      setLoading(false);
-      return;
-    }
+    // if (!validatePassword(password)) {
+    //   setError(
+    //     "La contraseña debe tener al menos 8 caracteres, incluyendo mayúsculas, minúsculas, números y símbolos."
+    //   );
+    //   setLoading(false);
+    //   return;
+    // }
 
     try {
       // Use NextAuth's signIn method for credentials
@@ -163,14 +163,14 @@ export default function Login() {
               </div> */}
 
               {/* Forgot password link */}
-              {/* <div className="text-right">
+              <div className="text-right">
                 <Link
                   href="/forgot-password"
                   className="text-sm text-yellow-500 hover:underline"
                 >
                   ¿Olvidaste tu contraseña?
                 </Link>
-              </div> */}
+              </div>
             </div>
 
             <div className="mt-8">
