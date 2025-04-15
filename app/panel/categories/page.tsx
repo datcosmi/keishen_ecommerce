@@ -15,7 +15,6 @@ import {
   Grid,
   RefreshCw,
 } from "lucide-react";
-import Sidebar from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -52,6 +51,8 @@ import { Category } from "@/types/categoryTypes";
 type SortField = "id_cat" | "name";
 type SortDirection = "asc" | "desc";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
 const CategoriesDashboard: React.FC = () => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
@@ -87,7 +88,7 @@ const CategoriesDashboard: React.FC = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch("http://localhost:3001/api/categories");
+        const response = await fetch(`${API_BASE_URL}/api/categories`);
         const data = await response.json();
         setCategories(data);
         setLoading(false);
@@ -103,7 +104,7 @@ const CategoriesDashboard: React.FC = () => {
   const handleRefresh = async () => {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:3001/api/categories");
+      const response = await fetch(`${API_BASE_URL}/api/categories`);
       const data = await response.json();
       setCategories(data);
       setSelectedCategories([]);
@@ -151,7 +152,7 @@ const CategoriesDashboard: React.FC = () => {
 
     try {
       // Usar una sola petición para eliminar todas las categorías seleccionadas
-      const response = await fetch(`http://localhost:3001/api/categories`, {
+      const response = await fetch(`${API_BASE_URL}/api/categories`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

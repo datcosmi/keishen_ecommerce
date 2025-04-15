@@ -58,7 +58,7 @@ import { Product, ProductData } from "@/types/productTypes";
 type SortField = "name" | "price" | "stock" | "inStock";
 type SortDirection = "asc" | "desc";
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const ProductDashboard: React.FC = () => {
   const router = useRouter();
@@ -109,7 +109,7 @@ const ProductDashboard: React.FC = () => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/products/full-details`);
+      const response = await fetch(`${API_BASE_URL}/api/products/full-details`);
       if (!response.ok) {
         throw new Error(`Error fetching products: ${response.statusText}`);
       }
@@ -192,7 +192,7 @@ const ProductDashboard: React.FC = () => {
         data: { is_deleted: true },
       }));
 
-      const response = await fetch(`${API_BASE_URL}/products/bulk-update`, {
+      const response = await fetch(`${API_BASE_URL}/api/products/bulk-update`, {
         method: "PUT", // Using PUT for updates
         headers: {
           "Content-Type": "application/json",
@@ -668,7 +668,7 @@ const ProductDashboard: React.FC = () => {
                                     <Image
                                       src={
                                         product.images.length > 0
-                                          ? `http://localhost:3001${product.images[0].image_url}`
+                                          ? `${API_BASE_URL}${product.images[0].image_url}`
                                           : "/images/placeholder.png"
                                       }
                                       alt={product.name}
@@ -791,7 +791,7 @@ const ProductDashboard: React.FC = () => {
                                 <Image
                                   src={
                                     product.images.length > 0
-                                      ? `http://localhost:3001${product.images[0].image_url}`
+                                      ? `${API_BASE_URL}${product.images[0].image_url}`
                                       : "/images/placeholder.png"
                                   }
                                   alt={product.name}

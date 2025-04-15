@@ -95,7 +95,7 @@ interface Pedido {
   detalles: Detalle[];
 }
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function OrdersPage() {
   const { user: authUser } = useAuth();
@@ -116,7 +116,7 @@ export default function OrdersPage() {
         setError(null);
 
         const response = await fetch(
-          `${API_BASE_URL}/pedidos/details/${authUser.id_user}`
+          `${API_BASE_URL}/api/pedidos/details/${authUser.id_user}`
         );
 
         if (!response.ok) {
@@ -164,7 +164,7 @@ export default function OrdersPage() {
 
   const cancelOrder = async (pedidoId: number) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/pedido/${pedidoId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/pedido/${pedidoId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -508,7 +508,7 @@ export default function OrdersPage() {
                                         href={`/productos/${detalle.producto.producto_id}`}
                                       >
                                         <img
-                                          src={`http://localhost:3001${detalle.producto.producto_imagenes[0]}`}
+                                          src={`${API_BASE_URL}${detalle.producto.producto_imagenes[0]}`}
                                           alt={detalle.producto.producto_nombre}
                                           className="object-cover w-full h-full"
                                         />
@@ -684,7 +684,7 @@ export default function OrdersPage() {
                                               .length > 0 ? (
                                               <div className="relative w-full h-full">
                                                 <img
-                                                  src={`http://localhost:3001${detalle.producto.producto_imagenes[0]}`}
+                                                  src={`${API_BASE_URL}${detalle.producto.producto_imagenes[0]}`}
                                                   alt={
                                                     detalle.producto
                                                       .producto_nombre

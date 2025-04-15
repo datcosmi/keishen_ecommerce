@@ -68,7 +68,7 @@ interface User {
 type SortField = "name" | "email" | "role";
 type SortDirection = "asc" | "desc";
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const UserDashboard: React.FC = () => {
   const router = useRouter();
@@ -99,7 +99,7 @@ const UserDashboard: React.FC = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/users`);
+      const response = await fetch(`${API_BASE_URL}/api/users`);
       if (!response.ok) {
         throw new Error(`Error fetching users: ${response.statusText}`);
       }
@@ -177,7 +177,7 @@ const UserDashboard: React.FC = () => {
     setLoading(true);
     try {
       // Asumiendo que la API soporta eliminación en batch
-      const response = await fetch(`${API_BASE_URL}/users`, {
+      const response = await fetch(`${API_BASE_URL}/api/users`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

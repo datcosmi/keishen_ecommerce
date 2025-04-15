@@ -42,7 +42,7 @@ interface UserData {
   provider: string | null;
 }
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ProfilePage() {
   const { user: authUser } = useAuth();
@@ -60,7 +60,9 @@ export default function ProfilePage() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE_URL}/users/${authUser.id_user}`);
+      const response = await fetch(
+        `${API_BASE_URL}/api/users/${authUser.id_user}`
+      );
 
       if (!response.ok) {
         throw new Error("Failed to fetch user data");
@@ -99,7 +101,7 @@ export default function ProfilePage() {
       setError(null);
 
       const response = await fetch(
-        `${API_BASE_URL}/users/${authUser.id_user}`,
+        `${API_BASE_URL}/api/users/${authUser.id_user}`,
         {
           method: "PUT",
           headers: {

@@ -60,7 +60,7 @@ type DiscountType = "product" | "category";
 type SortField = "percent" | "start_date" | "end_date";
 type SortDirection = "asc" | "desc";
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const DiscountDashboard: React.FC = () => {
   const router = useRouter();
@@ -100,8 +100,8 @@ const DiscountDashboard: React.FC = () => {
     try {
       const endpoint =
         type === "product"
-          ? `${API_BASE_URL}/descuentos/products`
-          : `${API_BASE_URL}/descuentos/categories`;
+          ? `${API_BASE_URL}/api/descuentos/products`
+          : `${API_BASE_URL}/api/descuentos/categories`;
 
       const response = await fetch(endpoint);
       if (!response.ok) {
@@ -152,8 +152,8 @@ const DiscountDashboard: React.FC = () => {
     setLoading(true);
     const endpoint =
       type === "product"
-        ? `${API_BASE_URL}/descuentos/product`
-        : `${API_BASE_URL}/descuentos/category`;
+        ? `${API_BASE_URL}/api/descuentos/product`
+        : `${API_BASE_URL}/api/descuentos/category`;
 
     try {
       const response = await fetch(endpoint, {

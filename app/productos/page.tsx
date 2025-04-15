@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface ProductDiscount {
   id_discount: number;
@@ -108,11 +108,11 @@ export default function ProductsPage() {
         // Fetch products and categories in parallel
         const [productsResponse, categoriesResponse] = await Promise.all([
           fetch(
-            `${API_BASE_URL}/products/full-details${
+            `${API_BASE_URL}/api/products/full-details${
               searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ""
             }`
           ),
-          fetch(`${API_BASE_URL}/categories`),
+          fetch(`${API_BASE_URL}/api/categories`),
         ]);
 
         const productsData: ProductData[] = await productsResponse.json();
@@ -739,7 +739,7 @@ export default function ProductsPage() {
                             src={
                               product.image === "/images/placeholder.png"
                                 ? product.image
-                                : `http://localhost:3001${product.image}`
+                                : `${API_BASE_URL}${product.image}`
                             }
                             alt={product.name}
                             fill

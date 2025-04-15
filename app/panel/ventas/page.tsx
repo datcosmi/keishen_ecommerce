@@ -42,7 +42,7 @@ const STATUS_COLORS = {
   finalizado: "#00C49F",
 };
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const OrdersDashboard = () => {
   const [pedidos, setPedidos] = useState<Order[]>([]);
@@ -52,7 +52,7 @@ const OrdersDashboard = () => {
   useEffect(() => {
     const fetchPedidos = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/pedidos/details`);
+        const response = await fetch(`${API_BASE_URL}/api/pedidos/details`);
         if (!response.ok) {
           throw new Error("Error al cargar los pedidos");
         }

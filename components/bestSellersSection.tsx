@@ -2,21 +2,29 @@
 import { motion } from "framer-motion";
 import React, { useEffect, useState } from "react";
 import { Button } from "./ui/button";
-import { ChevronLeft, ChevronRight, ShoppingCart, Heart } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Award,
+  Eye,
+  ShoppingBag,
+} from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent } from "./ui/card";
 import { ProductData, ProductDetail } from "@/types/productTypes";
 import { Badge } from "./ui/badge";
 
-interface ProductsSectionProps {
-  allProducts?: ProductData[];
+interface BestSellersSectionProps {
+  bestSellers?: ProductData[];
 }
 
-const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
+const BestSellersSection: React.FC<BestSellersSectionProps> = ({
+  bestSellers,
+}) => {
   const [displayProducts, setDisplayProducts] = useState<ProductData[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
-  const productsPerPage = 3;
+  const productsPerPage = 4; // Show 4 best sellers at once
   const [hoveredProduct, setHoveredProduct] = useState<number | null>(null);
 
   const totalPages = Math.ceil(
@@ -24,10 +32,10 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
   );
 
   useEffect(() => {
-    if (allProducts && allProducts.length > 0) {
-      setDisplayProducts(allProducts);
+    if (bestSellers && bestSellers.length > 0) {
+      setDisplayProducts(bestSellers);
     }
-  }, [allProducts]);
+  }, [bestSellers]);
 
   const nextPage = () => {
     if (currentPage < totalPages - 1) {
@@ -152,7 +160,7 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
     return text.substring(0, maxLength) + "...";
   };
 
-  const renderProductCard = (product: ProductData) => {
+  const renderBestSellerCard = (product: ProductData, index: number) => {
     const discountPercentage = getDiscountPercentage(product);
     const priceData = getDiscountedPrice(product);
     const imageUrl =
@@ -165,6 +173,16 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
     const materials = getProductMaterials(product.product_details);
 
     const isHovered = hoveredProduct === product.id_product;
+
+    // Badge for top best sellers
+    const getBestSellerBadge = (index: number) => {
+      if (index === 0) return { text: "MÁS VENDIDO", color: "bg-yellow-500" };
+      if (index === 1) return { text: "TOP 2", color: "bg-gray-400" };
+      if (index === 2) return { text: "TOP 3", color: "bg-amber-700" };
+      return { text: "POPULAR", color: "bg-blue-600" };
+    };
+
+    const bestSellerBadge = getBestSellerBadge(index);
 
     return (
       <div
@@ -183,7 +201,9 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
           <Card
             className={`overflow-hidden h-full transition-all duration-300 ${
               isHovered ? "shadow-xl" : "shadow-sm"
-            } relative`}
+            } relative border-2 ${
+              index === 0 ? "border-yellow-400" : "border-gray-200"
+            }`}
           >
             <CardContent className="p-0">
               {/* Image container */}
@@ -198,6 +218,17 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
                   sizes="(max-width: 768px) 100vw, 50vw"
                 />
 
+                {/* Best seller badge */}
+                <div className="absolute top-4 left-4 z-10">
+                  <Badge
+                    className={`${bestSellerBadge.color} text-white font-semibold py-1 px-3 flex items-center gap-1`}
+                  >
+                    <Award className="h-3 w-3" />
+                    {bestSellerBadge.text}
+                  </Badge>
+                </div>
+
+                {/* Discount badge if applicable */}
                 {discountPercentage > 0 && (
                   <div className="absolute top-4 right-4 z-10">
                     <Badge className="bg-red-600 text-white font-semibold py-1">
@@ -217,8 +248,9 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
                     <Button
                       variant="secondary"
                       size="sm"
-                      className="rounded-full bg-white hover:bg-yellow-300 text-black"
+                      className="rounded-full bg-white hover:bg-yellow-300 text-black flex items-center gap-2"
                     >
+                      <Eye className="h-4 w-4" />
                       Ver detalles
                     </Button>
                   </Link>
@@ -269,43 +301,45 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
                   transition={{ duration: 0.3 }}
                   className="overflow-hidden"
                 >
-                  {/* Colors */}
-                  {colors.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-xs font-semibold mb-1">Colores:</p>
-                      <div className="flex gap-1">
-                        {colors.map((color) => (
-                          <div
-                            key={`color-${product.id_product}-${color}`}
-                            className="w-4 h-4 rounded-full border border-gray-300"
-                            style={{
-                              backgroundColor: color.startsWith("#")
-                                ? color
-                                : "#ddd",
-                            }}
-                            title={color.startsWith("#") ? "" : color}
-                          />
-                        ))}
+                  <div className="flex flex-wrap gap-3 mt-3">
+                    {/* Colors */}
+                    {colors.length > 0 && (
+                      <div className="mr-4">
+                        <p className="text-xs font-semibold mb-1">Colores:</p>
+                        <div className="flex gap-1">
+                          {colors.map((color) => (
+                            <div
+                              key={`color-${product.id_product}-${color}`}
+                              className="w-4 h-4 rounded-full border border-gray-300"
+                              style={{
+                                backgroundColor: color.startsWith("#")
+                                  ? color
+                                  : "#ddd",
+                              }}
+                              title={color.startsWith("#") ? "" : color}
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Sizes */}
-                  {sizes.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-xs font-semibold mb-1">Tallas:</p>
-                      <div className="flex gap-1">
-                        {sizes.map((size) => (
-                          <span
-                            key={`size-${product.id_product}-${size}`}
-                            className="text-xs border border-gray-300 rounded px-2 py-1"
-                          >
-                            {size}
-                          </span>
-                        ))}
+                    {/* Sizes */}
+                    {sizes.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold mb-1">Tallas:</p>
+                        <div className="flex gap-1">
+                          {sizes.map((size) => (
+                            <span
+                              key={`size-${product.id_product}-${size}`}
+                              className="text-xs border border-gray-300 rounded px-2 py-1"
+                            >
+                              {size}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
                   {/* Materials */}
                   {materials.length > 0 && (
@@ -317,10 +351,10 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
                     </div>
                   )}
 
-                  {/* Stock */}
-                  <div className="mt-3 text-xs">
+                  {/* Stock and buy action */}
+                  <div className="mt-3 flex items-center justify-between">
                     <span
-                      className={`font-medium ${
+                      className={`text-xs font-medium ${
                         product.stock > 5 ? "text-green-600" : "text-orange-500"
                       }`}
                     >
@@ -328,6 +362,15 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
                         ? "En stock"
                         : `¡Solo quedan ${product.stock}!`}
                     </span>
+
+                    <Link href={`/productos/${product.id_product}`}>
+                      <Button
+                        size="sm"
+                        className="bg-black hover:bg-yellow-500 text-white text-xs"
+                      >
+                        <ShoppingBag className="h-3 w-3 mr-1" /> Comprar
+                      </Button>
+                    </Link>
                   </div>
                 </motion.div>
               </div>
@@ -339,13 +382,27 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
   };
 
   return (
-    <section className="py-16 px-8 bg-white relative z-30">
+    <section className="py-16 px-8 bg-gray-50 relative z-30">
       <div className="max-w-6xl mx-auto relative">
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold text-black">VISTE CON ESTILO</h2>
-          <p className="text-gray-500">
-            Mostrando {displayProducts.length} productos en existencia
-          </p>
+          <div>
+            <h2 className="text-3xl font-bold text-black flex items-center">
+              <Award className="h-8 w-8 text-yellow-500 mr-2" />
+              NUESTROS MÁS VENDIDOS
+            </h2>
+            <p className="text-gray-600 mt-2">
+              Los productos favoritos de nuestros clientes
+            </p>
+          </div>
+
+          <Link href="/productos/mas-vendidos">
+            <Button
+              variant="outline"
+              className="border-black text-black hover:bg-yellow-300 hover:text-black hover:border-yellow-300"
+            >
+              Ver todos
+            </Button>
+          </Link>
         </div>
 
         {displayProducts.length > 0 ? (
@@ -381,12 +438,15 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
                         key={`page-${pageIndex}`}
                         className="flex flex-nowrap min-w-full"
                       >
-                        {pageProducts.map((product) => (
+                        {pageProducts.map((product, i) => (
                           <div
                             key={`product-${product.id_product}`}
-                            className="w-1/3 px-4 flex-shrink-0"
+                            className="w-1/4 px-3 flex-shrink-0"
                           >
-                            {renderProductCard(product)}
+                            {renderBestSellerCard(
+                              product,
+                              pageIndex * productsPerPage + i
+                            )}
                           </div>
                         ))}
                       </div>
@@ -423,13 +483,13 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
             )}
           </div>
         ) : (
-          <div className="text-center py-12">
+          <div className="text-center py-12 bg-white rounded-lg shadow-sm">
+            <Award className="h-12 w-12 text-gray-300 mx-auto mb-3" />
             <h3 className="text-lg font-medium mb-2">
-              No hay productos en existencia
+              No hay productos destacados en este momento
             </h3>
             <p className="text-gray-500">
-              Intenta consultar más tarde o contacta con nosotros para más
-              información.
+              Vuelve pronto para ver nuestros productos más vendidos.
             </p>
           </div>
         )}
@@ -438,4 +498,4 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
   );
 };
 
-export default ProductsSection;
+export default BestSellersSection;

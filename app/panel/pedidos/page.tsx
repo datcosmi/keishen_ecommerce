@@ -65,7 +65,8 @@ import { Order, ProductVariant } from "@/types/orderTypes";
 
 type SortField = "id" | "date" | "status" | "paymentMethod" | "total";
 type SortDirection = "asc" | "desc";
-const API_BASE_URL = "http://localhost:3001/api";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const OrderDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -102,7 +103,7 @@ const OrderDashboard: React.FC = () => {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/pedidos/details`);
+      const response = await fetch(`${API_BASE_URL}/api/pedidos/details`);
       if (!response.ok) {
         throw new Error(`Error fetching orders: ${response.statusText}`);
       }
@@ -173,7 +174,7 @@ const OrderDashboard: React.FC = () => {
 
     setDeleteLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/pedidos`, {
+      const response = await fetch(`${API_BASE_URL}/api/pedidos`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

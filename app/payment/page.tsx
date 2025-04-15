@@ -61,6 +61,8 @@ interface PayPalOrderData {
   }>;
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
 const PaymentPage = () => {
   const { user } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -205,7 +207,7 @@ const PaymentPage = () => {
 
   const updateCartStatus = async (cartId: number) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/cart/${cartId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/cart/${cartId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -233,7 +235,7 @@ const PaymentPage = () => {
       console.log("Creating order with payment method:", paymentMethod);
 
       // First create the order
-      const orderResponse = await fetch("http://localhost:3001/api/pedidos", {
+      const orderResponse = await fetch("${API_BASE_URL}/api/pedidos", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -275,7 +277,7 @@ const PaymentPage = () => {
 
         try {
           const detailResponse = await fetch(
-            "http://localhost:3001/api/pedido/details",
+            "${API_BASE_URL}/api/pedido/details",
             {
               method: "POST",
               headers: {
@@ -344,7 +346,7 @@ const PaymentPage = () => {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `http://localhost:3001/api/cart/user/${user.id_user}/full-details`
+        `${API_BASE_URL}/api/cart/user/${user.id_user}/full-details`
       );
 
       if (!response.ok) {
@@ -509,7 +511,7 @@ const PaymentPage = () => {
     try {
       toast.loading("Conectando con Mercado Pago...");
 
-      const res = await fetch("http://localhost:3001/api/pago/create", {
+      const res = await fetch("${API_BASE_URL}/api/pago/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -693,7 +695,7 @@ const PaymentPage = () => {
                       <Image
                         src={
                           item.image.length > 0
-                            ? `http://localhost:3001${item.image}`
+                            ? `${API_BASE_URL}${item.image}`
                             : "/images/placeholder.png"
                         }
                         alt={item.name}

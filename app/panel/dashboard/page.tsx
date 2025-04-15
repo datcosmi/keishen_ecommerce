@@ -38,7 +38,7 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function DashboardHome() {
   const [pedidos, setPedidos] = useState<Order[]>([]);
@@ -54,7 +54,7 @@ export default function DashboardHome() {
 
         // if (token) {
         const pedidosResponse = await fetch(
-          `${API_BASE_URL}/pedidos/details`
+          `${API_BASE_URL}/api/pedidos/details`
           // ,
           // {
           //   headers: {

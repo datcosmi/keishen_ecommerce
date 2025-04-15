@@ -42,7 +42,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Group details by name
 const groupDetailsByName = (details: ProductDetail[]) => {
@@ -182,7 +182,7 @@ const AdminProductDetailPage: React.FC = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${API_BASE_URL}/product/${params.id}/full-details`
+        `${API_BASE_URL}/api/product/${params.id}/full-details`
       );
 
       if (!response.ok) {
@@ -320,7 +320,7 @@ const AdminProductDetailPage: React.FC = () => {
   const handleDelete = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/products/bulk-update`, {
+      const response = await fetch(`${API_BASE_URL}/api/products/bulk-update`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -459,7 +459,7 @@ const AdminProductDetailPage: React.FC = () => {
               <div className="relative aspect-square w-full bg-gray-100">
                 {product_images.length > 0 ? (
                   <Image
-                    src={`http://localhost:3001${product_images[selectedImage].image_url}`}
+                    src={`${API_BASE_URL}${product_images[selectedImage].image_url}`}
                     alt={product.product_name}
                     fill
                     sizes="20vw"
@@ -488,10 +488,8 @@ const AdminProductDetailPage: React.FC = () => {
                       onClick={() => setSelectedImage(index)}
                     >
                       <Image
-                        src={`http://localhost:3001${image.image_url}`}
-                        alt={`http://localhost:3001${
-                          product.product_name
-                        } - vista ${index + 1}`}
+                        src={`${API_BASE_URL}${image.image_url}`}
+                        alt={`${product.product_name} - vista ${index + 1}`}
                         fill
                         sizes="5vw"
                         priority

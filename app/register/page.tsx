@@ -15,6 +15,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export default function Register() {
   const [formData, setFormData] = useState({
     name: "",
@@ -108,7 +110,7 @@ export default function Register() {
       };
 
       // Send request to register endpoint
-      const response = await fetch("http://localhost:3001/api/users", {
+      const response = await fetch(`${API_BASE_URL}/api/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

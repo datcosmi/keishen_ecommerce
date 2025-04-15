@@ -30,6 +30,8 @@ interface CartSummary {
   total: number;
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export default function CartPage() {
   const { user } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -52,7 +54,7 @@ export default function CartPage() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `http://localhost:3001/api/cart/user/${user.id_user}/full-details`
+        `${API_BASE_URL}/api/cart/user/${user.id_user}/full-details`
       );
 
       if (!response.ok) {
@@ -202,16 +204,13 @@ export default function CartPage() {
         : Math.max(1, item.quantity - 1);
 
       // Update quantity in API
-      const response = await fetch(
-        `http://localhost:3001/api/cart/${id}/product`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ amount: newQuantity }),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/cart/${id}/product`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ amount: newQuantity }),
+      });
 
       if (!response.ok) {
         throw new Error("No se pudo actualizar la cantidad");
@@ -245,12 +244,9 @@ export default function CartPage() {
   const removeItem = async (id: number) => {
     try {
       // Delete item from API
-      const response = await fetch(
-        `http://localhost:3001/api/cart/${id}/product`,
-        {
-          method: "DELETE",
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/cart/${id}/product`, {
+        method: "DELETE",
+      });
 
       if (!response.ok) {
         throw new Error("No se pudo eliminar el producto");
@@ -388,7 +384,7 @@ export default function CartPage() {
                     <Image
                       src={
                         item.image.length > 0
-                          ? `http://localhost:3001${item.image}`
+                          ? `${API_BASE_URL}${item.image}`
                           : "/images/placeholder.png"
                       }
                       alt={item.name}

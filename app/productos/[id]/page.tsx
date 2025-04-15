@@ -17,7 +17,7 @@ interface CartItems {
   total_items: number;
 }
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ProductPage() {
   const { id } = useParams();
@@ -52,7 +52,7 @@ export default function ProductPage() {
       if (!user?.id_user) return;
 
       const response = await fetch(
-        `${API_BASE_URL}/cart/user/${user.id_user}/count`
+        `${API_BASE_URL}/api/cart/user/${user.id_user}/count`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch cart items");
@@ -70,7 +70,7 @@ export default function ProductPage() {
   // Create a new cart
   const createCart = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/cart`, {
+      const response = await fetch(`${API_BASE_URL}/api/cart`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -123,7 +123,7 @@ export default function ProductPage() {
       }
 
       // Add product to cart with selected details
-      const response = await fetch(`${API_BASE_URL}/cart/product`, {
+      const response = await fetch(`${API_BASE_URL}/api/cart/product`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -154,7 +154,7 @@ export default function ProductPage() {
   useEffect(() => {
     if (id) {
       // Fetch product data
-      fetch(`${API_BASE_URL}/product/${id}/full-details`)
+      fetch(`${API_BASE_URL}/api/product/${id}/full-details`)
         .then((res) => res.json())
         .then((data: ProductData) => {
           setProduct(data);
@@ -321,7 +321,7 @@ export default function ProductPage() {
           <Button
             variant="outline"
             size="icon"
-            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full h-10 w-10"
+            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full h-10 w-10 z-10"
             onClick={prevImage}
             disabled={product.product_images.length <= 1}
           >
@@ -330,7 +330,7 @@ export default function ProductPage() {
           <Button
             variant="outline"
             size="icon"
-            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full h-10 w-10"
+            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full h-10 w-10 z-10"
             onClick={nextImage}
             disabled={product.product_images.length <= 1}
           >
@@ -338,11 +338,11 @@ export default function ProductPage() {
           </Button>
           {product.product_images.length > 0 ? (
             <Image
-              src={`http://localhost:3001${product.product_images[currentImageIndex].image_url}`}
+              src={`${API_BASE_URL}${product.product_images[currentImageIndex].image_url}`}
               alt={product.product_name}
               fill
               priority
-              className="object-cover transition-transform duration-300"
+              className="object-cover transition-transform duration-300 z-0"
               sizes="(max-width: 768px) 100vw, 50vw"
             />
           ) : (
@@ -547,7 +547,9 @@ export default function ProductPage() {
                     product.stock <= 0 ||
                     isAddingToCart ||
                     product.is_deleted ||
-                    user?.role !== "cliente"
+                    user?.role === "vendedor" ||
+                    user?.role === "superadmin" ||
+                    user?.role === "admin_tienda"
                   }
                   onClick={addToCart}
                 >
@@ -555,7 +557,9 @@ export default function ProductPage() {
                     ? "Agregando..."
                     : product.is_deleted
                     ? "No disponible"
-                    : user?.role !== "cliente"
+                    : user?.role === "vendedor" ||
+                      user?.role === "superadmin" ||
+                      user?.role === "admin_tienda"
                     ? "No puedes agregar productos al carrito"
                     : product.stock > 0
                     ? "Añadir al carrito"
