@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import CategoryModal from "@/components/forms/categoryModal";
 import { Category } from "@/types/categoryTypes";
+import { toast } from "sonner";
 
 type SortField = "id_cat" | "name";
 type SortDirection = "asc" | "desc";
@@ -144,34 +145,53 @@ const CategoriesDashboard: React.FC = () => {
     setEditModalOpen(true);
   };
 
-  const handleDelete = async (id_cat?: number) => {
+  const handleDelete = async () => {
     setLoading(true);
-    setError("");
-
-    const idsToDelete = id_cat ? [id_cat] : selectedCategories;
-
     try {
-      // Usar una sola petición para eliminar todas las categorías seleccionadas
+      // Format data for the bulk-update API
+      const updateData = selectedCategories.map((id) => ({
+        id_cat: id.toString(),
+        data: { is_deleted: true },
+      }));
+
       const response = await fetch(`${API_BASE_URL}/api/categories`, {
-        method: "DELETE",
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ids: idsToDelete }),
+        body: JSON.stringify(updateData),
       });
 
-      if (!response.ok)
-        throw new Error("No se pudo eliminar la(s) categoría(s)");
+      if (!response.ok) {
+        throw new Error(`Error actualizando productos: ${response.statusText}`);
+      }
 
-      setCategories((prev) =>
-        prev.filter((category) => !idsToDelete.includes(category.id_cat))
+      // Update the local state to reflect the changes
+      setCategories(
+        categories.map((category) =>
+          selectedCategories.includes(category.id_cat)
+            ? { ...category, is_deleted: true }
+            : category
+        )
       );
+
       setSelectedCategories([]);
-      setDeleteDialogOpen(false);
+      toast.success(
+        selectedCategories.length > 1
+          ? "Categorias eliminados correctamente"
+          : "Categoría eliminado correctamente"
+      );
     } catch (error) {
-      setError("Error: No se pudo eliminar la(s) categoría(s)");
+      console.error("Error eliminando categorias:", error);
+      toast.error(
+        selectedCategories.length > 1
+          ? "Error al eliminar categorias"
+          : "Error al eliminar la categoría"
+      );
     } finally {
       setLoading(false);
+      setDeleteDialogOpen(false);
+      handleRefresh();
     }
   };
 

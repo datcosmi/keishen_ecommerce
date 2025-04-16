@@ -193,7 +193,7 @@ const ProductDashboard: React.FC = () => {
       }));
 
       const response = await fetch(`${API_BASE_URL}/api/products/bulk-update`, {
-        method: "PUT", // Using PUT for updates
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
@@ -229,6 +229,7 @@ const ProductDashboard: React.FC = () => {
     } finally {
       setLoading(false);
       setDeleteDialogOpen(false);
+      handleRefresh();
     }
   };
 
