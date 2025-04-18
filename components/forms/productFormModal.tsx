@@ -100,13 +100,16 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   // Input states for product details/variants
   const [colorInput, setColorInput] = useState("#000000");
-  const [colorStockInput, setColorStockInput] = useState<number>(0);
+  const [colorStockInput, setColorStockInput] = useState<string>("");
   const [sizeInput, setSizeInput] = useState("");
-  const [sizeStockInput, setSizeStockInput] = useState<number>(0);
+  const [sizeStockInput, setSizeStockInput] = useState<string>("");
   const [tallaInput, setTallaInput] = useState("");
-  const [tallaStockInput, setTallaStockInput] = useState<number>(0);
+  const [tallaStockInput, setTallaStockInput] = useState<string>("");
   const [materialInput, setMaterialInput] = useState("");
-  const [materialStockInput, setMaterialStockInput] = useState<number>(0);
+  const [materialStockInput, setMaterialStockInput] = useState<string>("");
+  const [detailsToUpdate, setDetailsToUpdate] = useState<
+    Array<{ id_pd: number; data: { stock: number } }>
+  >([]);
 
   // Image states
   const [images, setImages] = useState<File[]>([]);
@@ -199,21 +202,20 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         cat_id: product.id_cat || 0,
         stock: product.stock,
         colorDetails: product.details
-          .filter((d: any) => d.detail_name === "Color")
+          .filter((d: any) => d.detail_name === "Color" && !d.is_deleted)
           .map((d: any) => ({ ...d })),
         sizeDetails: product.details
-          .filter((d: any) => d.detail_name === "Tamaño")
+          .filter((d: any) => d.detail_name === "Tamaño" && !d.is_deleted)
           .map((d: any) => ({ ...d })),
         tallaSizeDetails: product.details
-          .filter((d: any) => d.detail_name === "Talla")
+          .filter((d: any) => d.detail_name === "Talla" && !d.is_deleted)
           .map((d: any) => ({ ...d })),
         materialDetails: product.details
-          .filter((d: any) => d.detail_name === "Material")
+          .filter((d: any) => d.detail_name === "Material" && !d.is_deleted)
           .map((d: any) => ({ ...d })),
       });
       if (product.images && product.images.length > 0) {
         setProductImages(product.images);
-        console.log("Product", product);
       }
     }
   }, [product]);
@@ -263,8 +265,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       !formData.colorDetails.some((detail) => detail.detail_desc === colorInput)
     ) {
       // Calculate new total if this color is added
+      const stockValue = parseInt(colorStockInput) || 0;
       const currentTotal = calculateTotalVariantStock();
-      const newTotal = currentTotal + colorStockInput;
+      const newTotal = currentTotal + stockValue;
 
       if (newTotal > formData.stock) {
         toast.error(
@@ -280,12 +283,12 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           {
             detail_name: "Color",
             detail_desc: colorInput,
-            stock: colorStockInput,
+            stock: stockValue,
           },
         ],
       }));
       setColorInput("#000000");
-      setColorStockInput(0);
+      setColorStockInput("");
     }
   };
 
@@ -298,6 +301,30 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }));
   };
 
+  const editColorStock = (detail: any, newStock: number) => {
+    // Make sure we have an id_pd to work with
+    if (detail.detail_id) {
+      // Add to the update queue
+      setDetailsToUpdate((prev) => {
+        // Remove if already in queue
+        const filtered = prev.filter((item) => item.id_pd !== detail.detail_id);
+        // Add updated version
+        return [
+          ...filtered,
+          { id_pd: detail.detail_id as number, data: { stock: newStock } },
+        ];
+      });
+    }
+
+    // Update local state
+    setFormData((prev) => ({
+      ...prev,
+      colorDetails: prev.colorDetails.map((d) =>
+        d.detail_desc === detail.detail_desc ? { ...d, stock: newStock } : d
+      ),
+    }));
+  };
+
   const addSize = () => {
     if (
       sizeInput.trim() &&
@@ -306,11 +333,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       )
     ) {
       // Calculate new total if this size is added
-      const currentSizeStock = formData.sizeDetails.reduce(
-        (sum, detail) => sum + (detail.stock || 0),
-        0
-      );
-      const newTotal = currentSizeStock + sizeStockInput;
+      const stockValue = parseInt(colorStockInput) || 0;
+      const currentSizeStock = calculateTotalVariantStock();
+      const newTotal = currentSizeStock + stockValue;
 
       if (newTotal > formData.stock) {
         toast.error(
@@ -326,12 +351,12 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           {
             detail_name: "Tamaño",
             detail_desc: sizeInput.trim(),
-            stock: sizeStockInput,
+            stock: stockValue,
           },
         ],
       }));
       setSizeInput("");
-      setSizeStockInput(0);
+      setSizeStockInput("");
     }
   };
 
@@ -344,6 +369,25 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }));
   };
 
+  const editSizeStock = (detail: any, newStock: number) => {
+    if (detail.detail_id) {
+      setDetailsToUpdate((prev) => {
+        const filtered = prev.filter((item) => item.id_pd !== detail.detail_id);
+        return [
+          ...filtered,
+          { id_pd: detail.detail_id as number, data: { stock: newStock } },
+        ];
+      });
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      sizeDetails: prev.sizeDetails.map((d) =>
+        d.detail_desc === detail.detail_desc ? { ...d, stock: newStock } : d
+      ),
+    }));
+  };
+
   const addTalla = () => {
     if (
       tallaInput.trim() &&
@@ -352,11 +396,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       )
     ) {
       // Calculate new total if this talla is added
-      const currentTallaSizeStock = formData.tallaSizeDetails.reduce(
-        (sum, detail) => sum + (detail.stock || 0),
-        0
-      );
-      const newTotal = currentTallaSizeStock + tallaStockInput;
+      const stockValue = parseInt(colorStockInput) || 0;
+      const currentTallaSizeStock = calculateTotalVariantStock();
+      const newTotal = currentTallaSizeStock + stockValue;
 
       if (newTotal > formData.stock) {
         toast.error(
@@ -371,12 +413,12 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           {
             detail_name: "Talla",
             detail_desc: tallaInput.trim(),
-            stock: tallaStockInput,
+            stock: stockValue,
           },
         ],
       }));
       setTallaInput("");
-      setTallaStockInput(0);
+      setTallaStockInput("");
     }
   };
 
@@ -389,6 +431,25 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }));
   };
 
+  const editTallaStock = (detail: any, newStock: number) => {
+    if (detail.detail_id) {
+      setDetailsToUpdate((prev) => {
+        const filtered = prev.filter((item) => item.id_pd !== detail.detail_id);
+        return [
+          ...filtered,
+          { id_pd: detail.detail_id as number, data: { stock: newStock } },
+        ];
+      });
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      tallaSizeDetails: prev.tallaSizeDetails.map((d) =>
+        d.detail_desc === detail.detail_desc ? { ...d, stock: newStock } : d
+      ),
+    }));
+  };
+
   const addMaterial = () => {
     if (
       materialInput.trim() &&
@@ -397,11 +458,9 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       )
     ) {
       // Calculate new total if this material is added
-      const currentMaterialStock = formData.materialDetails.reduce(
-        (sum, detail) => sum + (detail.stock || 0),
-        0
-      );
-      const newTotal = currentMaterialStock + materialStockInput;
+      const stockValue = parseInt(colorStockInput) || 0;
+      const currentMaterialStock = calculateTotalVariantStock();
+      const newTotal = currentMaterialStock + stockValue;
 
       if (newTotal > formData.stock) {
         toast.error(
@@ -417,12 +476,12 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           {
             detail_name: "Material",
             detail_desc: materialInput.trim(),
-            stock: materialStockInput,
+            stock: stockValue,
           },
         ],
       }));
       setMaterialInput("");
-      setMaterialStockInput(0);
+      setMaterialStockInput("");
     }
   };
 
@@ -431,6 +490,25 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       ...prev,
       materialDetails: prev.materialDetails.filter(
         (detail) => detail.detail_desc !== materialToRemove
+      ),
+    }));
+  };
+
+  const editMaterialStock = (detail: any, newStock: number) => {
+    if (detail.detail_id) {
+      setDetailsToUpdate((prev) => {
+        const filtered = prev.filter((item) => item.id_pd !== detail.detail_id);
+        return [
+          ...filtered,
+          { id_pd: detail.detail_id as number, data: { stock: newStock } },
+        ];
+      });
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      materialDetails: prev.materialDetails.map((d) =>
+        d.detail_desc === detail.detail_desc ? { ...d, stock: newStock } : d
       ),
     }));
   };
@@ -484,6 +562,34 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       }
     } catch (error) {
       console.error("Error creating product details:", error);
+      throw error;
+    }
+  };
+
+  const bulkUpdateProductDetails = async (
+    details: Array<{ id_pd: number; data: { stock: number } }>
+  ) => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/products/details/bulk-update`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(details),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Error updating product details: ${response.statusText}`
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error updating product details:", error);
       throw error;
     }
   };
@@ -554,6 +660,11 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         cat_id: formData.cat_id,
         stock: formData.stock,
       };
+
+      if (product && detailsToUpdate.length > 0) {
+        // Call the bulk update endpoint
+        await bulkUpdateProductDetails(detailsToUpdate);
+      }
 
       let productId;
 
@@ -792,6 +903,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     setImages([]);
     setProductImages([]);
     setImagesToDelete([]);
+    setDetailsToUpdate([]);
   };
 
   return (
@@ -1021,9 +1133,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     min="0"
                     placeholder="Stock"
                     value={colorStockInput}
-                    onChange={(e) =>
-                      setColorStockInput(parseInt(e.target.value) || 0)
-                    }
+                    onChange={(e) => setColorStockInput(e.target.value)}
                     className="w-24"
                   />
                   <Button
@@ -1047,9 +1157,18 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                           style={{ backgroundColor: detail.detail_desc }}
                         />
                         <span className="text-sm">{detail.detail_desc}</span>
-                        <span className="text-xs text-gray-500 ml-1">
-                          Stock: {detail.stock || 0}
-                        </span>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={detail.stock || ""}
+                          onChange={(e) =>
+                            editColorStock(
+                              detail,
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          className="w-16 h-6 mx-1 p-1 text-xs"
+                        />
                         <X
                           className="h-3 w-3 ml-1 cursor-pointer"
                           onClick={() => removeColor(detail.detail_desc)}
@@ -1079,9 +1198,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     min="0"
                     placeholder="Stock"
                     value={sizeStockInput}
-                    onChange={(e) =>
-                      setSizeStockInput(parseInt(e.target.value) || 0)
-                    }
+                    onChange={(e) => setSizeStockInput(e.target.value)}
                     className="w-24"
                   />
                   <Button type="button" onClick={addSize} variant="outline">
@@ -1094,12 +1211,18 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                       <Badge
                         key={detail.detail_desc}
                         variant="secondary"
-                        className="px-3 py-1"
+                        className="px-3 py-1 flex items-center"
                       >
                         {detail.detail_desc}
-                        <span className="text-xs text-gray-500 ml-1">
-                          Stock: {detail.stock || 0}
-                        </span>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={detail.stock || ""}
+                          onChange={(e) =>
+                            editSizeStock(detail, parseInt(e.target.value) || 0)
+                          }
+                          className="w-16 h-6 mx-1 p-1 text-xs"
+                        />
                         <X
                           className="h-3 w-3 ml-1 cursor-pointer"
                           onClick={() => removeSize(detail.detail_desc)}
@@ -1129,9 +1252,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     min="0"
                     placeholder="Stock"
                     value={tallaStockInput}
-                    onChange={(e) =>
-                      setTallaStockInput(parseInt(e.target.value) || 0)
-                    }
+                    onChange={(e) => setTallaStockInput(e.target.value)}
                     className="w-24"
                   />
                   <Button type="button" onClick={addTalla} variant="outline">
@@ -1144,12 +1265,21 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                       <Badge
                         key={detail.detail_desc}
                         variant="secondary"
-                        className="px-3 py-1"
+                        className="px-3 py-1 flex items-center"
                       >
                         {detail.detail_desc}
-                        <span className="text-xs text-gray-500 ml-1">
-                          Stock: {detail.stock || 0}
-                        </span>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={detail.stock || ""}
+                          onChange={(e) =>
+                            editTallaStock(
+                              detail,
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          className="w-16 h-6 mx-1 p-1 text-xs"
+                        />
                         <X
                           className="h-3 w-3 ml-1 cursor-pointer"
                           onClick={() => removeTalla(detail.detail_desc)}
@@ -1179,9 +1309,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     min="0"
                     placeholder="Stock"
                     value={materialStockInput}
-                    onChange={(e) =>
-                      setMaterialStockInput(parseInt(e.target.value) || 0)
-                    }
+                    onChange={(e) => setMaterialStockInput(e.target.value)}
                     className="w-24"
                   />
                   <Button type="button" onClick={addMaterial} variant="outline">
@@ -1194,12 +1322,21 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                       <Badge
                         key={detail.detail_desc}
                         variant="secondary"
-                        className="px-3 py-1"
+                        className="px-3 py-1 flex items-center"
                       >
                         {detail.detail_desc}
-                        <span className="text-xs text-gray-500 ml-1">
-                          Stock: {detail.stock || 0}
-                        </span>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={detail.stock || ""}
+                          onChange={(e) =>
+                            editMaterialStock(
+                              detail,
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          className="w-16 h-6 mx-1 p-1 text-xs"
+                        />
                         <X
                           className="h-3 w-3 ml-1 cursor-pointer"
                           onClick={() => removeMaterial(detail.detail_desc)}
