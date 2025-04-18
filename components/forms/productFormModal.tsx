@@ -133,6 +133,13 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       (sum, detail) => sum + (detail.stock || 0),
       0
     );
+
+    console.log("Current stocks:", {
+      colorStock,
+      sizeStock,
+      tallaStock,
+      materialStock,
+    });
     return colorStock + sizeStock + tallaStock + materialStock;
   };
 
@@ -154,6 +161,10 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    console.log("Current formData.materialDetails:", formData.materialDetails);
+  }, [formData.materialDetails]);
 
   useEffect(() => {
     // Check each variant type individually
@@ -264,14 +275,19 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       colorInput &&
       !formData.colorDetails.some((detail) => detail.detail_desc === colorInput)
     ) {
-      // Calculate new total if this color is added
       const stockValue = parseInt(colorStockInput) || 0;
-      const currentTotal = calculateTotalVariantStock();
-      const newTotal = currentTotal + stockValue;
 
-      if (newTotal > formData.stock) {
+      // Calculate current color stock only
+      const currentColorStock = formData.colorDetails.reduce(
+        (sum, detail) => sum + (detail.stock || 0),
+        0
+      );
+
+      const newColorTotal = currentColorStock + stockValue;
+
+      if (newColorTotal > formData.stock) {
         toast.error(
-          "No se puede añadir más stock. Excedería el stock total del producto."
+          "La suma del stock de colores no puede superar el stock total del producto."
         );
         return;
       }
@@ -332,12 +348,17 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         (detail) => detail.detail_desc === sizeInput.trim()
       )
     ) {
-      // Calculate new total if this size is added
-      const stockValue = parseInt(colorStockInput) || 0;
-      const currentSizeStock = calculateTotalVariantStock();
-      const newTotal = currentSizeStock + stockValue;
+      const stockValue = parseInt(sizeStockInput) || 0;
 
-      if (newTotal > formData.stock) {
+      // Calculate current size stock only
+      const currentSizeStock = formData.sizeDetails.reduce(
+        (sum, detail) => sum + (detail.stock || 0),
+        0
+      );
+
+      const newSizeTotal = currentSizeStock + stockValue;
+
+      if (newSizeTotal > formData.stock) {
         toast.error(
           "La suma del stock de tamaños no puede superar el stock total del producto."
         );
@@ -395,17 +416,23 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         (detail) => detail.detail_desc === tallaInput.trim()
       )
     ) {
-      // Calculate new total if this talla is added
-      const stockValue = parseInt(colorStockInput) || 0;
-      const currentTallaSizeStock = calculateTotalVariantStock();
-      const newTotal = currentTallaSizeStock + stockValue;
+      const stockValue = parseInt(tallaStockInput) || 0;
 
-      if (newTotal > formData.stock) {
+      // Calculate current talla stock only
+      const currentTallaStock = formData.tallaSizeDetails.reduce(
+        (sum, detail) => sum + (detail.stock || 0),
+        0
+      );
+
+      const newTallaTotal = currentTallaStock + stockValue;
+
+      if (newTallaTotal > formData.stock) {
         toast.error(
           "La suma del stock de tallas no puede superar el stock total del producto."
         );
         return;
       }
+
       setFormData((prev) => ({
         ...prev,
         tallaSizeDetails: [
@@ -457,12 +484,18 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         (detail) => detail.detail_desc === materialInput.trim()
       )
     ) {
-      // Calculate new total if this material is added
-      const stockValue = parseInt(colorStockInput) || 0;
-      const currentMaterialStock = calculateTotalVariantStock();
-      const newTotal = currentMaterialStock + stockValue;
+      // Calculate stock only for the material type
+      const stockValue = parseInt(materialStockInput) || 0;
 
-      if (newTotal > formData.stock) {
+      // Calculate current material stock only
+      const currentMaterialStock = formData.materialDetails.reduce(
+        (sum, detail) => sum + (detail.stock || 0),
+        0
+      );
+
+      const newMaterialTotal = currentMaterialStock + stockValue;
+
+      if (newMaterialTotal > formData.stock) {
         toast.error(
           "La suma del stock de materiales no puede superar el stock total del producto."
         );
@@ -486,12 +519,19 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   };
 
   const removeMaterial = (materialToRemove: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      materialDetails: prev.materialDetails.filter(
+    console.log("Removing material:", materialToRemove);
+    console.log("Before removal:", formData.materialDetails);
+
+    setFormData((prev) => {
+      const updatedDetails = prev.materialDetails.filter(
         (detail) => detail.detail_desc !== materialToRemove
-      ),
-    }));
+      );
+      console.log("After removal:", updatedDetails);
+      return {
+        ...prev,
+        materialDetails: updatedDetails,
+      };
+    });
   };
 
   const editMaterialStock = (detail: any, newStock: number) => {
