@@ -43,6 +43,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const IMAGES_BASE_URL =
+  process.env.NEXT_PUBLIC_IMAGES_URL || "https://keishen.com.mx";
 
 // Group details by name
 const groupDetailsByName = (details: ProductDetail[]) => {
@@ -459,7 +461,7 @@ const AdminProductDetailPage: React.FC = () => {
               <div className="relative aspect-square w-full bg-gray-100">
                 {product_images.length > 0 ? (
                   <Image
-                    src={`${API_BASE_URL}${product_images[selectedImage].image_url}`}
+                    src={`${IMAGES_BASE_URL}${product_images[selectedImage].image_url}`}
                     alt={product.product_name}
                     fill
                     sizes="20vw"
@@ -488,7 +490,7 @@ const AdminProductDetailPage: React.FC = () => {
                       onClick={() => setSelectedImage(index)}
                     >
                       <Image
-                        src={`${API_BASE_URL}${image.image_url}`}
+                        src={`${IMAGES_BASE_URL}${image.image_url}`}
                         alt={`${product.product_name} - vista ${index + 1}`}
                         fill
                         sizes="5vw"
@@ -785,8 +787,8 @@ const AdminProductDetailPage: React.FC = () => {
                           product.stock <= 0
                             ? "bg-red-500"
                             : product.stock < 10
-                            ? "bg-amber-500"
-                            : "bg-green-500"
+                              ? "bg-amber-500"
+                              : "bg-green-500"
                         }`}
                         style={{
                           width: `${Math.min(

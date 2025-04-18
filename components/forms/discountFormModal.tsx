@@ -23,16 +23,9 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface Category {
   id_cat: number;
@@ -127,7 +120,7 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/categories`);
+      const response = await fetch(`${API_BASE_URL}/api/categories`);
       if (!response.ok) {
         throw new Error(`Error fetching categories: ${response.statusText}`);
       }
@@ -141,7 +134,9 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/products/details-images`);
+      const response = await fetch(
+        `${API_BASE_URL}/api/products/details-images`
+      );
       if (!response.ok) {
         throw new Error(`Error fetching products: ${response.statusText}`);
       }
@@ -214,7 +209,7 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const endpoint = `${API_BASE_URL}/descuentos/${discountType}`;
+      const endpoint = `${API_BASE_URL}/api/descuentos/${discountType}`;
 
       const discountData = {
         ...(discountType === "category"
@@ -459,8 +454,8 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
                   ? "Actualizando..."
                   : "Guardando..."
                 : discount
-                ? "Actualizar Descuento"
-                : "Guardar Descuento"}
+                  ? "Actualizar Descuento"
+                  : "Guardar Descuento"}
             </Button>
           </DialogFooter>
         </form>

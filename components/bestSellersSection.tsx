@@ -19,6 +19,9 @@ interface BestSellersSectionProps {
   bestSellers?: ProductData[];
 }
 
+const IMAGES_BASE_URL =
+  process.env.NEXT_PUBLIC_IMAGES_URL || "https://keishen.com.mx";
+
 const BestSellersSection: React.FC<BestSellersSectionProps> = ({
   bestSellers,
 }) => {
@@ -165,7 +168,7 @@ const BestSellersSection: React.FC<BestSellersSectionProps> = ({
     const priceData = getDiscountedPrice(product);
     const imageUrl =
       product.product_images && product.product_images.length > 0
-        ? `http://localhost:3001${product.product_images[0].image_url}`
+        ? `${IMAGES_BASE_URL}${product.product_images[0].image_url}`
         : "/images/placeholder.png";
 
     const colors = getProductColors(product.product_details);

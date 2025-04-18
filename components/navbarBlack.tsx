@@ -22,7 +22,7 @@ interface CartItems {
   total_items: number;
 }
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function NavbarBlack() {
   const pathname = usePathname();
@@ -66,7 +66,7 @@ export default function NavbarBlack() {
   const fetchCategories = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/categories`);
+      const response = await fetch(`${API_BASE_URL}/api/categories`);
       if (!response.ok) {
         throw new Error("Failed to fetch categories");
       }
@@ -83,7 +83,7 @@ export default function NavbarBlack() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `${API_BASE_URL}/cart/user/${user?.id_user}/count`
+        `${API_BASE_URL}/api/cart/user/${user?.id_user}/count`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch cart items");
@@ -133,9 +133,7 @@ export default function NavbarBlack() {
     if (term.length >= 2) {
       try {
         const response = await fetch(
-          `http://localhost:3001/api/products/search?q=${encodeURIComponent(
-            term
-          )}`
+          `${API_BASE_URL}/api/products/search?q=${encodeURIComponent(term)}`
         );
         if (!response.ok) throw new Error("Search failed");
         const data = await response.json();
@@ -311,7 +309,7 @@ export default function NavbarBlack() {
                   <div className="w-12 h-12 relative mr-2 bg-gray-800 rounded">
                     {product.image_url ? (
                       <Image
-                        src={`http://localhost:3001${product.image_url}`}
+                        src={`${API_BASE_URL}${product.image_url}`}
                         alt={product.product_name}
                         fill
                         className="object-cover rounded p-1"

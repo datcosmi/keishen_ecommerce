@@ -96,6 +96,8 @@ interface Pedido {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const IMAGES_BASE_URL =
+  process.env.NEXT_PUBLIC_IMAGES_URL || "https://keishen.com.mx";
 
 export default function OrdersPage() {
   const { user: authUser } = useAuth();
@@ -508,7 +510,7 @@ export default function OrdersPage() {
                                         href={`/productos/${detalle.producto.producto_id}`}
                                       >
                                         <img
-                                          src={`${API_BASE_URL}${detalle.producto.producto_imagenes[0]}`}
+                                          src={`${IMAGES_BASE_URL}${detalle.producto.producto_imagenes[0]}`}
                                           alt={detalle.producto.producto_nombre}
                                           className="object-cover w-full h-full"
                                         />
@@ -684,7 +686,7 @@ export default function OrdersPage() {
                                               .length > 0 ? (
                                               <div className="relative w-full h-full">
                                                 <img
-                                                  src={`${API_BASE_URL}${detalle.producto.producto_imagenes[0]}`}
+                                                  src={`${IMAGES_BASE_URL}${detalle.producto.producto_imagenes[0]}`}
                                                   alt={
                                                     detalle.producto
                                                       .producto_nombre

@@ -99,7 +99,7 @@ interface OrderFormModalProps {
   hideButton?: boolean;
 }
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const OrderFormModal: React.FC<OrderFormModalProps> = ({
   onOrderAdded,
@@ -177,7 +177,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
       setIsLoading(true);
       try {
         // Fetch users
-        const usersResponse = await fetch(`${API_BASE_URL}/users`);
+        const usersResponse = await fetch(`${API_BASE_URL}/api/users`);
         if (!usersResponse.ok) {
           throw new Error(`Error fetching users: ${usersResponse.statusText}`);
         }
@@ -186,7 +186,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
 
         // Fetch products
         const productsResponse = await fetch(
-          `${API_BASE_URL}/products/full-details`
+          `${API_BASE_URL}/api/products/full-details`
         );
         if (!productsResponse.ok) {
           throw new Error(
@@ -596,7 +596,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
           const currentStock = product.stock || 0;
           const newStock = Math.max(0, currentStock - quantity); // Ensure stock doesn't go negative
 
-          return fetch(`${API_BASE_URL}/product/${productId}`, {
+          return fetch(`${API_BASE_URL}/api/product/${productId}`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
@@ -645,7 +645,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
       let detailUpdatePromise: Promise<any> = Promise.resolve();
       if (detailUpdateData.length > 0) {
         detailUpdatePromise = fetch(
-          `${API_BASE_URL}/products/details/bulk-update`,
+          `${API_BASE_URL}/api/products/details/bulk-update`,
           {
             method: "PUT",
             headers: {
@@ -681,7 +681,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
       const orderDataToSubmit = { ...orderData };
 
       // Step 1: Create the order
-      const orderResponse = await fetch(`${API_BASE_URL}/pedidos`, {
+      const orderResponse = await fetch(`${API_BASE_URL}/api/pedidos`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -698,7 +698,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
 
       // Step 2: Create order details
       const detailPromises = orderDetails.map((detail) =>
-        fetch(`${API_BASE_URL}/pedido/details`, {
+        fetch(`${API_BASE_URL}/api/pedido/details`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -744,7 +744,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
     try {
       // Update the order data
       const orderResponse = await fetch(
-        `${API_BASE_URL}/pedidos/${existingOrder?.id_pedido}`,
+        `${API_BASE_URL}/api/pedidos/${existingOrder?.id_pedido}`,
         {
           method: "PUT",
           headers: {
@@ -760,7 +760,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
 
       // Handle order details
       await fetch(
-        `${API_BASE_URL}/pedido/details/${existingOrder?.id_pedido}`,
+        `${API_BASE_URL}/api/pedido/details/${existingOrder?.id_pedido}`,
         {
           method: "DELETE",
         }
@@ -768,7 +768,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
 
       // Then create new details
       const detailPromises = orderDetails.map((detail) => {
-        return fetch(`${API_BASE_URL}/pedido/details`, {
+        return fetch(`${API_BASE_URL}/api/pedido/details`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -818,7 +818,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
       if (isEditMode && existingOrder?.id_pedido) {
         // Update existing order
         response = await fetch(
-          `${API_BASE_URL}/pedidos/${existingOrder.id_pedido}`,
+          `${API_BASE_URL}/api/pedidos/${existingOrder.id_pedido}`,
           {
             method: "PUT",
             headers: {
@@ -829,7 +829,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
         );
       } else {
         // Create new order
-        response = await fetch(`${API_BASE_URL}/pedidos`, {
+        response = await fetch(`${API_BASE_URL}/api/pedidos`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -848,14 +848,14 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
       // Handle order details
       if (isEditMode) {
         // Delete existing details first
-        await fetch(`${API_BASE_URL}/pedido/details/${orderId}`, {
+        await fetch(`${API_BASE_URL}/api/pedido/details/${orderId}`, {
           method: "DELETE",
         });
       }
 
       // Create new details
       const detailPromises = orderDetails.map((detail) =>
-        fetch(`${API_BASE_URL}/pedido/details`, {
+        fetch(`${API_BASE_URL}/api/pedido/details`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -1392,8 +1392,8 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
               {isSubmitting
                 ? "Guardando..."
                 : isEditMode
-                ? "Actualizar Pedido"
-                : "Guardar Pedido"}
+                  ? "Actualizar Pedido"
+                  : "Guardar Pedido"}
             </Button>
           </DialogFooter>
         </DialogContent>

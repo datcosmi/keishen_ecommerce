@@ -28,7 +28,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const IMAGES_BASE_URL =
+  process.env.NEXT_PUBLIC_IMAGES_URL || "https://keishen.com.mx";
 
 interface Category {
   id_cat: number;
@@ -134,7 +136,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   // Fetch categories on component mount
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/categories`);
+      const response = await fetch(`${API_BASE_URL}/api/categories`);
       if (!response.ok) {
         throw new Error(`Error fetching categories: ${response.statusText}`);
       }
@@ -450,7 +452,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         JSON.stringify(detailsWithProductId, null, 2)
       );
 
-      const response = await fetch(`${API_BASE_URL}/product/detail`, {
+      const response = await fetch(`${API_BASE_URL}/api/product/detail`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -559,7 +561,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         // UPDATE EXISTING PRODUCT
         productId = product.id;
         const updateResponse = await fetch(
-          `${API_BASE_URL}/product/${productId}`,
+          `${API_BASE_URL}/api/product/${productId}`,
           {
             method: "PUT",
             headers: {
@@ -576,7 +578,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         }
       } else {
         // CREATE NEW PRODUCT
-        const productResponse = await fetch(`${API_BASE_URL}/product`, {
+        const productResponse = await fetch(`${API_BASE_URL}/api/product`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -652,12 +654,31 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           return true; // Delete any unrecognized types
         });
 
-        // Delete only removed details
-        for (const detail of detailsToDelete) {
-          console.log("Deleting detail:", detail);
-          await fetch(`${API_BASE_URL}/product/${detail.detail_id}/detail`, {
-            method: "DELETE",
-          });
+        // Soft delete removed details using bulk update
+        if (detailsToDelete.length > 0) {
+          const detailsToSoftDelete = detailsToDelete.map((detail: any) => ({
+            id_pd: detail.detail_id,
+            data: { is_deleted: true },
+          }));
+
+          console.log("Soft deleting details:", detailsToSoftDelete);
+
+          const softDeleteResponse = await fetch(
+            `${API_BASE_URL}/api/products/details/bulk-update`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(detailsToSoftDelete),
+            }
+          );
+
+          if (!softDeleteResponse.ok) {
+            throw new Error(
+              `Error soft deleting product details: ${softDeleteResponse.statusText}`
+            );
+          }
         }
 
         // Only add new details
@@ -695,7 +716,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
       // Si hay imágenes para eliminar
       if (imagesToDelete.length > 0) {
-        await fetch(`${API_BASE_URL}/images`, {
+        await fetch(`${API_BASE_URL}/api/images`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -711,7 +732,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           formData.append("images", image);
         });
 
-        await fetch(`${API_BASE_URL}/images/upload-multiple/${productId}`, {
+        await fetch(`${API_BASE_URL}/api/images/upload-multiple/${productId}`, {
           method: "POST",
           body: formData,
         });
@@ -719,7 +740,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
       // Fetch the complete updated product
       const completeProductResponse = await fetch(
-        `${API_BASE_URL}/product/${productId}/details-images`
+        `${API_BASE_URL}/api/product/${productId}/details-images`
       );
 
       if (!completeProductResponse.ok) {
@@ -960,7 +981,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                           className="relative rounded-md overflow-hidden h-32 bg-gray-100"
                         >
                           <Image
-                            src={`http://localhost:3001${image.image_url}`}
+                            src={`${IMAGES_BASE_URL}${image.image_url}`}
                             alt={`Image not found`}
                             width={500}
                             height={500}
@@ -1210,8 +1231,8 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   ? "Actualizando..."
                   : "Guardando..."
                 : product
-                ? "Actualizar Producto"
-                : "Guardar Producto"}
+                  ? "Actualizar Producto"
+                  : "Guardar Producto"}
             </Button>
           </DialogFooter>
         </form>

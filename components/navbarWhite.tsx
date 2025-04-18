@@ -22,7 +22,7 @@ interface CartItems {
   total_items: number;
 }
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function NavbarWhite() {
   const pathname = usePathname();
@@ -65,7 +65,7 @@ export default function NavbarWhite() {
   const fetchCategories = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/categories`);
+      const response = await fetch(`${API_BASE_URL}/api/categories`);
       if (!response.ok) {
         throw new Error("Failed to fetch categories");
       }
@@ -82,7 +82,7 @@ export default function NavbarWhite() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `${API_BASE_URL}/cart/user/${user?.id_user}/count`
+        `${API_BASE_URL}/api/cart/user/${user?.id_user}/count`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch cart items");

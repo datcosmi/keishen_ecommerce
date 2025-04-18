@@ -19,7 +19,6 @@ import {
   CheckSquare,
   Square,
 } from "lucide-react";
-import Sidebar from "@/components/sidebar";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -59,6 +58,8 @@ type SortField = "name" | "price" | "stock" | "inStock";
 type SortDirection = "asc" | "desc";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const IMAGES_BASE_URL =
+  process.env.NEXT_PUBLIC_IMAGES_URL || "https://keishen.com.mx";
 
 const ProductDashboard: React.FC = () => {
   const router = useRouter();
@@ -669,14 +670,14 @@ const ProductDashboard: React.FC = () => {
                                     <Image
                                       src={
                                         product.images.length > 0
-                                          ? `${API_BASE_URL}${product.images[0].image_url}`
+                                          ? `${IMAGES_BASE_URL}${product.images[0].image_url}`
                                           : "/images/placeholder.png"
                                       }
                                       alt={product.name}
                                       fill
                                       unoptimized
                                       priority
-                                      className="object-cover w-full h-full"
+                                      className="object-cover w-full h-full rounded-sm"
                                       sizes="30px"
                                     />
                                   ) : (
@@ -786,18 +787,21 @@ const ProductDashboard: React.FC = () => {
                               <Square size={18} className="text-gray-400" />
                             )}
                           </button>
-                          <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-100">
-                            <div className="w-8 h-8 relative">
+                          <div className="w-12 h-12 rounded-sm flex items-center justify-center bg-gray-100">
+                            <div className="w-12 h-12 relative">
                               {product.images.length > 0 ? (
                                 <Image
                                   src={
                                     product.images.length > 0
-                                      ? `${API_BASE_URL}${product.images[0].image_url}`
+                                      ? `${IMAGES_BASE_URL}${product.images[0].image_url}`
                                       : "/images/placeholder.png"
                                   }
                                   alt={product.name}
-                                  layout="fill"
-                                  objectFit="contain"
+                                  fill
+                                  unoptimized
+                                  priority
+                                  className="object-cover w-full h-full rounded-sm"
+                                  sizes="30px"
                                 />
                               ) : (
                                 <div className="w-8 h-8 flex items-center justify-center text-xs">

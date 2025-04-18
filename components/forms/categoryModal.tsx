@@ -21,6 +21,8 @@ interface Category {
   name: string;
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
 interface CategoryModalProps {
   onCategoryAdded: (category: Category) => void;
   onCategoryUpdated?: (category: Category) => void;
@@ -87,11 +89,10 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
     try {
       // URL y método HTTP dependen de si estamos creando o actualizando
       const url = isEdit
-        ? `http://localhost:3001/api/categories/${formData.id_cat}`
-        : "http://localhost:3001/api/categories";
+        ? `${API_BASE_URL}/api/categories/${formData.id_cat}`
+        : `${API_BASE_URL}/api/categories`;
       const method = isEdit ? "PUT" : "POST";
 
-      // Si estamos creando, solo enviamos el nombre (ya que id_cat es autoincrementable)
       const bodyData = isEdit ? formData : { name: formData.name };
 
       const response = await fetch(url, {
@@ -204,8 +205,8 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                   ? "Actualizando..."
                   : "Guardando..."
                 : isEdit
-                ? "Actualizar Categoría"
-                : "Guardar Categoría"}
+                  ? "Actualizar Categoría"
+                  : "Guardar Categoría"}
             </Button>
           </DialogFooter>
         </form>
