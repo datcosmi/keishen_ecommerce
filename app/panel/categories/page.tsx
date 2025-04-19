@@ -14,6 +14,10 @@ import {
   List,
   Grid,
   RefreshCw,
+  Layers2,
+  X,
+  Square,
+  CheckSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -327,11 +331,12 @@ const CategoriesDashboard: React.FC = () => {
         <div className="mb-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-800">
-                Categorias
+              <h1 className="text-2xl font-semibold text-gray-800 flex items-center">
+                <Layers2 className="h-6 w-6 mr-2 text-amber-400" />
+                Categorías
               </h1>
               <p className="text-sm text-gray-500">
-                Aquí tienes una lista de todas las categorias existentes
+                Aquí tienes una lista de todas las categorías existentes
               </p>
             </div>
 
@@ -341,8 +346,9 @@ const CategoriesDashboard: React.FC = () => {
                   <Button
                     variant="outline"
                     onClick={() => setSelectedCategories([])}
-                    className="text-gray-600"
+                    className="text-gray-600 border-gray-200 hover:bg-gray-50"
                   >
+                    <X size={16} className="mr-1" />
                     Cancelar ({selectedCategories.length})
                   </Button>
 
@@ -350,7 +356,7 @@ const CategoriesDashboard: React.FC = () => {
                     <Button
                       variant="outline"
                       onClick={() => handleEdit()}
-                      className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                      className="bg-blue-50 text-blue-600 hover:text-blue-700 border-blue-200 hover:bg-blue-100"
                     >
                       <Edit size={16} className="mr-1" />
                       Editar
@@ -364,7 +370,7 @@ const CategoriesDashboard: React.FC = () => {
                     <AlertDialogTrigger asChild>
                       <Button
                         variant="outline"
-                        className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                        className="bg-red-50 text-red-600 hover:text-red-700 border-red-200 hover:bg-red-100"
                       >
                         <Trash2 size={16} className="mr-1" />
                         Eliminar{" "}
@@ -450,9 +456,10 @@ const CategoriesDashboard: React.FC = () => {
 
         {/* Estado para cargar las categorías */}
         {loading ? (
-          <Card>
+          <Card className="min-h-[300px] flex items-center justify-center">
             <CardContent className="p-6 text-center">
-              <p>Cargando categorias...</p>
+              <RefreshCw className="h-8 w-8 mb-4 mx-auto animate-spin text-gray-600" />
+              <p className="text-gray-600">Cargando categorías...</p>
             </CardContent>
           </Card>
         ) : (
@@ -465,11 +472,23 @@ const CategoriesDashboard: React.FC = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-12">
-                          <Checkbox
-                            checked={selectAll}
-                            onCheckedChange={toggleSelectAll}
-                            aria-label="Seleccionar todas las categorías"
-                          />
+                          <div className="flex items-center justify-center">
+                            <button
+                              onClick={toggleSelectAll}
+                              className="focus:outline-none"
+                            >
+                              {selectedCategories.length ===
+                                currentCategories.length &&
+                              currentCategories.length > 0 ? (
+                                <CheckSquare
+                                  size={18}
+                                  className="text-blue-600"
+                                />
+                              ) : (
+                                <Square size={18} className="text-gray-400" />
+                              )}
+                            </button>
+                          </div>
                         </TableHead>
                         <TableHead
                           className="cursor-pointer"
@@ -501,16 +520,22 @@ const CategoriesDashboard: React.FC = () => {
                               : ""
                           }`}
                         >
-                          <TableCell className="p-2">
-                            <Checkbox
-                              checked={selectedCategories.includes(
-                                category.id_cat
-                              )}
-                              onCheckedChange={() =>
+                          <TableCell className="p-2 text-center">
+                            <button
+                              onClick={() =>
                                 toggleSelectCategory(category.id_cat)
                               }
-                              aria-label={`Seleccionar ${category.name}`}
-                            />
+                              className="focus:outline-none"
+                            >
+                              {selectedCategories.includes(category.id_cat) ? (
+                                <CheckSquare
+                                  size={18}
+                                  className="text-blue-600"
+                                />
+                              ) : (
+                                <Square size={18} className="text-gray-400" />
+                              )}
+                            </button>
                           </TableCell>
                           <TableCell>
                             <div className="text-sm text-gray-600">
@@ -566,17 +591,22 @@ const CategoriesDashboard: React.FC = () => {
                       }`}
                     >
                       <CardContent className="p-4">
-                        <div className="flex items-center mb-3">
-                          <Checkbox
-                            checked={selectedCategories.includes(
-                              category.id_cat
-                            )}
-                            onCheckedChange={() =>
+                        <div className="flex items-center">
+                          <button
+                            onClick={() =>
                               toggleSelectCategory(category.id_cat)
                             }
-                            aria-label={`Seleccionar ${category.name}`}
-                            className="mr-3"
-                          />
+                            className="focus:outline-none mr-2"
+                          >
+                            {selectedCategories.includes(category.id_cat) ? (
+                              <CheckSquare
+                                size={18}
+                                className="text-blue-600"
+                              />
+                            ) : (
+                              <Square size={18} className="text-gray-400" />
+                            )}
+                          </button>
                           <div
                             className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-medium ${getInitialsBackgroundColor(
                               category.name

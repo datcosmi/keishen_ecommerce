@@ -6,16 +6,14 @@ import { cn } from "@/lib/utils";
 import {
   Home,
   Archive,
-  CreditCard,
   BarChart2,
-  User,
   Users,
-  Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
   Tags,
   Layers2,
+  ShoppingBag,
 } from "lucide-react";
 import {
   Tooltip,
@@ -34,6 +32,14 @@ const Sidebar = () => {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const { user, logout, hasRole } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // Check for saved preference in localStorage
+    const savedCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
+    setCollapsed(savedCollapsed);
+  }, []);
 
   // Base menu items
   const baseMenuItems = [
@@ -47,7 +53,7 @@ const Sidebar = () => {
       name: "Productos",
       icon: Archive,
       href: "/panel/products",
-      roles: ["admin_tienda", "superadmin"],
+      roles: ["admin_tienda", "superadmin", "vendedor"],
     },
     {
       name: "Categorias",
@@ -63,7 +69,7 @@ const Sidebar = () => {
     },
     {
       name: "Pedidos",
-      icon: CreditCard,
+      icon: ShoppingBag,
       href: "/panel/pedidos",
       roles: ["admin_tienda", "vendedor", "superadmin"],
     },
@@ -73,19 +79,12 @@ const Sidebar = () => {
       href: "/panel/ventas",
       roles: ["admin_tienda", "superadmin"],
     },
-
     {
       name: "Usuarios",
       icon: Users,
       href: "/panel/users",
       roles: ["superadmin"],
     },
-    // {
-    //   name: "Configuración",
-    //   icon: Settings,
-    //   href: "/panel/settings",
-    //   roles: ["admin_tienda", "vendedor", "cliente", "superadmin"],
-    // },
   ];
 
   // Filter menu items based on user role
@@ -93,14 +92,10 @@ const Sidebar = () => {
     (item) => !user?.role || item.roles.includes(user.role)
   );
 
-  // Función mejorada que comprueba si la ruta actual es o comienza con la ruta del enlace
+  // Mejorada para verificar si la ruta actual coincide o es hijo de la ruta del enlace
   const isActiveRoute = (href: string): boolean => {
-    // Comprueba si la ruta coincide exactamente
     if (pathname === href) return true;
-
-    // Comprueba si la ruta actual comienza con href y está seguida por / o final de cadena
     if (pathname.startsWith(href + "/")) return true;
-
     return false;
   };
 
@@ -110,54 +105,74 @@ const Sidebar = () => {
   };
 
   const toggleSidebar = () => {
-    setCollapsed(!collapsed);
+    const newState = !collapsed;
+    setCollapsed(newState);
+    if (mounted) {
+      localStorage.setItem("sidebarCollapsed", String(newState));
+    }
   };
+
+  function transformUserRole(role: string): string {
+    const roleMap: Record<string, string> = {
+      admin_tienda: "Administrador",
+      vendedor: "Vendedor",
+      cliente: "Cliente",
+      superadmin: "Super Administrador",
+    };
+
+    return roleMap[role] || "Usuario";
+  }
 
   return (
     <aside
       className={cn(
-        "h-screen bg-white hidden md:flex flex-col border-r border-gray-200 transition-all duration-300 ease-in-out sticky top-0",
-        collapsed ? "w-16" : "w-56"
+        "h-screen hidden md:flex flex-col border-r transition-all duration-300 ease-in-out sticky top-0 shadow-md",
+        collapsed ? "w-20" : "w-64",
+        "bg-[#f9f9fb] dark:bg-gray-900"
       )}
     >
       {/* Toggle button */}
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon"
         onClick={toggleSidebar}
-        className="absolute -right-4 top-16 h-8 w-8 rounded-full border border-gray-200 bg-white shadow-md z-10"
+        className="absolute -right-3 top-20 h-6 w-6 rounded-full border bg-white shadow-md z-10 p-0 flex items-center justify-center"
       >
         {collapsed ? (
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-3 w-3" />
         ) : (
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-3 w-3" />
         )}
       </Button>
 
-      {/* Contenedor principal */}
+      {/* Main container */}
       <div className="flex flex-col h-full">
         {/* Logo section */}
         <div
           className={cn(
-            "flex justify-center items-center transition-all mt-4",
-            collapsed ? "py-4" : "p-4"
+            "flex justify-center items-center transition-all pt-6 pb-4",
+            collapsed ? "px-2" : "px-4"
           )}
         >
           <Link href="/" className="flex justify-center">
             {collapsed ? (
-              <span className="text-2xl font-bold text-black">K</span>
+              <div className="bg-black text-white w-10 h-10 rounded-lg flex items-center justify-center shadow-md">
+                <span className="text-lg font-bold">K</span>
+              </div>
             ) : (
               <div className="flex flex-col justify-center items-center gap-2">
-                <Image
-                  src={"/logo-collapsed.png"}
-                  alt="Logo"
-                  width={70}
-                  height={70}
-                  priority
-                  className="object-cover p-2 transition-transform duration-300 hover:scale-105 shadow-md rounded-xl"
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                ></Image>
-                <span className="text-2xl font-bold tracking-wide text-black text-gray-700">
+                <div className="bg-gray-50 p-3 rounded-xl shadow-md transition-transform duration-300 hover:scale-105">
+                  <Image
+                    src={"/logo-collapsed.png"}
+                    alt="Logo"
+                    width={60}
+                    height={60}
+                    priority
+                    className="object-cover"
+                    sizes="50px"
+                  />
+                </div>
+                <span className="text-xl font-bold tracking-wide text-gray-800">
                   KEISHEN
                 </span>
               </div>
@@ -165,26 +180,29 @@ const Sidebar = () => {
           </Link>
         </div>
 
-        {/* User info */}
+        {/* User info with improved styling */}
         {!collapsed && (
-          <div className="px-4 py-2">
-            <p className="text-sm font-medium text-gray-900">
+          <div className="px-6 py-3 mx-4 mb-2 bg-gray-100 rounded-lg shadow-sm">
+            <p className="text-sm font-semibold text-gray-800 truncate">
               {user?.name || "Usuario"}
             </p>
-            <p className="text-xs text-gray-500">{user?.email}</p>
-            <p className="text-xs text-gray-500 capitalize">
-              {user?.role || "Invitado"}
-            </p>
-            <p className="text-xs text-gray-500 capitalize">
+            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+            <div className="flex items-center mt-1">
+              <div className="h-2 w-2 rounded-full bg-green-500 mr-2"></div>
+              <p className="text-xs text-gray-500 capitalize">
+                {transformUserRole(user?.role || "")}
+              </p>
+            </div>
+            <p className="text-xs text-gray-400 mt-1 truncate">
               ID: {user?.id_user || "N/A"}
             </p>
           </div>
         )}
 
         {/* Navigation section */}
-        <div className="flex-1 flex flex-col mt-4">
-          <ScrollArea className="py-4">
-            <nav className={cn(collapsed ? "px-1" : "px-2")}>
+        <div className="flex-1 flex flex-col mt-2 px-3">
+          <ScrollArea className="py-2 flex-1">
+            <nav className="space-y-1">
               <TooltipProvider delayDuration={300}>
                 {menuItems.map((item) => (
                   <Tooltip key={item.name}>
@@ -192,20 +210,31 @@ const Sidebar = () => {
                       <Link
                         href={item.href}
                         className={cn(
-                          "flex items-center mb-1 rounded-lg text-sm font-medium transition-colors",
-                          collapsed ? "justify-center px-2 py-2" : "px-3 py-2",
+                          "flex items-center rounded-lg text-sm font-medium transition-all duration-200",
+                          collapsed ? "justify-center p-3 mx-1" : "p-3 px-4",
                           isActiveRoute(item.href)
-                            ? "bg-black text-white shadow-xl"
-                            : "text-gray-500 hover:bg-yellow-50 hover:text-yellow-600"
+                            ? "bg-black text-white shadow-lg"
+                            : "text-gray-400 hover:text-[#e7b709] hover:bg-[#faf9f5]"
                         )}
                       >
                         <item.icon
-                          className={cn("w-5 h-5", collapsed ? "" : "mr-3")}
+                          className={cn(
+                            "flex-shrink-0",
+                            isActiveRoute(item.href) ? "h-5 w-5" : "h-5 w-5",
+                            collapsed ? "" : "mr-3"
+                          )}
                         />
                         {!collapsed && <span>{item.name}</span>}
                       </Link>
                     </TooltipTrigger>
-                    <TooltipContent side="right">{item.name}</TooltipContent>
+                    {collapsed && (
+                      <TooltipContent
+                        side="right"
+                        className="bg-gray-800 text-white"
+                      >
+                        {item.name}
+                      </TooltipContent>
+                    )}
                   </Tooltip>
                 ))}
               </TooltipProvider>
@@ -213,22 +242,22 @@ const Sidebar = () => {
           </ScrollArea>
         </div>
 
-        <Separator />
+        <Separator className="my-2" />
 
         {/* Logout section */}
-        <div className={cn(collapsed ? "p-2" : "p-4")}>
+        <div className={cn("p-3 mx-3 mb-4")}>
           <Button
             variant="ghost"
             className={cn(
-              "text-gray-500 hover:bg-yellow-50 hover:text-yellow-600",
+              "w-full transition-colors duration-200",
               collapsed
-                ? "w-full justify-center px-2 py-2"
-                : "w-full justify-start"
+                ? "justify-center px-2 py-2"
+                : "justify-start px-4 py-2",
+              "text-gray-400 hover:bg-red-50 hover:text-red-600 rounded-lg"
             )}
             onClick={handleLogout}
-            title={collapsed ? "Cerrar sesión" : undefined}
           >
-            <LogOut className={cn("w-5 h-5", collapsed ? "" : "mr-3")} />
+            <LogOut className={cn("h-5 w-5", collapsed ? "" : "mr-3")} />
             {!collapsed && (
               <span className="text-sm font-medium">Cerrar sesión</span>
             )}

@@ -23,7 +23,6 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import {
-  ProductDetail,
   User,
   Product,
   OrderData,

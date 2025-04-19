@@ -41,6 +41,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/hooks/useAuth";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const IMAGES_BASE_URL =
@@ -179,6 +180,7 @@ const AdminProductDetailPage: React.FC = () => {
     discountType: "product" | "category" | "none";
     originalPrice: number;
   } | null>(null);
+  const { user } = useAuth();
 
   const fetchProductDetails = async () => {
     setLoading(true);
@@ -395,48 +397,53 @@ const AdminProductDetailPage: React.FC = () => {
               />
               <span className="ml-2">Actualizar</span>
             </Button>
-            <Button
-              variant="outline"
-              onClick={handleEdit}
-              className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
-            >
-              <Edit size={16} className="mr-1" />
-              Editar
-            </Button>
 
-            <AlertDialog
-              open={deleteDialogOpen}
-              onOpenChange={setDeleteDialogOpen}
-            >
-              <AlertDialogTrigger asChild>
+            {user?.role !== "vendedor" && (
+              <>
                 <Button
                   variant="outline"
-                  className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                  onClick={handleEdit}
+                  className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
                 >
-                  <Trash2 size={16} className="mr-1" />
-                  Eliminar
+                  <Edit size={16} className="mr-1" />
+                  Editar
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Confirmar eliminación</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    ¿Estás seguro de que deseas eliminar este producto? Esta
-                    acción no se puede deshacer.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    className="bg-red-600 hover:bg-red-700"
-                    disabled={loading}
-                  >
-                    {loading ? "Eliminando..." : "Eliminar"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+
+                <AlertDialog
+                  open={deleteDialogOpen}
+                  onOpenChange={setDeleteDialogOpen}
+                >
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                    >
+                      <Trash2 size={16} className="mr-1" />
+                      Eliminar
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirmar eliminación</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        ¿Estás seguro de que deseas eliminar este producto? Esta
+                        acción no se puede deshacer.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDelete}
+                        className="bg-red-600 hover:bg-red-700"
+                        disabled={loading}
+                      >
+                        {loading ? "Eliminando..." : "Eliminar"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            )}
           </div>
 
           {/* Edit Modal */}

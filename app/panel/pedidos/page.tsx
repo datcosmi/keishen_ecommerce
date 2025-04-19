@@ -25,6 +25,9 @@ import {
   TagIcon,
   CircleIcon,
   Plus,
+  Clock,
+  Send,
+  CheckCircle,
 } from "lucide-react";
 import OrderDetailsModal from "@/components/orderDetailModal";
 
@@ -62,6 +65,24 @@ import {
 } from "@/components/ui/alert-dialog";
 import OrderFormModal from "@/components/forms/orderFormModal";
 import { Order, ProductVariant } from "@/types/orderTypes";
+
+const THEME_COLORS = {
+  primary: {
+    light: "#ebf5ff",
+    default: "#3b82f6",
+    dark: "#1e40af",
+  },
+  secondary: {
+    light: "#f0f9ff",
+    default: "#0ea5e9",
+    dark: "#0369a1",
+  },
+  accent: {
+    light: "#fef3c7",
+    default: "#f59e0b",
+    dark: "#b45309",
+  },
+};
 
 type SortField = "id" | "date" | "status" | "paymentMethod" | "total";
 type SortDirection = "asc" | "desc";
@@ -389,34 +410,6 @@ const OrderDashboard: React.FC = () => {
     );
   };
 
-  // Renderizar el badge de estado con el color correspondiente
-  const renderStatusBadge = (status: string) => {
-    let colorClass = "";
-
-    switch (status) {
-      case "pendiente":
-        colorClass = "bg-yellow-50 text-yellow-600 border-yellow-300";
-        break;
-      case "enviado":
-        colorClass = "bg-blue-50 text-blue-600 border-blue-300";
-        break;
-      case "finalizado":
-        colorClass = "bg-green-50 text-green-600 border-green-300";
-        break;
-      case "cancelado":
-        colorClass = "bg-red-50 text-red-600 border-red-300";
-        break;
-      default:
-        colorClass = "bg-gray-50 text-gray-600 border-gray-300";
-    }
-
-    return (
-      <Badge variant="outline" className={colorClass}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
-  };
-
   // Componente de dropdown para cambiar estado
   const StatusDropdown: React.FC<{
     orderId: number;
@@ -446,27 +439,32 @@ const OrderDashboard: React.FC = () => {
       {
         value: "pendiente",
         label: "Pendiente",
-        color: "bg-yellow-50 text-yellow-600 border border-yellow-300",
+        color: "bg-yellow-50 text-yellow-600 border border-yellow-200",
+        icon: <Clock className="h-3.5 w-3.5 mr-1.5 text-yellow-500" />,
       },
       {
         value: "enviado",
         label: "Enviado",
-        color: "bg-blue-50 text-blue-600 border border-blue-300",
+        color: "bg-blue-50 text-blue-600 border border-blue-200",
+        icon: <Send className="h-3.5 w-3.5 mr-1.5 text-blue-500" />,
       },
       {
         value: "finalizado",
         label: "Finalizado",
-        color: "bg-green-50 text-green-600 border border-green-300",
+        color: "bg-green-50 text-green-600 border border-green-200",
+        icon: <CheckCircle className="h-3.5 w-3.5 mr-1.5 text-green-500" />,
       },
       {
         value: "cancelado",
         label: "Cancelado",
-        color: "bg-red-50 text-red-600 border border-red-300",
+        color: "bg-red-50 text-red-600 border border-red-200",
+        icon: <X className="h-3.5 w-3.5 mr-1.5 text-red-500" />,
       },
       {
         value: "pagado",
         label: "Pagado",
-        color: "bg-purple-50 text-purple-600 border border-purple-300",
+        color: "bg-purple-50 text-purple-600 border border-purple-200",
+        icon: <CreditCard className="h-3.5 w-3.5 mr-1.5 text-purple-500" />,
       },
     ];
 
@@ -490,13 +488,13 @@ const OrderDashboard: React.FC = () => {
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`inline-flex items-center justify-between rounded-md px-3 py-1.5 text-sm font-medium  transition-all ${currentStatusOption.color} min-w-[120px]`}
+          className={`inline-flex items-center justify-between rounded-full px-3 py-1.5 text-sm font-medium transition-all ${currentStatusOption.color} min-w-[120px] hover:shadow-sm`}
           disabled={updating}
         >
           {updating ? (
             <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" />
           ) : (
-            <CircleIcon className="h-1.5 w-1.5 mr-1" />
+            currentStatusOption.icon
           )}
           {currentStatusOption.label}
           <ChevronDown className="h-4 w-4 ml-1" />
@@ -515,9 +513,7 @@ const OrderDashboard: React.FC = () => {
                       : "font-normal"
                   }`}
                 >
-                  <CircleIcon
-                    className={`h-1.5 w-1.5 mr-2 ${option.color.split(" ")[1]}`}
-                  />
+                  {option.icon}
                   {option.label}
                 </button>
               ))}
@@ -541,7 +537,10 @@ const OrderDashboard: React.FC = () => {
       <div className="p-6 flex-1">
         <div className="mb-6 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-800">Pedidos</h1>
+            <h1 className="text-2xl font-semibold text-gray-800 flex items-center">
+              <ShoppingBag className="h-6 w-6 mr-2 text-amber-400" />
+              Pedidos
+            </h1>
             <p className="text-sm text-gray-500">
               Gestiona los pedidos de tus clientes
             </p>
@@ -554,7 +553,7 @@ const OrderDashboard: React.FC = () => {
                 {!canDeleteOrders(selectedOrders) &&
                   selectedOrders.length > 0 && (
                     <div className="flex items-center align-content-center">
-                      <span className="text-xs text-red-500 mr-2">
+                      <span className="text-xs text-red-500 mr-2 bg-red-50 px-2 py-1 rounded">
                         Solo puedes eliminar pedidos pendientes
                       </span>
                     </div>
@@ -562,14 +561,15 @@ const OrderDashboard: React.FC = () => {
                 <Button
                   variant="outline"
                   onClick={handleClearSelection}
-                  className="text-gray-600"
+                  className="text-gray-600 border-gray-200 hover:bg-gray-50"
                 >
+                  <X size={16} className="mr-1" />
                   Cancelar ({selectedOrders.length})
                 </Button>
                 {singleOrderSelected && (
                   <Button
                     variant="outline"
-                    className="bg-blue-50 text-blue-600 hover:text-blue-600 border-blue-200 hover:bg-blue-100"
+                    className="bg-blue-50 text-blue-600 hover:text-blue-700 border-blue-200 hover:bg-blue-100"
                     onClick={handleEditOrder}
                   >
                     <Edit size={16} className="mr-1" />
@@ -583,17 +583,17 @@ const OrderDashboard: React.FC = () => {
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="outline"
-                      className="bg-red-50 text-red-600 hover:text-red-600 border-red-200 hover:bg-red-100"
+                      className="bg-red-50 text-red-600 hover:text-red-700 border-red-200 hover:bg-red-100"
                       disabled={!canDeleteOrders(selectedOrders)}
                     >
-                      <Trash2 size={18} className="mr-1" />
+                      <Trash2 size={16} className="mr-1" />
                       Eliminar
                     </Button>
                   </AlertDialogTrigger>
 
-                  <AlertDialogContent>
+                  <AlertDialogContent className="max-w-md">
                     <AlertDialogHeader>
-                      <AlertDialogTitle>
+                      <AlertDialogTitle className="text-lg">
                         ¿Eliminar pedidos seleccionados?
                       </AlertDialogTitle>
                       <AlertDialogDescription>
@@ -602,13 +602,25 @@ const OrderDashboard: React.FC = () => {
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogCancel className="border-gray-200">
+                        Cancelar
+                      </AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleDeleteSelected}
                         disabled={deleteLoading}
-                        className="bg-red-600 hover:bg-red-700"
+                        className="bg-red-600 hover:bg-red-700 text-white"
                       >
-                        {deleteLoading ? "Eliminando..." : "Eliminar"}
+                        {deleteLoading ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            Eliminando...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 size={16} className="mr-1" />
+                            Eliminar
+                          </>
+                        )}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -638,20 +650,28 @@ const OrderDashboard: React.FC = () => {
         </div>
 
         {/* Filtros */}
-        <div className="flex gap-4 mb-8 overflow-x-auto">
+        <div className="flex gap-3 mb-8 overflow-x-auto">
           {statusOptions.map((option) => (
             <Button
               key={option.id}
               variant={selectedStatus === option.label ? "default" : "outline"}
-              className={`rounded-lg text-sm font-medium ${
+              className={`rounded-lg text-sm font-medium relative ${
                 selectedStatus === option.label
-                  ? "bg-black text-white"
-                  : "text-gray-600 hover:bg-gray-50"
+                  ? "bg-black text-white hover:bg-gray-800"
+                  : "text-gray-600 hover:bg-white hover:text-amber-500 hover:border-amber-300"
               }`}
               onClick={() => setSelectedStatus(option.label)}
             >
               {option.label}
-              <span className="ml-2 text-xs">{option.count}</span>
+              <span
+                className={`ml-2 px-1.5 py-0.5 text-xs rounded-lg ${
+                  selectedStatus === option.label
+                    ? "bg-white text-black"
+                    : "bg-gray-100 text-gray-600"
+                }`}
+              >
+                {option.count}
+              </span>
             </Button>
           ))}
 
@@ -659,7 +679,7 @@ const OrderDashboard: React.FC = () => {
             <Button
               variant={isGridView ? "outline" : "default"}
               size="icon"
-              className={`mr-2 ${!isGridView ? "bg-black text-white" : ""}`}
+              className={`mr-2 ${!isGridView ? "bg-black text-white hover:bg-gray-900" : "border-gray-200 hover:bg-gray-50"}`}
               onClick={() => setIsGridView(false)}
             >
               <List className="h-5 w-5" />
@@ -667,7 +687,11 @@ const OrderDashboard: React.FC = () => {
             <Button
               variant={isGridView ? "default" : "outline"}
               size="icon"
-              className={isGridView ? "bg-black text-white" : ""}
+              className={
+                isGridView
+                  ? "bg-black text-white hover:bg-gray-900"
+                  : "border-gray-200 hover:bg-gray-50"
+              }
               onClick={() => setIsGridView(true)}
             >
               <Grid className="h-5 w-5" />
@@ -683,7 +707,7 @@ const OrderDashboard: React.FC = () => {
             </div>
             <Input
               type="text"
-              className="pl-10 pr-3 bg-white"
+              className="pl-10 pr-3 bg-white border-gray-200 shadow-sm hover:border-gray-300 transition-all"
               placeholder="Buscar pedidos..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -691,20 +715,23 @@ const OrderDashboard: React.FC = () => {
           </div>
           <Button
             variant="outline"
-            className="ml-2"
+            className="ml-2 border-gray-200 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200"
             onClick={handleRefresh}
             disabled={loading}
           >
-            <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-5 w-5 ${loading ? "animate-spin text-gray-600" : ""}`}
+            />
             <span className="ml-2">Actualizar</span>
           </Button>
         </div>
 
         {/* Estado para cargar los pedidos */}
         {loading ? (
-          <Card>
+          <Card className="min-h-[300px] flex items-center justify-center">
             <CardContent className="p-6 text-center">
-              <p>Cargando pedidos...</p>
+              <RefreshCw className="h-8 w-8 mb-4 mx-auto animate-spin text-gray-600" />
+              <p className="text-gray-600">Cargando pedidos...</p>
             </CardContent>
           </Card>
         ) : (
@@ -714,7 +741,7 @@ const OrderDashboard: React.FC = () => {
               {!isGridView ? (
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-gray-50">
                       <TableRow>
                         <TableHead className="w-10">
                           <div className="flex items-center justify-center">
@@ -735,7 +762,7 @@ const OrderDashboard: React.FC = () => {
                           </div>
                         </TableHead>
                         <TableHead
-                          className="cursor-pointer"
+                          className="cursor-pointer hover:text-blue-600"
                           onClick={() => handleSort("id")}
                         >
                           <div className="flex items-center">
@@ -744,7 +771,7 @@ const OrderDashboard: React.FC = () => {
                           </div>
                         </TableHead>
                         <TableHead
-                          className="cursor-pointer"
+                          className="cursor-pointer hover:text-blue-600"
                           onClick={() => handleSort("date")}
                         >
                           <div className="flex items-center">
@@ -754,7 +781,7 @@ const OrderDashboard: React.FC = () => {
                         </TableHead>
                         <TableHead>Cliente</TableHead>
                         <TableHead
-                          className="cursor-pointer"
+                          className="cursor-pointer hover:text-blue-600"
                           onClick={() => handleSort("status")}
                         >
                           <div className="flex items-center">
@@ -763,7 +790,7 @@ const OrderDashboard: React.FC = () => {
                           </div>
                         </TableHead>
                         <TableHead
-                          className="cursor-pointer"
+                          className="cursor-pointer hover:text-blue-600"
                           onClick={() => handleSort("paymentMethod")}
                         >
                           <div className="flex items-center">
@@ -772,7 +799,7 @@ const OrderDashboard: React.FC = () => {
                           </div>
                         </TableHead>
                         <TableHead
-                          className="cursor-pointer"
+                          className="cursor-pointer hover:text-blue-600"
                           onClick={() => handleSort("total")}
                         >
                           <div className="flex items-center">
@@ -788,7 +815,7 @@ const OrderDashboard: React.FC = () => {
                       {currentOrders.map((order) => (
                         <TableRow
                           key={order.pedido_id}
-                          className={`hover:bg-gray-50 ${
+                          className={`hover:bg-gray-50 transition-colors ${
                             selectedOrders.includes(order.pedido_id)
                               ? "bg-blue-50"
                               : ""
@@ -822,13 +849,6 @@ const OrderDashboard: React.FC = () => {
                               {order.cliente || "No especificado"}{" "}
                               {order.surname || ""}
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <StatusDropdown
-                              orderId={order.pedido_id}
-                              currentStatus={order.status}
-                              onStatusChange={handleStatusUpdate}
-                            />
                           </TableCell>
                           <TableCell>
                             <StatusDropdown
@@ -896,12 +916,27 @@ const OrderDashboard: React.FC = () => {
                   {currentOrders.map((order) => (
                     <Card
                       key={order.pedido_id}
-                      className={
+                      className={`overflow-hidden transition-all duration-200 hover:shadow-md ${
                         selectedOrders.includes(order.pedido_id)
-                          ? "ring-2 ring-blue-500"
-                          : ""
-                      }
+                          ? "ring-2 ring-blue-500 shadow-md"
+                          : "hover:border-blue-200"
+                      }`}
                     >
+                      <div
+                        className={`h-2 ${
+                          order.status === "pendiente"
+                            ? "bg-yellow-400"
+                            : order.status === "enviado"
+                              ? "bg-blue-400"
+                              : order.status === "finalizado"
+                                ? "bg-green-400"
+                                : order.status === "cancelado"
+                                  ? "bg-red-400"
+                                  : order.status === "pagado"
+                                    ? "bg-purple-400"
+                                    : "bg-gray-400"
+                        }`}
+                      ></div>
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center">
@@ -1015,13 +1050,13 @@ const OrderDashboard: React.FC = () => {
 
               {/* Paginación */}
               {filteredOrders.length > 0 && (
-                <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200">
+                <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200 bg-gray-50">
                   <div className="flex items-center">
                     <Select
                       value={rowsPerPage.toString()}
                       onValueChange={handleRowsPerPageChange}
                     >
-                      <SelectTrigger className="w-20 h-8">
+                      <SelectTrigger className="w-20 h-8 border-gray-200">
                         <SelectValue placeholder={rowsPerPage.toString()} />
                       </SelectTrigger>
                       <SelectContent>
@@ -1038,7 +1073,15 @@ const OrderDashboard: React.FC = () => {
 
                   <div className="flex items-center justify-end gap-2">
                     <span className="text-sm text-gray-700">
-                      Página {currentPage} de {totalPages}
+                      Mostrando{" "}
+                      <span className="font-medium">
+                        {indexOfFirstOrder + 1}-
+                        {Math.min(indexOfLastOrder, filteredOrders.length)}
+                      </span>{" "}
+                      de{" "}
+                      <span className="font-medium">
+                        {filteredOrders.length}
+                      </span>
                     </span>
 
                     <div className="flex ml-2 gap-1">
@@ -1047,7 +1090,7 @@ const OrderDashboard: React.FC = () => {
                         size="icon"
                         onClick={() => handlePageChange(1)}
                         disabled={currentPage === 1}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 border-gray-200 hover:bg-blue-50 hover:border-blue-200"
                       >
                         <ChevronsLeft size={16} />
                       </Button>
@@ -1056,7 +1099,7 @@ const OrderDashboard: React.FC = () => {
                         size="icon"
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 border-gray-200 hover:bg-blue-50 hover:border-blue-200"
                       >
                         <ChevronLeft size={16} />
                       </Button>
@@ -1065,7 +1108,7 @@ const OrderDashboard: React.FC = () => {
                         size="icon"
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 border-gray-200 hover:bg-blue-50 hover:border-blue-200"
                       >
                         <ChevronRight size={16} />
                       </Button>
@@ -1074,7 +1117,7 @@ const OrderDashboard: React.FC = () => {
                         size="icon"
                         onClick={() => handlePageChange(totalPages)}
                         disabled={currentPage === totalPages}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 border-gray-200 hover:bg-blue-50 hover:border-blue-200"
                       >
                         <ChevronsRight size={16} />
                       </Button>

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -18,6 +18,8 @@ import {
   Plus,
   CheckSquare,
   Square,
+  Archive,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -53,6 +55,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import ProductFormModal from "@/components/forms/productFormModal";
 import { Product, ProductData } from "@/types/productTypes";
+import { useAuth } from "@/hooks/useAuth";
 
 type SortField = "name" | "price" | "stock" | "inStock";
 type SortDirection = "asc" | "desc";
@@ -69,6 +72,8 @@ const ProductDashboard: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
+
+  const { user } = useAuth();
 
   // Estado para productos seleccionados
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
@@ -408,19 +413,24 @@ const ProductDashboard: React.FC = () => {
       <div className="p-6 flex-1">
         <div className="mb-6 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-800">Productos</h1>
+            <h1 className="text-2xl font-semibold text-gray-800 flex items-center">
+              <Archive className="h-6 w-6 mr-2 text-amber-400" />
+              Productos
+            </h1>
             <p className="text-sm text-gray-500">
               Aquí tienes una lista de todos los productos disponibles
             </p>
           </div>
+
           <div className="flex items-center gap-2">
             {selectedProducts.length > 0 && (
               <>
                 <Button
                   variant="outline"
                   onClick={() => setSelectedProducts([])}
-                  className="text-gray-600"
+                  className="text-gray-600 border-gray-200 hover:bg-gray-50"
                 >
+                  <X size={16} className="mr-1" />
                   Cancelar ({selectedProducts.length})
                 </Button>
 
@@ -428,7 +438,7 @@ const ProductDashboard: React.FC = () => {
                   <Button
                     variant="outline"
                     onClick={handleEdit}
-                    className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                    className="bg-blue-50 text-blue-600 hover:text-blue-700 border-blue-200 hover:bg-blue-100"
                   >
                     <Edit size={16} className="mr-1" />
                     Editar
@@ -442,7 +452,7 @@ const ProductDashboard: React.FC = () => {
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="outline"
-                      className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                      className="bg-red-50 text-red-600 hover:text-red-700 border-red-200 hover:bg-red-100"
                     >
                       <Trash2 size={16} className="mr-1" />
                       Eliminar{" "}
@@ -475,13 +485,15 @@ const ProductDashboard: React.FC = () => {
               </>
             )}
 
-            <ProductFormModal
-              onProductAdded={handleProductAdded}
-              onProductUpdated={handleProductUpdated}
-              buttonLabel="Añadir Producto"
-              buttonIcon={<Plus className="h-5 w-5 mr-2" />}
-              existingProducts={activeProducts}
-            />
+            {user?.role !== "vendedor" && (
+              <ProductFormModal
+                onProductAdded={handleProductAdded}
+                onProductUpdated={handleProductUpdated}
+                buttonLabel="Añadir Producto"
+                buttonIcon={<Plus className="h-5 w-5 mr-2" />}
+                existingProducts={activeProducts}
+              />
+            )}
 
             {/* Edit Modal */}
             <ProductFormModal
@@ -498,20 +510,28 @@ const ProductDashboard: React.FC = () => {
         </div>
 
         {/* Filtros */}
-        <div className="flex gap-4 mb-8 overflow-x-auto">
+        <div className="flex gap-3 mb-8 overflow-x-auto">
           {statusOptions.map((option) => (
             <Button
               key={option.id}
               variant={selectedStatus === option.label ? "default" : "outline"}
-              className={`rounded-lg text-sm font-medium ${
+              className={`rounded-lg text-sm font-medium relative ${
                 selectedStatus === option.label
-                  ? "bg-black text-white"
-                  : "text-gray-600 hover:bg-gray-50"
+                  ? "bg-black text-white hover:bg-gray-800"
+                  : "text-gray-600 hover:bg-white hover:text-amber-500 hover:border-amber-300"
               }`}
               onClick={() => setSelectedStatus(option.label)}
             >
               {option.label}
-              <span className="ml-2 text-xs">{option.count}</span>
+              <span
+                className={`ml-2 px-1.5 py-0.5 text-xs rounded-lg ${
+                  selectedStatus === option.label
+                    ? "bg-white text-black"
+                    : "bg-gray-100 text-gray-600"
+                }`}
+              >
+                {option.count}
+              </span>
             </Button>
           ))}
 
@@ -562,9 +582,10 @@ const ProductDashboard: React.FC = () => {
 
         {/* Estado para cargar los productos */}
         {loading ? (
-          <Card>
+          <Card className="min-h-[300px] flex items-center justify-center">
             <CardContent className="p-6 text-center">
-              <p>Cargando productos...</p>
+              <RefreshCw className="h-8 w-8 mb-4 mx-auto animate-spin text-gray-600" />
+              <p className="text-gray-600">Cargando productos...</p>
             </CardContent>
           </Card>
         ) : (
@@ -577,21 +598,23 @@ const ProductDashboard: React.FC = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-10">
-                          <button
-                            onClick={handleSelectAll}
-                            className="focus:outline-none"
-                          >
-                            {selectedProducts.length ===
-                              currentProducts.length &&
-                            currentProducts.length > 0 ? (
-                              <CheckSquare
-                                size={18}
-                                className="text-blue-600"
-                              />
-                            ) : (
-                              <Square size={18} className="text-gray-400" />
-                            )}
-                          </button>
+                          {user?.role !== "vendedor" && (
+                            <button
+                              onClick={handleSelectAll}
+                              className="focus:outline-none"
+                            >
+                              {selectedProducts.length ===
+                                currentProducts.length &&
+                              currentProducts.length > 0 ? (
+                                <CheckSquare
+                                  size={18}
+                                  className="text-blue-600"
+                                />
+                              ) : (
+                                <Square size={18} className="text-gray-400" />
+                              )}
+                            </button>
+                          )}
                         </TableHead>
                         <TableHead
                           className="cursor-pointer"
@@ -648,19 +671,21 @@ const ProductDashboard: React.FC = () => {
                           }`}
                         >
                           <TableCell className="p-2">
-                            <button
-                              onClick={() => handleProductSelect(product.id)}
-                              className="focus:outline-none"
-                            >
-                              {selectedProducts.includes(product.id) ? (
-                                <CheckSquare
-                                  size={18}
-                                  className="text-blue-600"
-                                />
-                              ) : (
-                                <Square size={18} className="text-gray-400" />
-                              )}
-                            </button>
+                            {user?.role !== "vendedor" && (
+                              <button
+                                onClick={() => handleProductSelect(product.id)}
+                                className="focus:outline-none"
+                              >
+                                {selectedProducts.includes(product.id) ? (
+                                  <CheckSquare
+                                    size={18}
+                                    className="text-blue-600"
+                                  />
+                                ) : (
+                                  <Square size={18} className="text-gray-400" />
+                                )}
+                              </button>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center">
@@ -774,19 +799,21 @@ const ProductDashboard: React.FC = () => {
                     >
                       <CardContent className="p-4">
                         <div className="flex items-center mb-3">
-                          <button
-                            onClick={() => handleProductSelect(product.id)}
-                            className="focus:outline-none mr-2"
-                          >
-                            {selectedProducts.includes(product.id) ? (
-                              <CheckSquare
-                                size={18}
-                                className="text-blue-600"
-                              />
-                            ) : (
-                              <Square size={18} className="text-gray-400" />
-                            )}
-                          </button>
+                          {user?.role !== "vendedor" && (
+                            <button
+                              onClick={() => handleProductSelect(product.id)}
+                              className="focus:outline-none mr-2"
+                            >
+                              {selectedProducts.includes(product.id) ? (
+                                <CheckSquare
+                                  size={18}
+                                  className="text-blue-600"
+                                />
+                              ) : (
+                                <Square size={18} className="text-gray-400" />
+                              )}
+                            </button>
+                          )}
                           <div className="w-12 h-12 rounded-sm flex items-center justify-center bg-gray-100">
                             <div className="w-12 h-12 relative">
                               {product.images.length > 0 ? (

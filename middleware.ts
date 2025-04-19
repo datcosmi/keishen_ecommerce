@@ -10,7 +10,7 @@ const protectedRoutes = [
   },
   {
     path: "/panel/products",
-    roles: ["admin_tienda", "superadmin"],
+    roles: ["admin_tienda", "superadmin", "vendedor"],
   },
   {
     path: "/panel/pedidos",

@@ -392,7 +392,7 @@ const DiscountDashboard: React.FC = () => {
             className={`rounded-lg text-sm font-medium ${
               discountType === "product"
                 ? "bg-black text-white"
-                : "text-gray-600 hover:bg-gray-50"
+                : "text-gray-600 hover:bg-white hover:text-amber-500 hover:border-amber-300"
             }`}
           >
             <ShoppingBag className="mr-2 h-4 w-4" />
@@ -404,7 +404,7 @@ const DiscountDashboard: React.FC = () => {
             className={`rounded-lg text-sm font-medium ${
               discountType === "category"
                 ? "bg-black text-white"
-                : "text-gray-600 hover:bg-gray-50"
+                : "text-gray-600 hover:bg-white hover:text-amber-500 hover:border-amber-300"
             }`}
           >
             <Tags className="mr-2 h-4 w-4" />
@@ -441,9 +441,10 @@ const DiscountDashboard: React.FC = () => {
 
         {/* Estado para cargar los descuentos */}
         {loading ? (
-          <Card>
+          <Card className="min-h-[300px] flex items-center justify-center">
             <CardContent className="p-6 text-center">
-              <p>Cargando descuentos...</p>
+              <RefreshCw className="h-8 w-8 mb-4 mx-auto animate-spin text-gray-600" />
+              <p className="text-gray-600">Cargando descuentos...</p>
             </CardContent>
           </Card>
         ) : (
