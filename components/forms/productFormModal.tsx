@@ -1,12 +1,10 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Upload } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -16,56 +14,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Image from "next/image";
+import { Category } from "@/types/categoryTypes";
+import {
+  ProductDetail,
+  ProductFormData,
+  ProductFormModalProps,
+} from "@/types/productFormTypes";
+import BasicInfoTab from "./form-components/basicInfoTab";
+import ImagesTab from "./form-components/imagesTab";
+import VariantsTab from "./form-components/variantsTab";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const IMAGES_BASE_URL =
   process.env.NEXT_PUBLIC_IMAGES_URL || "https://keishen.com.mx";
-
-interface Category {
-  id_cat: number;
-  name: string;
-}
-
-interface ProductDetail {
-  detail_name: string;
-  detail_desc: string;
-  stock?: number;
-  id_pd?: number;
-}
-
-interface ProductFormData {
-  name: string;
-  description: string;
-  price: number;
-  cat_id: number;
-  stock: number;
-  colorDetails: ProductDetail[];
-  sizeDetails: ProductDetail[];
-  tallaSizeDetails: ProductDetail[];
-  materialDetails: ProductDetail[];
-}
-
-interface ProductFormModalProps {
-  onProductAdded: (product: any) => void;
-  onProductUpdated?: (product: any) => void;
-  product?: any;
-  buttonLabel?: string;
-  buttonIcon?: React.ReactNode;
-  isOpen?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  existingProducts?: any[];
-}
 
 const ProductFormModal: React.FC<ProductFormModalProps> = ({
   onProductAdded,
@@ -637,15 +599,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation for stock
-    // const totalVariantStock = calculateTotalVariantStock();
-    // if (totalVariantStock > formData.stock) {
-    //   toast.error(
-    //     "La suma del stock de todas las variantes no puede superar el stock total del producto"
-    //   );
-    //   return;
-    // }
-
     // Check each variant type separately
     const colorStock = formData.colorDetails.reduce(
       (sum, detail) => sum + (detail.stock || 0),
@@ -975,421 +928,64 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
             </TabsList>
 
             {/* Basic Information Tab */}
-            <TabsContent value="basicInfo" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nombre del Producto *</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Nombre del producto"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Descripción *</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Describe el producto"
-                  required
-                  className="min-h-[100px]"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">Precio *</Label>
-                  <Input
-                    id="price"
-                    name="price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.price || ""}
-                    onChange={handleInputChange}
-                    placeholder="0.00"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="stock">Stock *</Label>
-                  <Input
-                    id="stock"
-                    name="stock"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={formData.stock || ""}
-                    onChange={handleInputChange}
-                    placeholder="0"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="cat_id">Categoría *</Label>
-                  <Select
-                    value={formData.cat_id ? formData.cat_id.toString() : ""}
-                    onValueChange={(value) =>
-                      handleSelectChange("cat_id", value)
-                    }
-                    required
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona una categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem
-                          key={category.id_cat}
-                          value={category.id_cat.toString()}
-                        >
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+            <TabsContent value="basicInfo">
+              <BasicInfoTab
+                formData={formData}
+                handleInputChange={handleInputChange}
+                handleSelectChange={handleSelectChange}
+                categories={categories}
+              />
             </TabsContent>
 
-            <TabsContent value="images" className="space-y-4">
-              <div className="space-y-4">
-                <Label>Imágenes del Producto</Label>
-
-                {/* Área para cargar nuevas imágenes */}
-                <div className="border-2 border-dashed rounded-md p-6 text-center cursor-pointer hover:bg-gray-50 transition-colors">
-                  <Input
-                    type="file"
-                    id="product-images"
-                    className="hidden"
-                    onChange={handleFileChange}
-                    multiple
-                    accept="image/*"
-                  />
-                  <Label
-                    htmlFor="product-images"
-                    className="cursor-pointer flex flex-col items-center"
-                  >
-                    <Upload className="h-8 w-8 mb-2 text-gray-400" />
-                    <span className="text-sm font-medium">
-                      Haz clic para seleccionar imágenes
-                    </span>
-                    <span className="text-xs text-gray-500 mt-1">
-                      o arrastra y suelta tus archivos aquí
-                    </span>
-                  </Label>
-                </div>
-
-                {/* Vista previa de imágenes nuevas */}
-                {images.length > 0 && (
-                  <div className="mt-4">
-                    <Label className="mb-2 block">
-                      Imágenes nuevas seleccionadas
-                    </Label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {images.map((image, idx) => (
-                        <div
-                          key={idx}
-                          className="relative rounded-md overflow-hidden h-32 bg-gray-100"
-                        >
-                          <Image
-                            src={URL.createObjectURL(image)}
-                            alt={`Preview ${idx}`}
-                            width={500}
-                            height={500}
-                            className="w-full h-full object-cover"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-1 right-1 h-6 w-6 rounded-full"
-                            onClick={() => removeSelectedImage(idx)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Imágenes existentes del producto (para modo edición) */}
-                {productImages.length > 0 && (
-                  <div className="mt-6">
-                    <Label className="mb-2 block">
-                      Imágenes actuales del producto
-                    </Label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {productImages.map((image) => (
-                        <div
-                          key={image.image_id}
-                          className="relative rounded-md overflow-hidden h-32 bg-gray-100"
-                        >
-                          <Image
-                            src={`${IMAGES_BASE_URL}${image.image_url}`}
-                            alt={`Image not found`}
-                            width={500}
-                            height={500}
-                            className="w-full h-full object-cover"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-1 right-1 h-6 w-6 rounded-full"
-                            onClick={() => handleImageDelete(image.image_id)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+            {/* Images Tab */}
+            <TabsContent value="images">
+              <ImagesTab
+                images={images}
+                productImages={productImages}
+                handleFileChange={handleFileChange}
+                removeSelectedImage={removeSelectedImage}
+                handleImageDelete={handleImageDelete}
+                IMAGES_BASE_URL={IMAGES_BASE_URL}
+              />
             </TabsContent>
 
             {/* Variants Tab */}
-            <TabsContent value="variants" className="space-y-6">
-              {/* Colors */}
-              <div className="space-y-2">
-                <Label>Colores Disponibles</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="color"
-                    value={colorInput}
-                    onChange={(e) => setColorInput(e.target.value)}
-                    className="w-16"
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="Stock"
-                    value={colorStockInput}
-                    onChange={(e) => setColorStockInput(e.target.value)}
-                    className="w-24"
-                  />
-                  <Button
-                    type="button"
-                    onClick={addColor}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    Añadir Color
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.colorDetails.length > 0 ? (
-                    formData.colorDetails.map((detail) => (
-                      <div
-                        key={detail.detail_desc}
-                        className="flex items-center gap-1 px-3 py-1 rounded-md border"
-                      >
-                        <div
-                          className="h-4 w-4 rounded-full"
-                          style={{ backgroundColor: detail.detail_desc }}
-                        />
-                        <span className="text-sm">{detail.detail_desc}</span>
-                        <Input
-                          type="number"
-                          min="0"
-                          value={detail.stock || ""}
-                          onChange={(e) =>
-                            editColorStock(
-                              detail,
-                              parseInt(e.target.value) || 0
-                            )
-                          }
-                          className="w-16 h-6 mx-1 p-1 text-xs"
-                        />
-                        <X
-                          className="h-3 w-3 ml-1 cursor-pointer"
-                          onClick={() => removeColor(detail.detail_desc)}
-                        />
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      No hay colores añadidos
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Sizes */}
-              <div className="space-y-2">
-                <Label>Tamaños Disponibles</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={sizeInput}
-                    onChange={(e) => setSizeInput(e.target.value)}
-                    placeholder="Añadir tamaño (ej: 10cm x 15cm)"
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="Stock"
-                    value={sizeStockInput}
-                    onChange={(e) => setSizeStockInput(e.target.value)}
-                    className="w-24"
-                  />
-                  <Button type="button" onClick={addSize} variant="outline">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.sizeDetails.length > 0 ? (
-                    formData.sizeDetails.map((detail) => (
-                      <Badge
-                        key={detail.detail_desc}
-                        variant="secondary"
-                        className="px-3 py-1 flex items-center"
-                      >
-                        {detail.detail_desc}
-                        <Input
-                          type="number"
-                          min="0"
-                          value={detail.stock || ""}
-                          onChange={(e) =>
-                            editSizeStock(detail, parseInt(e.target.value) || 0)
-                          }
-                          className="w-16 h-6 mx-1 p-1 text-xs"
-                        />
-                        <X
-                          className="h-3 w-3 ml-1 cursor-pointer"
-                          onClick={() => removeSize(detail.detail_desc)}
-                        />
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      No hay tamaños añadidos
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Tallas */}
-              <div className="space-y-2">
-                <Label>Tallas Disponibles</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={tallaInput}
-                    onChange={(e) => setTallaInput(e.target.value)}
-                    placeholder="Añadir talla (ej: S, M, L, XL)"
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="Stock"
-                    value={tallaStockInput}
-                    onChange={(e) => setTallaStockInput(e.target.value)}
-                    className="w-24"
-                  />
-                  <Button type="button" onClick={addTalla} variant="outline">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.tallaSizeDetails.length > 0 ? (
-                    formData.tallaSizeDetails.map((detail) => (
-                      <Badge
-                        key={detail.detail_desc}
-                        variant="secondary"
-                        className="px-3 py-1 flex items-center"
-                      >
-                        {detail.detail_desc}
-                        <Input
-                          type="number"
-                          min="0"
-                          value={detail.stock || ""}
-                          onChange={(e) =>
-                            editTallaStock(
-                              detail,
-                              parseInt(e.target.value) || 0
-                            )
-                          }
-                          className="w-16 h-6 mx-1 p-1 text-xs"
-                        />
-                        <X
-                          className="h-3 w-3 ml-1 cursor-pointer"
-                          onClick={() => removeTalla(detail.detail_desc)}
-                        />
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      No hay tallas añadidas
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Materials */}
-              <div className="space-y-2">
-                <Label>Materiales Disponibles</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={materialInput}
-                    onChange={(e) => setMaterialInput(e.target.value)}
-                    placeholder="Añadir material (ej: Algodón, Poliéster)"
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="Stock"
-                    value={materialStockInput}
-                    onChange={(e) => setMaterialStockInput(e.target.value)}
-                    className="w-24"
-                  />
-                  <Button type="button" onClick={addMaterial} variant="outline">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.materialDetails.length > 0 ? (
-                    formData.materialDetails.map((detail) => (
-                      <Badge
-                        key={detail.detail_desc}
-                        variant="secondary"
-                        className="px-3 py-1 flex items-center"
-                      >
-                        {detail.detail_desc}
-                        <Input
-                          type="number"
-                          min="0"
-                          value={detail.stock || ""}
-                          onChange={(e) =>
-                            editMaterialStock(
-                              detail,
-                              parseInt(e.target.value) || 0
-                            )
-                          }
-                          className="w-16 h-6 mx-1 p-1 text-xs"
-                        />
-                        <X
-                          className="h-3 w-3 ml-1 cursor-pointer"
-                          onClick={() => removeMaterial(detail.detail_desc)}
-                        />
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      No hay materiales añadidos
-                    </p>
-                  )}
-                </div>
-              </div>
+            <TabsContent value="variants">
+              <VariantsTab
+                formData={formData}
+                // Color props
+                colorInput={colorInput}
+                setColorInput={setColorInput}
+                colorStockInput={colorStockInput}
+                setColorStockInput={setColorStockInput}
+                addColor={addColor}
+                removeColor={removeColor}
+                editColorStock={editColorStock}
+                // Size props
+                sizeInput={sizeInput}
+                setSizeInput={setSizeInput}
+                sizeStockInput={sizeStockInput}
+                setSizeStockInput={setSizeStockInput}
+                addSize={addSize}
+                removeSize={removeSize}
+                editSizeStock={editSizeStock}
+                // Talla props
+                tallaInput={tallaInput}
+                setTallaInput={setTallaInput}
+                tallaStockInput={tallaStockInput}
+                setTallaStockInput={setTallaStockInput}
+                addTalla={addTalla}
+                removeTalla={removeTalla}
+                editTallaStock={editTallaStock}
+                // Material props
+                materialInput={materialInput}
+                setMaterialInput={setMaterialInput}
+                materialStockInput={materialStockInput}
+                setMaterialStockInput={setMaterialStockInput}
+                addMaterial={addMaterial}
+                removeMaterial={removeMaterial}
+                editMaterialStock={editMaterialStock}
+              />
             </TabsContent>
           </Tabs>
 
