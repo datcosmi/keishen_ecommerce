@@ -22,82 +22,15 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-
-// Define types
-interface ProductDetail {
-  detail_id: number;
-  detail_name: string;
-  detail_desc: string;
-  stock: number;
-}
-
-interface ProductImage {
-  image_id: number;
-  image_url: string;
-}
-
-interface Discount {
-  id_discount: number;
-  percent_discount: number;
-  start_date_discount: string;
-  end_date_discount: string;
-}
-
-interface User {
-  id_user: string | number;
-  name: string;
-}
-
-interface Product {
-  id_prod?: string | number;
-  id_product?: string | number;
-  name?: string;
-  product_name?: string;
-  price?: number;
-  description?: string;
-  category_id?: number;
-  category?: string;
-  stock?: number;
-  product_details?: ProductDetail[];
-  product_images?: ProductImage[];
-  discount_product?: Discount[];
-  discount_category?: Discount[];
-}
-
-interface OrderData {
-  user_id?: string | number;
-  fecha_pedido: string;
-  status: "pendiente" | "enviado" | "finalizado";
-  metodo_pago: "efectivo" | "mercado pago" | "paypal";
-}
-
-interface OrderDetail {
-  prod_id: string | number;
-  amount: number;
-  unit_price: number;
-  productName?: string;
-  selected_details?: number[];
-  discount?: number;
-}
-
-interface OrderFormModalProps {
-  onOrderAdded?: () => void;
-  onOrderUpdated?: () => void;
-  existingOrder?: {
-    id_pedido?: string | number;
-    cliente?: string;
-    fecha_pedido: string;
-    status: "pendiente" | "enviado" | "finalizado";
-    metodo_pago: "efectivo" | "mercado pago" | "paypal";
-    detalles?: OrderDetail[];
-  };
-  isEditMode?: boolean;
-  isOpen?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  buttonLabel?: string;
-  buttonIcon?: React.ReactNode;
-  hideButton?: boolean;
-}
+import {
+  ProductDetail,
+  User,
+  Product,
+  OrderData,
+  OrderDetail,
+  OrderFormModalProps,
+} from "@/types/orderFormTypes";
+import ProductSelector from "./form-components/productSelector";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -130,7 +63,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
 
   // Form data
   const [orderData, setOrderData] = useState<OrderData>({
-    fecha_pedido: new Date().toISOString(),
+    fecha_pedido: getLocalDateTime(),
     status: "pendiente",
     metodo_pago: "efectivo",
   });
@@ -903,6 +836,13 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
     }
   };
 
+  function getLocalDateTime() {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const localTime = new Date(now.getTime() - offset * 60 * 1000);
+    return localTime.toISOString().slice(0, 16); // format: "YYYY-MM-DDTHH:mm"
+  }
+
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -914,7 +854,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
             </Button>
           </DialogTrigger>
         )}
-        <DialogContent className="sm:max-w-4xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {isEditMode ? "Editar Pedido" : "Crear Nuevo Pedido"}
@@ -974,7 +914,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
                               className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                               onClick={() => handleUserSelect(user)}
                             >
-                              {user.name}
+                              {user.name} {user.surname}
                             </li>
                           ))}
                         </ul>
@@ -990,11 +930,11 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
                   </label>
                   <Input
                     type="datetime-local"
-                    value={orderData.fecha_pedido.slice(0, 16)}
+                    value={orderData.fecha_pedido}
                     onChange={(e) =>
                       setOrderData({
                         ...orderData,
-                        fecha_pedido: new Date(e.target.value).toISOString(),
+                        fecha_pedido: e.target.value,
                       })
                     }
                   />
@@ -1105,181 +1045,80 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
                 </div>
               </div>
 
-              <div className="mt-4">
-                <h3 className="text-lg font-medium mb-2">Agregar Productos</h3>
+              <ProductSelector
+                products={products}
+                onProductAdded={(detail) => {
+                  // Check if we have enough stock based on existing order items
+                  const productVariantKey = `${detail.prod_id}-${
+                    detail.selected_details?.sort().join("-") || ""
+                  }`;
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  {/* Producto (Autocomplete) */}
-                  <div className="relative" ref={productDropdownRef}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Producto
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="h-4 w-4 text-gray-400" />
-                      </div>
-                      <Input
-                        type="text"
-                        className="pl-10"
-                        placeholder="Buscar producto..."
-                        value={productSearch}
-                        onChange={(e) => {
-                          setProductSearch(e.target.value);
-                          setShowProductDropdown(true);
-                        }}
-                        onFocus={() => setShowProductDropdown(true)}
-                      />
-                    </div>
+                  // Check if the same product with same variants exists in order
+                  const existingProductIndex = orderDetails.findIndex(
+                    (orderDetail) => {
+                      const detailVariantKey = `${orderDetail.prod_id}-${
+                        orderDetail.selected_details?.sort().join("-") || ""
+                      }`;
+                      return detailVariantKey === productVariantKey;
+                    }
+                  );
 
-                    {selectedProduct &&
-                      selectedProduct.product_details &&
-                      selectedProduct.product_details.length > 0 && (
-                        <div className="mt-4 border rounded-md p-4 bg-gray-50">
-                          <h4 className="text-sm font-medium mb-2">
-                            Variantes del Producto
-                          </h4>
+                  // Calculate total amount including existing amount in order if any
+                  let totalAmount = detail.amount;
+                  if (existingProductIndex >= 0) {
+                    totalAmount += orderDetails[existingProductIndex].amount;
+                  }
 
-                          {/* Group details by detail_name */}
-                          {Object.entries(
-                            selectedProduct.product_details.reduce(
-                              (acc, detail) => {
-                                if (!acc[detail.detail_name]) {
-                                  acc[detail.detail_name] = [];
-                                }
-                                acc[detail.detail_name].push(detail);
-                                return acc;
-                              },
-                              {} as Record<string, ProductDetail[]>
-                            )
-                          ).map(([detailName, details]) => (
-                            <div key={detailName} className="mb-3">
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                {detailName}
-                              </label>
-                              <div className="flex flex-wrap gap-2">
-                                {details.map((detail) => (
-                                  <Button
-                                    key={detail.detail_id}
-                                    type="button"
-                                    variant={
-                                      currentDetail.selected_details?.includes(
-                                        detail.detail_id
-                                      )
-                                        ? "default"
-                                        : "outline"
-                                    }
-                                    className={
-                                      currentDetail.selected_details?.includes(
-                                        detail.detail_id
-                                      )
-                                        ? "bg-black hover:bg-gray-800"
-                                        : ""
-                                    }
-                                    onClick={() =>
-                                      handleVariantSelect(
-                                        detailName,
-                                        detail.detail_id
-                                      )
-                                    }
-                                    disabled={detail.stock === 0}
-                                  >
-                                    {detail.detail_desc}
-                                    <span className="ml-1 text-xs">
-                                      ({detail.stock})
-                                    </span>
-                                  </Button>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                  // Find the product
+                  const selectedProduct = products.find(
+                    (p) =>
+                      p.id_product === detail.prod_id ||
+                      p.id_prod === detail.prod_id
+                  );
 
-                    {/* Dropdown de productos */}
-                    {showProductDropdown && filteredProducts.length > 0 && (
-                      <Card className="absolute z-10 w-full mt-1 max-h-48 overflow-auto">
-                        <CardContent className="p-0">
-                          <ul className="divide-y divide-gray-200">
-                            {filteredProducts.map((product) => (
-                              <li
-                                key={(
-                                  product.id_product ||
-                                  product.id_prod ||
-                                  ""
-                                ).toString()}
-                                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                                onClick={() => handleProductSelect(product)}
-                              >
-                                <div className="flex justify-between">
-                                  <span>
-                                    {product.product_name ||
-                                      product.name ||
-                                      "Unknown"}{" "}
-                                    - ${product.price || 0}
-                                    {calculateCombinedDiscount(product) > 0 && (
-                                      <span className="ml-2 text-green-600">
-                                        (-{calculateCombinedDiscount(product)}%)
-                                      </span>
-                                    )}
-                                  </span>
-                                  <span
-                                    className={`text-sm ${
-                                      (product.stock || 0) > 5
-                                        ? "text-green-600"
-                                        : "text-red-600"
-                                    }`}
-                                  >
-                                    Stock: {product.stock || 0}
-                                  </span>
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
+                  if (!selectedProduct) return;
 
-                  {/* Cantidad */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Cantidad
-                    </label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={currentDetail.amount}
-                      onChange={(e) =>
-                        setCurrentDetail({
-                          ...currentDetail,
-                          amount: parseInt(e.target.value) || 1,
-                        })
+                  // Check if we have enough stock
+                  const currentStock = selectedProduct.stock || 0;
+                  if (totalAmount > currentStock) {
+                    toast.error(
+                      `Stock insuficiente. Solo hay ${currentStock} unidades disponibles.`
+                    );
+                    return;
+                  }
+
+                  // Also validate stock for each selected detail
+                  if (
+                    detail.selected_details &&
+                    detail.selected_details.length > 0
+                  ) {
+                    for (const detailId of detail.selected_details) {
+                      const productDetail =
+                        selectedProduct.product_details?.find(
+                          (d) => d.detail_id === detailId
+                        );
+                      if (productDetail && productDetail.stock < totalAmount) {
+                        toast.error(
+                          `Stock insuficiente para variante ${productDetail.detail_name}: ${productDetail.detail_desc}. Solo hay ${productDetail.stock} unidades disponibles.`
+                        );
+                        return;
                       }
-                    />
-                  </div>
+                    }
+                  }
 
-                  {/* Precio Unitario (Automático) */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Precio Unitario
-                    </label>
-                    <Input
-                      type="number"
-                      value={currentDetail.unit_price}
-                      disabled
-                    />
-                  </div>
-                </div>
-
-                <Button
-                  variant="outline"
-                  onClick={handleAddProductToOrder}
-                  disabled={!selectedProduct}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Agregar Producto
-                </Button>
-              </div>
+                  if (existingProductIndex >= 0) {
+                    // Update existing product quantity
+                    const updatedDetails = [...orderDetails];
+                    updatedDetails[existingProductIndex].amount +=
+                      detail.amount;
+                    setOrderDetails(updatedDetails);
+                  } else {
+                    // Add new product
+                    setOrderDetails([...orderDetails, detail]);
+                    console.log("Added new product:", detail);
+                  }
+                }}
+              />
 
               {/* Tabla de productos agregados */}
               <div className="mt-4">

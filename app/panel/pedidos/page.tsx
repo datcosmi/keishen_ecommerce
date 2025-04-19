@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Search,
   Eye,
@@ -203,6 +203,35 @@ const OrderDashboard: React.FC = () => {
     }
   };
 
+  // Función para actualizar el estado de un pedido
+  const handleStatusUpdate = async (orderId: any, newStatus: any) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pedido/${orderId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error updating order status: ${response.statusText}`);
+      }
+
+      // Actualizar el estado localmente
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.pedido_id === orderId ? { ...order, status: newStatus } : order
+        )
+      );
+
+      toast.success(`Pedido #${orderId} actualizado a "${newStatus}"`);
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      toast.error("Error al actualizar el estado del pedido");
+    }
+  };
+
   const transformOrderForEdit = (order: Order | null) => {
     if (!order) return undefined;
 
@@ -385,6 +414,117 @@ const OrderDashboard: React.FC = () => {
       <Badge variant="outline" className={colorClass}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
+    );
+  };
+
+  // Componente de dropdown para cambiar estado
+  const StatusDropdown: React.FC<{
+    orderId: number;
+    currentStatus: string;
+    onStatusChange: (orderId: number, status: string) => Promise<void>;
+  }> = ({ orderId, currentStatus, onStatusChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [updating, setUpdating] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Cerrar el dropdown al hacer clic fuera de él
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (
+          dropdownRef.current &&
+          !dropdownRef.current.contains(event.target as Node)
+        ) {
+          setIsOpen(false);
+        }
+      };
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const statusOptions = [
+      {
+        value: "pendiente",
+        label: "Pendiente",
+        color: "bg-yellow-50 text-yellow-600 border border-yellow-300",
+      },
+      {
+        value: "enviado",
+        label: "Enviado",
+        color: "bg-blue-50 text-blue-600 border border-blue-300",
+      },
+      {
+        value: "finalizado",
+        label: "Finalizado",
+        color: "bg-green-50 text-green-600 border border-green-300",
+      },
+      {
+        value: "cancelado",
+        label: "Cancelado",
+        color: "bg-red-50 text-red-600 border border-red-300",
+      },
+      {
+        value: "pagado",
+        label: "Pagado",
+        color: "bg-purple-50 text-purple-600 border border-purple-300",
+      },
+    ];
+
+    const currentStatusOption =
+      statusOptions.find((option) => option.value === currentStatus) ||
+      statusOptions[0];
+
+    const handleStatusSelect = async (status: string) => {
+      if (status === currentStatus) {
+        setIsOpen(false);
+        return;
+      }
+
+      setUpdating(true);
+      await onStatusChange(orderId, status);
+      setUpdating(false);
+      setIsOpen(false);
+    };
+
+    return (
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={`inline-flex items-center justify-between rounded-md px-3 py-1.5 text-sm font-medium  transition-all ${currentStatusOption.color} min-w-[120px]`}
+          disabled={updating}
+        >
+          {updating ? (
+            <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" />
+          ) : (
+            <CircleIcon className="h-1.5 w-1.5 mr-1" />
+          )}
+          {currentStatusOption.label}
+          <ChevronDown className="h-4 w-4 ml-1" />
+        </button>
+
+        {isOpen && (
+          <div className="absolute z-10 mt-1 w-40 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+            <div className="py-1">
+              {statusOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => handleStatusSelect(option.value)}
+                  className={`flex w-full items-center px-3 py-2 text-sm hover:bg-gray-50 ${
+                    option.value === currentStatus
+                      ? "bg-gray-50 font-medium"
+                      : "font-normal"
+                  }`}
+                >
+                  <CircleIcon
+                    className={`h-1.5 w-1.5 mr-2 ${option.color.split(" ")[1]}`}
+                  />
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -684,7 +824,18 @@ const OrderDashboard: React.FC = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {renderStatusBadge(order.status)}
+                            <StatusDropdown
+                              orderId={order.pedido_id}
+                              currentStatus={order.status}
+                              onStatusChange={handleStatusUpdate}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <StatusDropdown
+                              orderId={order.pedido_id}
+                              currentStatus={order.status}
+                              onStatusChange={handleStatusUpdate}
+                            />
                           </TableCell>
                           <TableCell>
                             <div className="text-sm text-gray-600">
@@ -777,7 +928,11 @@ const OrderDashboard: React.FC = () => {
                               </p>
                             </div>
                           </div>
-                          {renderStatusBadge(order.status)}
+                          <StatusDropdown
+                            orderId={order.pedido_id}
+                            currentStatus={order.status}
+                            onStatusChange={handleStatusUpdate}
+                          />
                         </div>
 
                         <div className="space-y-2 mb-3">
