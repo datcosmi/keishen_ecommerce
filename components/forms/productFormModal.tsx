@@ -58,6 +58,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     sizeDetails: [],
     tallaSizeDetails: [],
     materialDetails: [],
+    customDetails: [],
   });
 
   // Input states for product details/variants
@@ -72,6 +73,10 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [detailsToUpdate, setDetailsToUpdate] = useState<
     Array<{ id_pd: number; data: { stock: number } }>
   >([]);
+
+  const [customTypeInput, setCustomTypeInput] = useState("");
+  const [customValueInput, setCustomValueInput] = useState("");
+  const [customStockInput, setCustomStockInput] = useState<string>("");
 
   // Image states
   const [images, setImages] = useState<File[]>([]);
@@ -185,6 +190,15 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           .map((d: any) => ({ ...d })),
         materialDetails: product.details
           .filter((d: any) => d.detail_name === "Material" && !d.is_deleted)
+          .map((d: any) => ({ ...d })),
+        // Add this block to load custom details
+        customDetails: product.details
+          .filter(
+            (d: any) =>
+              !["Color", "Tamaño", "Talla", "Material"].includes(
+                d.detail_name
+              ) && !d.is_deleted
+          )
           .map((d: any) => ({ ...d })),
       });
       if (product.images && product.images.length > 0) {
@@ -515,6 +529,85 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }));
   };
 
+  const addCustomDetail = () => {
+    if (
+      customTypeInput.trim() &&
+      customValueInput.trim() &&
+      !formData.customDetails.some(
+        (detail) =>
+          detail.detail_name === customTypeInput.trim() &&
+          detail.detail_desc === customValueInput.trim()
+      )
+    ) {
+      const stockValue = parseInt(customStockInput) || 0;
+
+      // Calculate current custom detail stock only
+      const currentCustomStock = formData.customDetails
+        .filter((detail) => detail.detail_name === customTypeInput.trim())
+        .reduce((sum, detail) => sum + (detail.stock || 0), 0);
+
+      const newCustomTotal = currentCustomStock + stockValue;
+
+      if (newCustomTotal > formData.stock) {
+        toast.error(
+          "La suma del stock de este tipo de variante no puede superar el stock total del producto."
+        );
+        return;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        customDetails: [
+          ...prev.customDetails,
+          {
+            detail_name: customTypeInput.trim(),
+            detail_desc: customValueInput.trim(),
+            stock: stockValue,
+          },
+        ],
+      }));
+
+      // Clear inputs but keep the custom type
+      setCustomValueInput("");
+      setCustomStockInput("");
+    }
+  };
+
+  const removeCustomDetail = (detailName: string, detailDesc: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      customDetails: prev.customDetails.filter(
+        (detail) =>
+          !(
+            detail.detail_name === detailName &&
+            detail.detail_desc === detailDesc
+          )
+      ),
+    }));
+  };
+
+  const editCustomDetailStock = (detail: any, newStock: number) => {
+    if (detail.detail_id) {
+      setDetailsToUpdate((prev) => {
+        const filtered = prev.filter((item) => item.id_pd !== detail.detail_id);
+        return [
+          ...filtered,
+          { id_pd: detail.detail_id as number, data: { stock: newStock } },
+        ];
+      });
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      customDetails: prev.customDetails.map((d) =>
+        d.detail_name === detail.detail_name &&
+        d.detail_desc === detail.detail_desc
+          ? { ...d, stock: newStock }
+          : d
+      ),
+    }));
+  };
+
   const createProductDetails = async (
     productId: number,
     details: ProductDetail[]
@@ -706,6 +799,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         ...formData.sizeDetails,
         ...formData.tallaSizeDetails,
         ...formData.materialDetails,
+        ...formData.customDetails,
       ];
 
       if (product) {
@@ -713,6 +807,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         const existingDetailIds = new Set(
           product.details.map((detail: any) => detail.id_pd)
         );
+
         const detailsByType: Record<string, Set<string>> = {
           Color: new Set(
             product.details
@@ -734,6 +829,21 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
               .filter((d: any) => d.detail_name === "Material")
               .map((d: any) => d.detail_desc)
           ),
+          // Dynamic mapping for custom details
+          ...product.details
+            .filter(
+              (d: any) =>
+                !["Color", "Tamaño", "Talla", "Material"].includes(
+                  d.detail_name
+                )
+            )
+            .reduce((acc: Record<string, Set<string>>, curr: any) => {
+              if (!acc[curr.detail_name]) {
+                acc[curr.detail_name] = new Set();
+              }
+              acc[curr.detail_name].add(curr.detail_desc);
+              return acc;
+            }, {}),
         };
 
         // Find details to delete (ones that exist in original but not in form)
@@ -754,8 +864,14 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
             return !formData.materialDetails.some(
               (d: ProductDetail) => d.detail_desc === detail.detail_desc
             );
+          } else {
+            // Handle custom detail types
+            return !formData.customDetails.some(
+              (d: ProductDetail) =>
+                d.detail_name === detail.detail_name &&
+                d.detail_desc === detail.detail_desc
+            );
           }
-          return true; // Delete any unrecognized types
         });
 
         // Soft delete removed details using bulk update
@@ -798,6 +914,11 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           ),
           ...formData.materialDetails.filter(
             (d: ProductDetail) => !detailsByType["Material"].has(d.detail_desc)
+          ),
+          // Add custom details
+          ...formData.customDetails.filter(
+            (d: ProductDetail) =>
+              !detailsByType[d.detail_name]?.has(d.detail_desc)
           ),
         ];
 
@@ -888,11 +1009,15 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       sizeDetails: [],
       tallaSizeDetails: [],
       materialDetails: [],
+      customDetails: [],
     });
     setColorInput("#000000");
     setSizeInput("");
     setTallaInput("");
     setMaterialInput("");
+    setCustomTypeInput("");
+    setCustomValueInput("");
+    setCustomStockInput("");
     setImages([]);
     setProductImages([]);
     setImagesToDelete([]);
@@ -985,6 +1110,16 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 addMaterial={addMaterial}
                 removeMaterial={removeMaterial}
                 editMaterialStock={editMaterialStock}
+                // Custom detail props
+                customTypeInput={customTypeInput}
+                setCustomTypeInput={setCustomTypeInput}
+                customValueInput={customValueInput}
+                setCustomValueInput={setCustomValueInput}
+                customStockInput={customStockInput}
+                setCustomStockInput={setCustomStockInput}
+                addCustomDetail={addCustomDetail}
+                removeCustomDetail={removeCustomDetail}
+                editCustomDetailStock={editCustomDetailStock}
               />
             </TabsContent>
           </Tabs>

@@ -17,6 +17,7 @@ export interface ProductFormData {
   sizeDetails: ProductDetail[];
   tallaSizeDetails: ProductDetail[];
   materialDetails: ProductDetail[];
+  customDetails: ProductDetail[];
 }
 
 export interface ProductFormModalProps {
@@ -88,4 +89,15 @@ export interface VariantsTabProps {
   addMaterial: () => void;
   removeMaterial: (materialToRemove: string) => void;
   editMaterialStock: (detail: any, newStock: number) => void;
+
+  // Custom detail props
+  customTypeInput: string;
+  setCustomTypeInput: (value: string) => void;
+  customValueInput: string;
+  setCustomValueInput: (value: string) => void;
+  customStockInput: string;
+  setCustomStockInput: (value: string) => void;
+  addCustomDetail: () => void;
+  removeCustomDetail: (detailName: string, detailDesc: string) => void;
+  editCustomDetailStock: (detail: any, newStock: number) => void;
 }

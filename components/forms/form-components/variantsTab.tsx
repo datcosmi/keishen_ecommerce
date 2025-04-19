@@ -44,6 +44,17 @@ const VariantsTab: React.FC<VariantsTabProps> = ({
   addMaterial,
   removeMaterial,
   editMaterialStock,
+
+  // Custom detail props
+  customTypeInput,
+  setCustomTypeInput,
+  customValueInput,
+  setCustomValueInput,
+  customStockInput,
+  setCustomStockInput,
+  addCustomDetail,
+  removeCustomDetail,
+  editCustomDetailStock,
 }) => {
   return (
     <div className="space-y-6">
@@ -261,6 +272,89 @@ const VariantsTab: React.FC<VariantsTabProps> = ({
             <p className="text-sm text-gray-500">No hay materiales añadidos</p>
           )}
         </div>
+      </div>
+
+      {/* Custom Variants */}
+      <div className="space-y-2">
+        <Label>Variantes Personalizadas</Label>
+        <div className="flex gap-2">
+          <Input
+            value={customTypeInput}
+            onChange={(e) => setCustomTypeInput(e.target.value)}
+            placeholder="Tipo (ej: Estilo, Fragancia)"
+            className="flex-1"
+          />
+          <Input
+            value={customValueInput}
+            onChange={(e) => setCustomValueInput(e.target.value)}
+            placeholder="Valor (ej: Casual, Lavanda)"
+            className="flex-1"
+          />
+          <Input
+            type="number"
+            min="0"
+            placeholder="Stock"
+            value={customStockInput}
+            onChange={(e) => setCustomStockInput(e.target.value)}
+            className="w-24"
+          />
+          <Button type="button" onClick={addCustomDetail} variant="outline">
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Group custom details by type */}
+        {Object.entries(
+          formData.customDetails.reduce(
+            (acc, detail) => {
+              if (!acc[detail.detail_name]) {
+                acc[detail.detail_name] = [];
+              }
+              acc[detail.detail_name].push(detail);
+              return acc;
+            },
+            {} as Record<string, any[]>
+          )
+        ).map(([detailType, details]) => (
+          <div key={detailType} className="mt-4">
+            <Label className="text-sm font-medium">{detailType}</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {details.map((detail) => (
+                <Badge
+                  key={`${detail.detail_name}-${detail.detail_desc}`}
+                  variant="secondary"
+                  className="px-3 py-1 flex items-center"
+                >
+                  {detail.detail_desc}
+                  <Input
+                    type="number"
+                    min="0"
+                    value={detail.stock || ""}
+                    onChange={(e) =>
+                      editCustomDetailStock(
+                        detail,
+                        parseInt(e.target.value) || 0
+                      )
+                    }
+                    className="w-16 h-6 mx-1 p-1 text-xs"
+                  />
+                  <X
+                    className="h-3 w-3 ml-1 cursor-pointer"
+                    onClick={() =>
+                      removeCustomDetail(detail.detail_name, detail.detail_desc)
+                    }
+                  />
+                </Badge>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {formData.customDetails.length === 0 && (
+          <p className="text-sm text-gray-500">
+            No hay variantes personalizadas añadidas
+          </p>
+        )}
       </div>
     </div>
   );
