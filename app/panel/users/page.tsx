@@ -836,6 +836,14 @@ const UserDashboard: React.FC = () => {
           </Card>
         )}
       </div>
+      {/* For edit mode */}
+      <UserFormModal
+        isOpen={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        user={editingUser}
+        onUserUpdated={handleUserUpdated}
+        onUserAdded={handleUserAdded}
+      />
     </div>
   );
 };
