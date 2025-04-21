@@ -65,6 +65,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import OrderFormModal from "@/components/forms/orderFormModal";
 import { Order, ProductVariant } from "@/types/orderTypes";
+import { CancellationModal } from "@/components/forms/cancellationModal";
 
 const THEME_COLORS = {
   primary: {
@@ -120,6 +121,10 @@ const OrderDashboard: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [orderToEdit, setOrderToEdit] = useState<Order | null>(null);
+
+  // Modal de cancelación
+  const [isCancellationModalOpen, setIsCancellationModalOpen] = useState(false);
+  const [orderIdToCancel, setOrderIdToCancel] = useState<number | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -225,14 +230,25 @@ const OrderDashboard: React.FC = () => {
   };
 
   // Función para actualizar el estado de un pedido
-  const handleStatusUpdate = async (orderId: any, newStatus: any) => {
+  const handleStatusUpdate = async (
+    orderId: any,
+    newStatus: any,
+    comments?: string
+  ) => {
     try {
+      const requestBody: any = { status: newStatus };
+
+      // Add comments if provided (for cancellations)
+      if (comments !== undefined) {
+        requestBody.comentarios = comments;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/pedido/${orderId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -242,7 +258,13 @@ const OrderDashboard: React.FC = () => {
       // Actualizar el estado localmente
       setOrders((prev) =>
         prev.map((order) =>
-          order.pedido_id === orderId ? { ...order, status: newStatus } : order
+          order.pedido_id === orderId
+            ? {
+                ...order,
+                status: newStatus,
+                ...(comments !== undefined && { comentarios: comments }),
+              }
+            : order
         )
       );
 
@@ -288,6 +310,11 @@ const OrderDashboard: React.FC = () => {
   // Calcular las cantidades para los filtros
   const pendienteCount = orders.filter((o) => o.status === "pendiente").length;
   const enviadoCount = orders.filter((o) => o.status === "enviado").length;
+  const pagadoCount = orders.filter((o) => o.status === "pagado").length;
+  const canceladoCount = orders.filter((o) => o.status === "cancelado").length;
+  const reembolsadoCount = orders.filter(
+    (o) => o.status === "reembolsado"
+  ).length;
   const finalizadoCount = orders.filter(
     (o) => o.status === "finalizado"
   ).length;
@@ -296,6 +323,9 @@ const OrderDashboard: React.FC = () => {
     { id: "todos", label: "Todos", count: orders.length },
     { id: "pendiente", label: "Pendiente", count: pendienteCount },
     { id: "enviado", label: "Enviado", count: enviadoCount },
+    { id: "pagado", label: "Pagado", count: pagadoCount },
+    { id: "cancelado", label: "Cancelado", count: canceladoCount },
+    { id: "reembolsado", label: "Reembolsado", count: reembolsadoCount },
     { id: "finalizado", label: "Finalizado", count: finalizadoCount },
   ];
 
@@ -466,6 +496,12 @@ const OrderDashboard: React.FC = () => {
         color: "bg-purple-50 text-purple-600 border border-purple-200",
         icon: <CreditCard className="h-3.5 w-3.5 mr-1.5 text-purple-500" />,
       },
+      {
+        value: "reembolsado",
+        label: "Reembolsado",
+        color: "bg-orange-50 text-orange-600 border border-orange-200",
+        icon: <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-orange-500" />,
+      },
     ];
 
     const currentStatusOption =
@@ -474,6 +510,14 @@ const OrderDashboard: React.FC = () => {
 
     const handleStatusSelect = async (status: string) => {
       if (status === currentStatus) {
+        setIsOpen(false);
+        return;
+      }
+
+      // Special handling for cancellation
+      if (status === "cancelado") {
+        setOrderIdToCancel(orderId);
+        setIsCancellationModalOpen(true);
         setIsOpen(false);
         return;
       }
@@ -934,7 +978,9 @@ const OrderDashboard: React.FC = () => {
                                   ? "bg-red-400"
                                   : order.status === "pagado"
                                     ? "bg-purple-400"
-                                    : "bg-gray-400"
+                                    : order.status === "reembolsado"
+                                      ? "bg-orange-400"
+                                      : "bg-gray-400"
                         }`}
                       ></div>
                       <CardContent className="p-4">
@@ -1135,6 +1181,19 @@ const OrderDashboard: React.FC = () => {
           onClose={() => setIsDetailsModalOpen(false)}
         />
       </Dialog>
+
+      {/* Cancellation Modal */}
+      {orderIdToCancel && (
+        <CancellationModal
+          isOpen={isCancellationModalOpen}
+          onClose={() => {
+            setIsCancellationModalOpen(false);
+            setOrderIdToCancel(null);
+          }}
+          onConfirm={handleStatusUpdate}
+          orderId={orderIdToCancel}
+        />
+      )}
     </div>
   );
 };

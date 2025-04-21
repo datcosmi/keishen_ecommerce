@@ -26,6 +26,11 @@ import {
   TagIcon,
   CircleIcon,
   XIcon,
+  Clock,
+  Send,
+  CheckCircle,
+  CreditCard,
+  RefreshCw,
 } from "lucide-react";
 
 interface OrderDetailsModalProps {
@@ -113,26 +118,43 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   // Renderizar el badge de estado con el color correspondiente
   const renderStatusBadge = (status: string) => {
     let colorClass = "";
+    let icon = null;
 
     switch (status) {
       case "pendiente":
         colorClass = "bg-yellow-50 text-yellow-600 border-yellow-300";
+        icon = <Clock className="h-3.5 w-3.5 mr-1.5 text-yellow-500" />;
         break;
       case "enviado":
         colorClass = "bg-blue-50 text-blue-600 border-blue-300";
+        icon = <Send className="h-3.5 w-3.5 mr-1.5 text-blue-500" />;
         break;
       case "finalizado":
         colorClass = "bg-green-50 text-green-600 border-green-300";
+        icon = <CheckCircle className="h-3.5 w-3.5 mr-1.5 text-green-500" />;
         break;
       case "cancelado":
         colorClass = "bg-red-50 text-red-600 border-red-300";
+        icon = <XIcon className="h-3.5 w-3.5 mr-1.5 text-red-500" />;
+        break;
+      case "pagado":
+        colorClass = "bg-purple-50 text-purple-600 border-purple-300";
+        icon = <CreditCard className="h-3.5 w-3.5 mr-1.5 text-purple-500" />;
+        break;
+      case "reembolsado":
+        colorClass = "bg-orange-50 text-orange-600 border-orange-300";
+        icon = <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-orange-500" />;
         break;
       default:
         colorClass = "bg-gray-50 text-gray-600 border-gray-300";
     }
 
     return (
-      <Badge variant="outline" className={colorClass}>
+      <Badge
+        variant="outline"
+        className={`${colorClass} px-2 py-1 flex items-center`}
+      >
+        {icon}
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
@@ -185,6 +207,16 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               {order.email && <p className="text-gray-600">{order.email}</p>}
               {order.phone && <p className="text-gray-600">{order.phone}</p>}
             </div>
+
+            {/* Comments and Cancellation Reason */}
+            {order.status === "cancelado" && order.comentarios && (
+              <div className="bg-red-50 p-4 rounded-lg border border-red-100 mt-4">
+                <h3 className="text-sm font-medium text-red-700 mb-2">
+                  Motivo de cancelación
+                </h3>
+                <p className="text-sm text-red-600">{order.comentarios}</p>
+              </div>
+            )}
           </div>
 
           {/* Products */}
