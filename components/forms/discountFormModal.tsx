@@ -108,6 +108,7 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
       const discountType = discount.cat_id ? "category" : "product";
       setDiscountType(discountType);
 
+      // Initialize form data from the discount object
       setFormData({
         cat_id: discount.cat_id || undefined,
         prod_id: discount.prod_id || undefined,
@@ -115,19 +116,30 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
         start_date: new Date(discount.start_date),
         end_date: new Date(discount.end_date),
       });
+
+      // Set the selected item name directly from the passed discount
+      if (discountType === "category" && discount.category_name) {
+        setSelectedCategoryName(discount.category_name);
+      } else if (discountType === "product" && discount.product_name) {
+        setSelectedProductName(
+          `${discount.product_name} - $${discount.price || ""}`
+        );
+      }
     }
   }, [discount]);
 
   // Update selected names when data is loaded
   useEffect(() => {
-    if (formData.cat_id && categories.length > 0) {
+    if (formData.cat_id && categories.length > 0 && !selectedCategoryName) {
       const category = categories.find((c) => c.id_cat === formData.cat_id);
       if (category) {
         setSelectedCategoryName(category.name);
       }
     }
+  }, [formData.cat_id, categories, selectedCategoryName]);
 
-    if (formData.prod_id && products.length > 0) {
+  useEffect(() => {
+    if (formData.prod_id && products.length > 0 && !selectedProductName) {
       const product = products.find(
         (p) => p.product.id_prod === formData.prod_id
       );
@@ -137,7 +149,7 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
         );
       }
     }
-  }, [formData.cat_id, formData.prod_id, categories, products]);
+  }, [formData.prod_id, products, selectedProductName]);
 
   const fetchCategories = async () => {
     try {

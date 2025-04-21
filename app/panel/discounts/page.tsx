@@ -86,10 +86,16 @@ const DiscountDashboard: React.FC = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
 
   const handleEditDiscount = async (discountId: number) => {
-    // Find the discount in the current list
     const discountToEdit = discounts.find((d) => d.id_discount === discountId);
     if (discountToEdit) {
-      setEditingDiscount(discountToEdit);
+      // Make sure we include all necessary properties
+      setEditingDiscount({
+        ...discountToEdit,
+        id_discount: discountToEdit.id_discount,
+        // Ensure we include the name of the product or category
+        product_name: discountToEdit.product_name,
+        category_name: discountToEdit.category_name,
+      });
       setEditModalOpen(true);
     }
   };
