@@ -6,6 +6,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { SupabaseAdapter } from "@auth/supabase-adapter";
 import { createClient } from "@supabase/supabase-js";
 // import { CustomUser } from "@/types/usersTypes";
+import { generateCustomJWT } from "@/lib/jwt";
 import bcrypt from "bcryptjs";
 
 const supabase = createClient(
@@ -137,6 +138,9 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id_user = user.id_user;
         token.role = user.role;
+
+        // accesstoken para el backend
+        token.accessToken = await generateCustomJWT(user);
       }
 
       // If token already has user info but we need to refresh it
