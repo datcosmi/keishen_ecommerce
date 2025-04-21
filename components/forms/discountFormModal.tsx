@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { CalendarIcon, Plus, X } from "lucide-react";
+import { CalendarIcon, Plus, X, Search, Check } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -14,13 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
@@ -88,6 +81,14 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<ProductDetails[]>([]);
 
+  // Filter states
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [productFilter, setProductFilter] = useState("");
+
+  // Selected item display names
+  const [selectedCategoryName, setSelectedCategoryName] = useState("");
+  const [selectedProductName, setSelectedProductName] = useState("");
+
   // Form state
   const [formData, setFormData] = useState<DiscountFormData>({
     percent: 0,
@@ -102,7 +103,6 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
   }, []);
 
   // Initialize form if editing an existing discount
-  // In DiscountFormModal.tsx
   useEffect(() => {
     if (discount) {
       const discountType = discount.cat_id ? "category" : "product";
@@ -118,6 +118,27 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
     }
   }, [discount]);
 
+  // Update selected names when data is loaded
+  useEffect(() => {
+    if (formData.cat_id && categories.length > 0) {
+      const category = categories.find((c) => c.id_cat === formData.cat_id);
+      if (category) {
+        setSelectedCategoryName(category.name);
+      }
+    }
+
+    if (formData.prod_id && products.length > 0) {
+      const product = products.find(
+        (p) => p.product.id_prod === formData.prod_id
+      );
+      if (product) {
+        setSelectedProductName(
+          `${product.product.name} - $${product.product.price}`
+        );
+      }
+    }
+  }, [formData.cat_id, formData.prod_id, categories, products]);
+
   const fetchCategories = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/categories`);
@@ -126,6 +147,16 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
       }
       const data = await response.json();
       setCategories(data);
+
+      // Update selected category name if in edit mode
+      if (discount?.cat_id) {
+        const category = data.find(
+          (c: Category) => c.id_cat === discount.cat_id
+        );
+        if (category) {
+          setSelectedCategoryName(category.name);
+        }
+      }
     } catch (error) {
       console.error("Error fetching categories:", error);
       toast.error("Error al cargar categorías");
@@ -142,6 +173,18 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
       }
       const data = await response.json();
       setProducts(data);
+
+      // Update selected product name if in edit mode
+      if (discount?.prod_id) {
+        const product = data.find(
+          (p: ProductDetails) => p.product.id_prod === discount.prod_id
+        );
+        if (product) {
+          setSelectedProductName(
+            `${product.product.name} - $${product.product.price}`
+          );
+        }
+      }
     } catch (error) {
       console.error("Error fetching products:", error);
       toast.error("Error al cargar productos");
@@ -153,13 +196,6 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
     setFormData((prev) => ({
       ...prev,
       [name]: name === "percent" ? Number(value) : value,
-    }));
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: Number(value),
     }));
   };
 
@@ -180,6 +216,40 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
       cat_id: undefined,
       prod_id: undefined,
     }));
+    setSelectedCategoryName("");
+    setSelectedProductName("");
+  };
+
+  const handleCategoryFilterChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setCategoryFilter(e.target.value);
+  };
+
+  const handleProductFilterChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setProductFilter(e.target.value);
+  };
+
+  const handleCategorySelect = (category: Category) => {
+    setFormData((prev) => ({
+      ...prev,
+      cat_id: category.id_cat,
+    }));
+    setSelectedCategoryName(category.name);
+    setCategoryFilter("");
+  };
+
+  const handleProductSelect = (product: ProductDetails) => {
+    setFormData((prev) => ({
+      ...prev,
+      prod_id: product.product.id_prod,
+    }));
+    setSelectedProductName(
+      `${product.product.name} - $${product.product.price}`
+    );
+    setProductFilter("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -281,7 +351,24 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
       end_date: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000),
     });
     setDiscountType("category");
+    setSelectedCategoryName("");
+    setSelectedProductName("");
+    setCategoryFilter("");
+    setProductFilter("");
   };
+
+  // Filter categories and products based on search input
+  const filteredCategories = categoryFilter
+    ? categories.filter((c) =>
+        c.name.toLowerCase().includes(categoryFilter.toLowerCase())
+      )
+    : categories;
+
+  const filteredProducts = productFilter
+    ? products.filter((p) =>
+        p.product.name.toLowerCase().includes(productFilter.toLowerCase())
+      )
+    : products;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -315,25 +402,56 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
             <TabsContent value="category" className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="cat_id">Categoría *</Label>
-                <Select
-                  value={formData.cat_id?.toString() || ""}
-                  onValueChange={(value) => handleSelectChange("cat_id", value)}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem
-                        key={category.id_cat}
-                        value={category.id_cat.toString()}
-                      >
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <div className="flex space-x-2">
+                    <div className="relative flex-1">
+                      <Input
+                        type="text"
+                        placeholder="Buscar categoría..."
+                        value={categoryFilter}
+                        onChange={handleCategoryFilterChange}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full pr-8"
+                      />
+                      <Search className="absolute right-2 top-2.5 h-4 w-4 text-gray-400" />
+                    </div>
+                    {selectedCategoryName && (
+                      <div className="flex h-10 items-center rounded-md border border-input bg-background px-3 py-2">
+                        <span className="text-sm text-foreground">
+                          {selectedCategoryName}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {categoryFilter.length > 0 ||
+                  document.activeElement ===
+                    document.getElementById("category-search") ? (
+                    <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-60 overflow-auto">
+                      {filteredCategories.length > 0 ? (
+                        filteredCategories.map((category) => (
+                          <div
+                            key={category.id_cat}
+                            className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-accent"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCategorySelect(category);
+                            }}
+                          >
+                            <span>{category.name}</span>
+                            {formData.cat_id === category.id_cat && (
+                              <Check className="h-4 w-4 text-primary" />
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                          No se encontraron categorías
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </TabsContent>
 
@@ -341,28 +459,58 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
             <TabsContent value="product" className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="prod_id">Producto *</Label>
-                <Select
-                  value={formData.prod_id?.toString() || ""}
-                  onValueChange={(value) =>
-                    handleSelectChange("prod_id", value)
-                  }
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un producto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.map((productItem) => (
-                      <SelectItem
-                        key={productItem.product.id_prod}
-                        value={productItem.product.id_prod.toString()}
-                      >
-                        {productItem.product.name} - $
-                        {productItem.product.price}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <div className="flex space-x-2">
+                    <div className="relative flex-1">
+                      <Input
+                        type="text"
+                        placeholder="Buscar producto..."
+                        value={productFilter}
+                        onChange={handleProductFilterChange}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full pr-8"
+                      />
+                      <Search className="absolute right-2 top-2.5 h-4 w-4 text-gray-400" />
+                    </div>
+                    {selectedProductName && (
+                      <div className="flex h-10 items-center rounded-md border border-input bg-background px-3 py-2">
+                        <span className="text-sm text-foreground">
+                          {selectedProductName}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {productFilter.length > 0 ||
+                  document.activeElement ===
+                    document.getElementById("product-search") ? (
+                    <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-60 overflow-auto">
+                      {filteredProducts.length > 0 ? (
+                        filteredProducts.map((product) => (
+                          <div
+                            key={product.product.id_prod}
+                            className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-accent"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleProductSelect(product);
+                            }}
+                          >
+                            <span>
+                              {product.product.name} - ${product.product.price}
+                            </span>
+                            {formData.prod_id === product.product.id_prod && (
+                              <Check className="h-4 w-4 text-primary" />
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                          No se encontraron productos
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </TabsContent>
           </Tabs>

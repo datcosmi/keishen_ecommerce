@@ -180,7 +180,7 @@ const Sidebar = () => {
           </Link>
         </div>
 
-        {/* User info with improved styling */}
+        {/* User info */}
         {!collapsed && (
           <div className="px-6 py-3 mx-4 mb-2 bg-gray-100 rounded-lg shadow-sm">
             <p className="text-sm font-semibold text-gray-800 truncate">
@@ -214,7 +214,7 @@ const Sidebar = () => {
                           collapsed ? "justify-center p-3 mx-1" : "p-3 px-4",
                           isActiveRoute(item.href)
                             ? "bg-black text-white shadow-lg"
-                            : "text-gray-400 hover:text-[#e7b709] hover:bg-[#faf9f5]"
+                            : "text-gray-400 hover:text-[#e7b709]"
                         )}
                       >
                         <item.icon

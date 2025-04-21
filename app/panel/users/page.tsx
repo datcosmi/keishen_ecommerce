@@ -52,6 +52,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import UserFormModal from "@/components/forms/userFormModal";
 
 // Define the User interface
 interface User {
@@ -121,8 +122,12 @@ const UserDashboard: React.FC = () => {
     fetchUsers();
   };
 
-  const handleUserAdded = (newUser: User) => {
-    setUsers([newUser, ...users]);
+  const handleUserAdded = (newUser: any) => {
+    // Ensure the newUser has all required properties before adding it to state
+    if (newUser && newUser.role) {
+      setUsers((prevUsers) => [newUser, ...prevUsers]);
+    }
+    // Fetch fresh data from the server
     handleRefresh();
   };
 
@@ -173,23 +178,30 @@ const UserDashboard: React.FC = () => {
   };
 
   // Manejador para eliminar usuarios
+  // Manejador para "eliminar" usuarios (soft delete)
   const handleDelete = async () => {
     setLoading(true);
     try {
-      // Asumiendo que la API soporta eliminación en batch
+      // Preparar los datos para la actualización
+      const usersToUpdate = selectedUsers.map((id) => ({
+        id_user: id,
+        is_deleted: true,
+      }));
+
+      // Realizar la solicitud PUT para actualizar los usuarios
       const response = await fetch(`${API_BASE_URL}/api/users`, {
-        method: "DELETE",
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ids: selectedUsers }),
+        body: JSON.stringify(usersToUpdate),
       });
 
       if (!response.ok) {
-        throw new Error(`Error eliminando usuarios: ${response.statusText}`);
+        throw new Error(`Error actualizando usuarios: ${response.statusText}`);
       }
 
-      // Actualizar la lista de usuarios después de eliminar
+      // Actualizar la lista de usuarios después del soft delete
       setUsers(users.filter((user) => !selectedUsers.includes(user.id_user)));
       setSelectedUsers([]);
       toast.success(
@@ -207,6 +219,8 @@ const UserDashboard: React.FC = () => {
     } finally {
       setLoading(false);
       setDeleteDialogOpen(false);
+      // Refrescar los datos para reflejar los cambios
+      fetchUsers();
     }
   };
 
@@ -214,10 +228,13 @@ const UserDashboard: React.FC = () => {
   const uniqueRoles = Array.from(new Set(users.map((user) => user.role)));
 
   // Calcular las cantidades para los filtros
-  const rolesCounts = uniqueRoles.reduce((acc, role) => {
-    acc[role] = users.filter((user) => user.role === role).length;
-    return acc;
-  }, {} as Record<string, number>);
+  const rolesCounts = uniqueRoles.reduce(
+    (acc, role) => {
+      acc[role] = users.filter((user) => user.role === role).length;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const roleOptions = [
     { id: "todos", label: "Todos", count: users.length },
@@ -309,16 +326,19 @@ const UserDashboard: React.FC = () => {
   };
 
   // Generar las iniciales para el Avatar
-  const getInitials = (name: string, surname: string | null): string => {
+  const getInitials = (name?: string, surname?: string | null): string => {
     const firstInitial = name ? name.charAt(0).toUpperCase() : "";
     const lastInitial = surname ? surname.charAt(0).toUpperCase() : "";
     return `${firstInitial}${lastInitial}`;
   };
 
   // Función para obtener el color de fondo del avatar basado en el rol
-  const getAvatarColor = (role: string): string => {
+  const getAvatarColor = (role?: string): string => {
+    if (!role) return "bg-gray-100 text-gray-800"; // Default for undefined/null roles
+
     switch (role.toLowerCase()) {
       case "admin":
+      case "superadmin":
         return "bg-red-100 text-red-800";
       case "cliente":
         return "bg-blue-100 text-blue-800";
@@ -398,6 +418,12 @@ const UserDashboard: React.FC = () => {
                 </AlertDialog>
               </>
             )}
+
+            <UserFormModal
+              onUserAdded={handleUserAdded}
+              buttonLabel="Añadir Usuario"
+              buttonIcon={<Plus className="h-5 w-5 mr-2" />}
+            />
           </div>
         </div>
 
@@ -558,9 +584,15 @@ const UserDashboard: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center">
-                              <Avatar className={getAvatarColor(user.role)}>
+                              <Avatar
+                                className={
+                                  user && user.role
+                                    ? getAvatarColor(user.role)
+                                    : "bg-gray-100 text-gray-800"
+                                }
+                              >
                                 <AvatarFallback>
-                                  {getInitials(user.name, user.surname)}
+                                  {getInitials(user?.name, user?.surname)}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="ml-4">
@@ -591,8 +623,8 @@ const UserDashboard: React.FC = () => {
                                   user.role === "admin"
                                     ? "bg-red-50 text-red-600 border-red-300"
                                     : user.role === "cliente"
-                                    ? "bg-blue-50 text-blue-600 border-blue-300"
-                                    : "bg-gray-50 text-gray-600 border-gray-300"
+                                      ? "bg-blue-50 text-blue-600 border-blue-300"
+                                      : "bg-gray-50 text-gray-600 border-gray-300"
                                 }
                               `}
                             >
@@ -659,10 +691,10 @@ const UserDashboard: React.FC = () => {
                             )}
                           </button>
                           <Avatar
-                            className={`h-12 w-12 ${getAvatarColor(user.role)}`}
+                            className={`h-12 w-12 ${user && user.role ? getAvatarColor(user.role) : "bg-gray-100 text-gray-800"}`}
                           >
                             <AvatarFallback className="text-lg">
-                              {getInitials(user.name, user.surname)}
+                              {getInitials(user?.name, user?.surname)}
                             </AvatarFallback>
                           </Avatar>
                           <div className="ml-3">
@@ -697,8 +729,8 @@ const UserDashboard: React.FC = () => {
                                 user.role === "admin"
                                   ? "bg-red-50 text-red-600 border-red-300"
                                   : user.role === "cliente"
-                                  ? "bg-blue-50 text-blue-600 border-blue-300"
-                                  : "bg-gray-50 text-gray-600 border-gray-300"
+                                    ? "bg-blue-50 text-blue-600 border-blue-300"
+                                    : "bg-gray-50 text-gray-600 border-gray-300"
                               }
                             `}
                           >
