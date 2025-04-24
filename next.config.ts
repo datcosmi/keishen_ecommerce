@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  esLint: {
+  eslint: {
     ignoreDuringBuilds: true,
   },
 };
