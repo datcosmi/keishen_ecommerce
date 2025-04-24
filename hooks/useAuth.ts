@@ -12,7 +12,6 @@ export const useAuth = () => {
   const user = session?.user;
 
   const logout = async () => {
-    localStorage.removeItem("auth_token");
     await signOut({ redirect: false });
   };
 
@@ -20,7 +19,6 @@ export const useAuth = () => {
     provider: string = "google",
     callbackUrl: string = "/"
   ) => {
-    localStorage.removeItem("auth_token");
     await signIn(provider, { callbackUrl });
   };
 
@@ -34,43 +32,6 @@ export const useAuth = () => {
     return user.role === roles;
   };
 
-  const isTokenValid = (token: string): boolean => {
-    try {
-      // If you're using JWT tokens, you could decode and check the exp field
-      // This is a simplified check - in a real app you'd want to decode the token
-      // and check its expiration date
-      return !!token && token.length > 10;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  // Then update getAuthToken to use it
-  const getAuthToken = async (): Promise<string | null> => {
-    try {
-      const storedToken = localStorage.getItem("auth_token");
-
-      if (storedToken && isTokenValid(storedToken)) {
-        return storedToken;
-      }
-
-      // Token not found or invalid, get a new one
-      localStorage.removeItem("auth_token"); // Clear invalid token
-      const response = await fetch("/api/auth/session");
-      const session = await response.json();
-
-      if (session?.token) {
-        localStorage.setItem("auth_token", session.token);
-        return session.token;
-      }
-
-      return null;
-    } catch (error) {
-      console.error("Error getting auth token:", error);
-      return null;
-    }
-  };
-
   return {
     isAuthenticated,
     isLoading,
@@ -79,7 +40,6 @@ export const useAuth = () => {
     logout,
     hasRole,
     session,
-    getAuthToken,
   };
 };
 

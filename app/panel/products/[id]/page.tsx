@@ -42,6 +42,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/useAuth";
+import { useSession } from "next-auth/react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const IMAGES_BASE_URL =
@@ -181,6 +182,10 @@ const AdminProductDetailPage: React.FC = () => {
     originalPrice: number;
   } | null>(null);
   const { user } = useAuth();
+
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
 
   const fetchProductDetails = async () => {
     setLoading(true);
@@ -328,6 +333,7 @@ const AdminProductDetailPage: React.FC = () => {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify([
           {

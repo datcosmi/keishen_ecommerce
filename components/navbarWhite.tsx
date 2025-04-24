@@ -11,6 +11,7 @@ import {
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "./ui/button";
+import { useSession } from "next-auth/react";
 
 interface Category {
   id_cat: number;
@@ -47,6 +48,8 @@ export default function NavbarWhite() {
 
   // Authentication
   const { isAuthenticated, user, logout } = useAuth();
+  const { data: session } = useSession();
+  const token = session?.accessToken;
 
   const handleLogout = async () => {
     await logout();
@@ -82,7 +85,12 @@ export default function NavbarWhite() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `${API_BASE_URL}/api/cart/user/${user?.id_user}/count`
+        `${API_BASE_URL}/api/cart/user/${user?.id_user}/count`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       if (!response.ok) {
         throw new Error("Failed to fetch cart items");

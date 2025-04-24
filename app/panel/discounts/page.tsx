@@ -18,7 +18,6 @@ import {
   Tags,
   ShoppingBag,
 } from "lucide-react";
-import Sidebar from "@/components/sidebar";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -53,6 +52,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Discount } from "@/types/discountTypes";
 import DiscountFormModal from "@/components/forms/discountFormModal";
+import { useSession } from "next-auth/react";
 
 // Types for discounts
 type DiscountType = "product" | "category";
@@ -84,6 +84,10 @@ const DiscountDashboard: React.FC = () => {
 
   const [editingDiscount, setEditingDiscount] = useState<Discount | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
 
   const handleEditDiscount = async (discountId: number) => {
     const discountToEdit = discounts.find((d) => d.id_discount === discountId);
@@ -166,6 +170,7 @@ const DiscountDashboard: React.FC = () => {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ ids: selectedDiscounts }),
       });

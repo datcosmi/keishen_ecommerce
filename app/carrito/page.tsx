@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 interface CartItem {
   id: number;
@@ -45,6 +46,10 @@ export default function CartPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
+
   const fetchCart = async () => {
     if (!user?.id_user) {
       setIsLoading(false);
@@ -54,7 +59,12 @@ export default function CartPage() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `${API_BASE_URL}/api/cart/user/${user.id_user}/full-details`
+        `${API_BASE_URL}/api/cart/user/${user.id_user}/full-details`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       if (!response.ok) {
@@ -208,6 +218,7 @@ export default function CartPage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ amount: newQuantity }),
       });
@@ -246,6 +257,9 @@ export default function CartPage() {
       // Delete item from API
       const response = await fetch(`${API_BASE_URL}/api/cart/${id}/product`, {
         method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {

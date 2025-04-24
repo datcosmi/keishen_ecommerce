@@ -9,6 +9,7 @@ import NavbarWhite from "@/components/navbarWhite";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import Script from "next/script";
+import { useSession } from "next-auth/react";
 
 // Define interfaces
 interface CartItem {
@@ -81,6 +82,10 @@ const PaymentPage = () => {
   const [paypalLoaded, setPaypalLoaded] = useState(false);
 
   const paypalButtonContainerRef = useRef<HTMLDivElement>(null);
+
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
 
   // Animation refs
   const [refSummary, inViewSummary] = useInView({
@@ -160,33 +165,33 @@ const PaymentPage = () => {
           },
 
           onApprove: function (_data: any, actions: PayPalActions) {
-            return actions.order
-              .capture()
-              .then(async function (orderData: PayPalOrderData) {
-                // Successful capture
-                const transaction =
-                  orderData.purchase_units[0].payments.captures[0];
-                toast.loading(
-                  `Procesando pedido... ID de transacción: ${transaction.id}`
-                );
+            return actions.order.capture().then(async function (
+              orderData: PayPalOrderData
+            ) {
+              // Successful capture
+              const transaction =
+                orderData.purchase_units[0].payments.captures[0];
+              toast.loading(
+                `Procesando pedido... ID de transacción: ${transaction.id}`
+              );
 
-                // Save the order with updated function
-                const orderId = await saveOrder(transaction.id, "paypal");
+              // Save the order with updated function
+              const orderId = await saveOrder(transaction.id, "paypal");
 
-                if (orderId) {
-                  toast.dismiss();
-                  toast.success("¡Pedido registrado correctamente!");
-                  toast.success(`Tu número de pedido es: ${orderId}`);
+              if (orderId) {
+                toast.dismiss();
+                toast.success("¡Pedido registrado correctamente!");
+                toast.success(`Tu número de pedido es: ${orderId}`);
 
-                  // Redirect to success page
-                  setTimeout(() => {
-                    window.location.href = "/compra-confirmada";
-                  }, 2000);
-                } else {
-                  toast.dismiss();
-                  toast.error("Error al registrar el pedido");
-                }
-              });
+                // Redirect to success page
+                setTimeout(() => {
+                  window.location.href = "/compra-confirmada";
+                }, 2000);
+              } else {
+                toast.dismiss();
+                toast.error("Error al registrar el pedido");
+              }
+            });
           },
 
           onError: function (err: Error) {
@@ -211,6 +216,7 @@ const PaymentPage = () => {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ status: "finalizado" }),
       });
@@ -239,6 +245,7 @@ const PaymentPage = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           user_id: user.id_user,
@@ -282,6 +289,7 @@ const PaymentPage = () => {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
               },
               body: JSON.stringify({
                 pedido_id: pedidoId,
@@ -346,7 +354,12 @@ const PaymentPage = () => {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `${API_BASE_URL}/api/cart/user/${user.id_user}/full-details`
+        `${API_BASE_URL}/api/cart/user/${user.id_user}/full-details`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       if (!response.ok) {
@@ -515,6 +528,7 @@ const PaymentPage = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           user_id: user.id_user,

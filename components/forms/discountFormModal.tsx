@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { CalendarIcon, Plus, X, Search, Check } from "lucide-react";
+import { Plus, Search, Check } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
+import { useSession } from "next-auth/react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -95,6 +96,10 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
     start_date: new Date(),
     end_date: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000), // Default to one week from now
   });
+
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
 
   // Fetch categories and products on component mount
   useEffect(() => {
@@ -310,6 +315,7 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(discountData),
         });

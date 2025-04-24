@@ -58,10 +58,10 @@ import {
 } from "@/components/ui/select";
 import NavbarBlack from "@/components/navbarBlack";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import Image from "next/image";
 import Footer from "@/components/footer";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 
 // Types definition based on API response
 interface Variante {
@@ -108,6 +108,10 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
+
   // Fetch orders data from API
   useEffect(() => {
     const fetchOrders = async () => {
@@ -118,7 +122,12 @@ export default function OrdersPage() {
         setError(null);
 
         const response = await fetch(
-          `${API_BASE_URL}/api/pedidos/details/${authUser.id_user}`
+          `${API_BASE_URL}/api/pedidos/details/${authUser.id_user}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
 
         if (!response.ok) {
@@ -170,6 +179,7 @@ export default function OrdersPage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ status: "cancelado" }),
       });

@@ -51,8 +51,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import UserFormModal from "@/components/forms/userFormModal";
+import { useSession } from "next-auth/react";
 
 // Define the User interface
 interface User {
@@ -96,11 +97,19 @@ const UserDashboard: React.FC = () => {
   // Vista
   const [isGridView, setIsGridView] = useState(false);
 
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
+
   // Cargar los usuarios desde la API
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users`);
+      const response = await fetch(`${API_BASE_URL}/api/users`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!response.ok) {
         throw new Error(`Error fetching users: ${response.statusText}`);
       }
@@ -193,6 +202,7 @@ const UserDashboard: React.FC = () => {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(usersToUpdate),
       });
@@ -492,9 +502,10 @@ const UserDashboard: React.FC = () => {
 
         {/* Estado para cargar los usuarios */}
         {loading ? (
-          <Card>
+          <Card className="min-h-[300px] flex items-center justify-center">
             <CardContent className="p-6 text-center">
-              <p>Cargando usuarios...</p>
+              <RefreshCw className="h-8 w-8 mb-4 mx-auto animate-spin text-gray-600" />
+              <p className="text-gray-600">Cargando usuarios...</p>
             </CardContent>
           </Card>
         ) : (

@@ -25,10 +25,19 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { ShoppingCart, Package, Truck, CheckCircle } from "lucide-react";
-import Sidebar from "@/components/sidebar";
+import {
+  ShoppingCart,
+  Package,
+  Truck,
+  CheckCircle,
+  Clock,
+  Send,
+  XIcon,
+  CreditCard,
+  RefreshCw,
+} from "lucide-react";
 import { Order } from "@/types/orderTypes";
-import { useAuth } from "@/hooks/useAuth";
+import { useSession } from "next-auth/react";
 
 // Función para formatear moneda
 const formatCurrency = (value: number) => {
@@ -44,35 +53,36 @@ export default function DashboardHome() {
   const [pedidos, setPedidos] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // const { getAuthToken } = useAuth();
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
+
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      // const token = await getAuthToken();
+
+      // if (token) {
+      const pedidosResponse = await fetch(
+        `${API_BASE_URL}/api/pedidos/details`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const pedidosData = await pedidosResponse.json();
+
+      setPedidos(pedidosData);
+      // }
+    } catch (error) {
+      console.error("Error obteniendo datos:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        // const token = await getAuthToken();
-
-        // if (token) {
-        const pedidosResponse = await fetch(
-          `${API_BASE_URL}/api/pedidos/details`
-          // ,
-          // {
-          //   headers: {
-          //     Authorization: `Bearer ${token}`,
-          //   },
-          // }
-        );
-        const pedidosData = await pedidosResponse.json();
-
-        setPedidos(pedidosData);
-        // }
-      } catch (error) {
-        console.error("Error obteniendo datos:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchData();
   }, []);
 
@@ -177,37 +187,47 @@ export default function DashboardHome() {
     .slice(0, 5);
 
   const getBadgeEstado = (status: Order["status"]) => {
+    let colorClass = "";
+    let icon = null;
+
     switch (status) {
       case "pendiente":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-yellow-100 text-yellow-800 border-yellow-200"
-          >
-            Pendiente
-          </Badge>
-        );
+        colorClass = "bg-yellow-50 text-yellow-600 border-yellow-300";
+        icon = <Clock className="h-3.5 w-3.5 mr-1.5 text-yellow-500" />;
+        break;
       case "enviado":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-blue-100 text-blue-800 border-blue-200"
-          >
-            Enviado
-          </Badge>
-        );
+        colorClass = "bg-blue-50 text-blue-600 border-blue-300";
+        icon = <Send className="h-3.5 w-3.5 mr-1.5 text-blue-500" />;
+        break;
       case "finalizado":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-green-100 text-green-800 border-green-200"
-          >
-            Finalizado
-          </Badge>
-        );
+        colorClass = "bg-green-50 text-green-600 border-green-300";
+        icon = <CheckCircle className="h-3.5 w-3.5 mr-1.5 text-green-500" />;
+        break;
+      case "cancelado":
+        colorClass = "bg-red-50 text-red-600 border-red-300";
+        icon = <XIcon className="h-3.5 w-3.5 mr-1.5 text-red-500" />;
+        break;
+      case "pagado":
+        colorClass = "bg-purple-50 text-purple-600 border-purple-300";
+        icon = <CreditCard className="h-3.5 w-3.5 mr-1.5 text-purple-500" />;
+        break;
+      case "reembolsado":
+        colorClass = "bg-orange-50 text-orange-600 border-orange-300";
+        icon = <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-orange-500" />;
+        break;
       default:
-        return <Badge variant="outline">Desconocido</Badge>;
+        colorClass = "bg-gray-50 text-gray-600 border-gray-300";
     }
+
+    return (
+      <Badge
+        variant="outline"
+        className={`${colorClass} px-2 py-1 flex items-center`}
+      >
+        {icon}
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
   };
 
   return (
@@ -223,9 +243,10 @@ export default function DashboardHome() {
         </div>
 
         {isLoading ? (
-          <Card>
+          <Card className="min-h-[300px] flex items-center justify-center">
             <CardContent className="p-6 text-center">
-              <p>Cargando datos...</p>
+              <RefreshCw className="h-8 w-8 mb-4 mx-auto animate-spin text-gray-600" />
+              <p className="text-gray-600">Cargando datos...</p>
             </CardContent>
           </Card>
         ) : (
@@ -438,7 +459,9 @@ export default function DashboardHome() {
                             <TableCell className="font-medium">
                               #{pedido.pedido_id}
                             </TableCell>
-                            <TableCell>{pedido.cliente}</TableCell>
+                            <TableCell>
+                              {pedido.cliente || "No especificado"}
+                            </TableCell>
                             <TableCell>
                               {new Date(pedido.fecha_pedido).toLocaleDateString(
                                 "es-AR",

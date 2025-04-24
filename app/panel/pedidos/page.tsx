@@ -20,10 +20,6 @@ import {
   X,
   CheckSquare,
   Square,
-  RulerIcon,
-  LayersIcon,
-  TagIcon,
-  CircleIcon,
   Plus,
   Clock,
   Send,
@@ -64,26 +60,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import OrderFormModal from "@/components/forms/orderFormModal";
-import { Order, ProductVariant } from "@/types/orderTypes";
+import { Order } from "@/types/orderTypes";
 import { CancellationModal } from "@/components/forms/cancellationModal";
-
-const THEME_COLORS = {
-  primary: {
-    light: "#ebf5ff",
-    default: "#3b82f6",
-    dark: "#1e40af",
-  },
-  secondary: {
-    light: "#f0f9ff",
-    default: "#0ea5e9",
-    dark: "#0369a1",
-  },
-  accent: {
-    light: "#fef3c7",
-    default: "#f59e0b",
-    dark: "#b45309",
-  },
-};
+import { useSession } from "next-auth/react";
 
 type SortField = "id" | "date" | "status" | "paymentMethod" | "total";
 type SortDirection = "asc" | "desc";
@@ -126,10 +105,18 @@ const OrderDashboard: React.FC = () => {
   const [isCancellationModalOpen, setIsCancellationModalOpen] = useState(false);
   const [orderIdToCancel, setOrderIdToCancel] = useState<number | null>(null);
 
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
+
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/pedidos/details`);
+      const response = await fetch(`${API_BASE_URL}/api/pedidos/details`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!response.ok) {
         throw new Error(`Error fetching orders: ${response.statusText}`);
       }
@@ -204,6 +191,7 @@ const OrderDashboard: React.FC = () => {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ ids: selectedOrders }),
       });
@@ -247,6 +235,7 @@ const OrderDashboard: React.FC = () => {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(requestBody),
       });

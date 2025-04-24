@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useSession } from "next-auth/react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -60,6 +61,10 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
   const open = controlled ? isOpen : internalOpen;
   const setOpen = controlled ? onOpenChange : setInternalOpen;
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
 
   // Form state
   const [formData, setFormData] = useState<User>({
@@ -157,6 +162,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({
         method: user?.id_user ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(userData),
       });

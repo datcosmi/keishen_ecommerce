@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { useSession } from "next-auth/react";
 
 interface Category {
   id_cat: number;
@@ -46,6 +47,10 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
   // Determinar qué estado de apertura usar
   const open =
     externalOpenState !== undefined ? externalOpenState : internalOpen;
+
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
 
   // Función para cambiar el estado de apertura
   const setOpen = (value: boolean) => {
@@ -99,6 +104,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
         method,
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(bodyData),
       });

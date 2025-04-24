@@ -30,6 +30,7 @@ import {
   OrderFormModalProps,
 } from "@/types/orderFormTypes";
 import ProductSelector from "./form-components/productSelector";
+import { useSession } from "next-auth/react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -103,13 +104,21 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
+
   // Fetch users and products on component mount
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
         // Fetch users
-        const usersResponse = await fetch(`${API_BASE_URL}/api/users`);
+        const usersResponse = await fetch(`${API_BASE_URL}/api/users`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (!usersResponse.ok) {
           throw new Error(`Error fetching users: ${usersResponse.statusText}`);
         }
@@ -118,7 +127,12 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
 
         // Fetch products
         const productsResponse = await fetch(
-          `${API_BASE_URL}/api/products/full-details`
+          `${API_BASE_URL}/api/products/full-details`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
         if (!productsResponse.ok) {
           throw new Error(
@@ -532,6 +546,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
               stock: newStock,
@@ -582,6 +597,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(detailUpdateData),
           }
@@ -617,6 +633,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(orderDataToSubmit),
       });
@@ -634,6 +651,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             pedido_id: orderId,
@@ -681,6 +699,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(orderData),
         }
@@ -695,6 +714,9 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
         `${API_BASE_URL}/api/pedido/details/${existingOrder?.id_pedido}`,
         {
           method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
@@ -704,6 +726,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             pedido_id: existingOrder?.id_pedido,
@@ -755,6 +778,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(orderDataToSubmit),
           }
@@ -765,6 +789,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(orderDataToSubmit),
         });
@@ -782,6 +807,9 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
         // Delete existing details first
         await fetch(`${API_BASE_URL}/api/pedido/details/${orderId}`, {
           method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
       }
 
@@ -791,6 +819,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             pedido_id: orderId,

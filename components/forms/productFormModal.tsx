@@ -24,6 +24,7 @@ import {
 import BasicInfoTab from "./form-components/basicInfoTab";
 import ImagesTab from "./form-components/imagesTab";
 import VariantsTab from "./form-components/variantsTab";
+import { useSession } from "next-auth/react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const IMAGES_BASE_URL =
@@ -83,6 +84,10 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [productImages, setProductImages] = useState<any[]>([]);
   const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
 
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
+
   const calculateTotalVariantStock = () => {
     const colorStock = formData.colorDetails.reduce(
       (sum, detail) => sum + (detail.stock || 0),
@@ -113,7 +118,11 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   // Fetch categories on component mount
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/categories`);
+      const response = await fetch(`${API_BASE_URL}/api/categories`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!response.ok) {
         throw new Error(`Error fetching categories: ${response.statusText}`);
       }
@@ -629,6 +638,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(detailsWithProductId),
       });
@@ -671,6 +681,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(details),
         }
@@ -763,6 +774,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(productData),
           }
@@ -779,6 +791,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(productData),
         });
@@ -889,6 +902,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
               },
               body: JSON.stringify(detailsToSoftDelete),
             }
@@ -945,6 +959,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ imageIds: imagesToDelete }),
         });
@@ -959,13 +974,21 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
         await fetch(`${API_BASE_URL}/api/images/upload-multiple/${productId}`, {
           method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
           body: formData,
         });
       }
 
       // Fetch the complete updated product
       const completeProductResponse = await fetch(
-        `${API_BASE_URL}/api/product/${productId}/details-images`
+        `${API_BASE_URL}/api/product/${productId}/details-images`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       if (!completeProductResponse.ok) {

@@ -56,6 +56,7 @@ import {
 import ProductFormModal from "@/components/forms/productFormModal";
 import { Product, ProductData } from "@/types/productTypes";
 import { useAuth } from "@/hooks/useAuth";
+import { useSession } from "next-auth/react";
 
 type SortField = "name" | "price" | "stock" | "inStock";
 type SortDirection = "asc" | "desc";
@@ -90,6 +91,10 @@ const ProductDashboard: React.FC = () => {
 
   // Vista
   const [isGridView, setIsGridView] = useState(false);
+
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
 
   // Transformar los datos de la API al formato que espera el componente
   const transformProductData = (data: ProductData[]): Product[] => {
@@ -202,6 +207,7 @@ const ProductDashboard: React.FC = () => {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(updateData),
       });

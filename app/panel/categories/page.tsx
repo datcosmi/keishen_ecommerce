@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -52,6 +51,7 @@ import {
 import CategoryModal from "@/components/forms/categoryModal";
 import { Category } from "@/types/categoryTypes";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 
 type SortField = "id_cat" | "name";
 type SortDirection = "asc" | "desc";
@@ -89,6 +89,10 @@ const CategoriesDashboard: React.FC = () => {
 
   // Diálogo de confirmación para eliminar múltiples
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -162,6 +166,7 @@ const CategoriesDashboard: React.FC = () => {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(updateData),
       });
