@@ -1,9 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ChevronDown, ChevronUp, SlidersHorizontal, Tag } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
+import { useState, useEffect, Suspense } from "react";
+import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import NavbarWhite from "@/components/navbarWhite";
 import Footer from "@/components/footer";
@@ -19,9 +17,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import ProductGrid from "@/components/productGrid";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -92,6 +90,37 @@ interface FilterCategoryProps {
 }
 
 export default function ProductsPage() {
+  return (
+    <Suspense fallback={<ProductsPageLoading />}>
+      <ProductsPageContent />
+    </Suspense>
+  );
+}
+
+function ProductsPageLoading() {
+  return (
+    <div className="min-h-screen bg-white">
+      <NavbarWhite />
+      <div className="max-w-8xl mx-auto px-2 sm:px-4 lg:px-6 py-8">
+        <div className="flex justify-between items-center mb-8 px-2">
+          <h1 className="text-2xl font-semibold">Cargando productos...</h1>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="space-y-3">
+              <Skeleton className="h-64 w-full rounded-md" />
+              <Skeleton className="h-4 w-3/4 rounded-md" />
+              <Skeleton className="h-4 w-1/2 rounded-md" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <Footer />
+    </div>
+  );
+}
+
+function ProductsPageContent() {
   const [products, setProducts] = useState<DisplayProduct[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,10 +269,13 @@ export default function ProductsPage() {
   // Initialize category filters when categories are loaded
   useEffect(() => {
     if (categories.length > 0) {
-      const categoryFilters = categories.reduce((acc, category) => {
-        acc[category.id_cat] = false;
-        return acc;
-      }, {} as Record<number, boolean>);
+      const categoryFilters = categories.reduce(
+        (acc, category) => {
+          acc[category.id_cat] = false;
+          return acc;
+        },
+        {} as Record<number, boolean>
+      );
 
       setFilters((prev) => ({
         ...prev,
@@ -254,10 +286,6 @@ export default function ProductsPage() {
 
   const [showPriceFilter, setShowPriceFilter] = useState(true);
   const [showCategoryFilter, setShowCategoryFilter] = useState(true);
-
-  const formatPrice = (price: number) => {
-    return `$${price.toLocaleString("es-MX")}`;
-  };
 
   // Function to filter products
   const filteredProducts = products.filter((product) => {
@@ -333,28 +361,6 @@ export default function ProductsPage() {
       {children}
     </div>
   );
-
-  // Loading skeleton component
-  const ProductSkeleton = () => (
-    <Card>
-      <CardContent className="p-0">
-        <div className="aspect-square relative">
-          <Skeleton className="h-full w-full rounded-t-lg" />
-        </div>
-        <div className="p-4 space-y-2">
-          <Skeleton className="h-6 w-3/4" />
-          <Skeleton className="h-4 w-1/2" />
-          <Skeleton className="h-4 w-1/3" />
-          <Skeleton className="h-6 w-1/4 mt-2" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  // Count total variables for a product
-  const countVariables = (product: DisplayProduct) => {
-    return Object.keys(product.variables).length;
-  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -718,131 +724,11 @@ export default function ProductsPage() {
 
           {/* Product grid */}
           <div className="flex-1">
-            {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {[...Array(8)].map((_, i) => (
-                  <ProductSkeleton key={i} />
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {sortedProducts.map((product) => (
-                  <Link
-                    key={product.id}
-                    href={`/productos/${product.id}`}
-                    className="block"
-                  >
-                    <Card className="overflow-hidden h-full transition-all duration-300 hover:shadow-md transform hover:scale-105">
-                      <CardContent className="p-0">
-                        <div className="relative aspect-square bg-gray-100">
-                          <Image
-                            src={
-                              product.image === "/images/placeholder.png"
-                                ? product.image
-                                : `${API_BASE_URL}${product.image}`
-                            }
-                            alt={product.name}
-                            fill
-                            priority
-                            className="object-cover transition-transform duration-300 group-hover:scale-105"
-                            sizes="(max-width: 768px) 100vw, 50vw"
-                          />
-                          {/* Badges overlay */}
-                          <div className="absolute top-2 left-2 flex flex-col gap-2">
-                            {/* Discount badge */}
-                            {product.isDiscounted && (
-                              <Badge
-                                variant="destructive"
-                                className="bg-red-600 text-white px-2 py-1 flex items-center gap-1"
-                              >
-                                <Tag size={14} />
-                                {product.discountPercentage}% OFF
-                              </Badge>
-                            )}
-                          </div>
-                          {/* Out of stock overlay */}
-                          {!product.inStock && (
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                              <Badge
-                                variant="destructive"
-                                className="text-sm px-3 py-1"
-                              >
-                                Agotado
-                              </Badge>
-                            </div>
-                          )}
-                        </div>
-                        <div className="p-3">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <p className="text-sm text-gray-600 mb-1">
-                                {product.category}
-                              </p>
-                              <h3 className="text-base font-semibold">
-                                {product.name}
-                              </h3>
-                            </div>
-                            <div className="text-right">
-                              {product.isDiscounted ? (
-                                <>
-                                  <span className="text-base font-bold">
-                                    {formatPrice(product.price)}
-                                  </span>
-                                  <p className="text-xs text-gray-500 line-through">
-                                    {formatPrice(product.originalPrice!)}
-                                  </p>
-                                </>
-                              ) : (
-                                <span className="text-base font-bold">
-                                  {formatPrice(product.price)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="mt-2 flex items-center justify-between">
-                            <p className="text-xs text-gray-500">
-                              {countVariables(product)}{" "}
-                              {countVariables(product) === 1
-                                ? "variable"
-                                : "variables"}
-                            </p>
-                            <div className="flex gap-1">
-                              {Object.keys(product.variables)
-                                .slice(0, 3)
-                                .map((varName, index) => (
-                                  <div
-                                    key={index}
-                                    className="h-4 w-4 rounded-full flex items-center justify-center bg-gray-100 text-xs"
-                                    title={varName}
-                                  >
-                                    {varName.charAt(0).toUpperCase()}
-                                  </div>
-                                ))}
-                              {Object.keys(product.variables).length > 3 && (
-                                <div className="text-xs text-gray-500">
-                                  +{Object.keys(product.variables).length - 3}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            )}
-
-            {!loading && sortedProducts.length === 0 && (
-              <div className="text-center py-12">
-                <h3 className="text-lg font-medium mb-2">
-                  No se encontraron productos
-                </h3>
-                <p className="text-gray-500">
-                  Intenta cambiar los filtros para ver más resultados.
-                </p>
-              </div>
-            )}
+            <ProductGrid
+              products={sortedProducts}
+              loading={loading}
+              apiBaseUrl={API_BASE_URL}
+            />
           </div>
         </div>
       </div>
