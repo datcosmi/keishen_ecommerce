@@ -13,9 +13,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 
-//obtener el token después de iniciar sesión
-import { getSession } from "next-auth/react";
-
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -78,8 +75,8 @@ export default function Login() {
       } else {
 
         // Fetch session to get the token
-        const session = await getSession();
-        console.log("accessToken", session?.accessToken);
+        // const session = await getSession();
+        // console.log("accessToken", session?.accessToken);
         // Redirect to dashboard on success
         router.push("/");
       }

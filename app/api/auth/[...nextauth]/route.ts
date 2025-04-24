@@ -133,13 +133,15 @@ export const authOptions: NextAuthOptions = {
     },
   },
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
+      console.log("JWT Callback:");
+      console.log("token:", token);
+
       // Add user fields to the token
       if (user) {
         token.id_user = user.id_user;
         token.role = user.role;
 
-        // accesstoken para el backend
         token.accessToken = await generateCustomJWT(user);
       }
 
@@ -163,9 +165,9 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      if (account?.access_token) {
-        token.accessToken = account.access_token;
-      }
+      // if (account?.access_token) {
+      //   token.accessToken = account.access_token;
+      // }
 
       return token;
     },
@@ -174,7 +176,7 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id_user = token.id_user as number;
         session.user.role = token.role as string;
-        session.token = token.accessToken || "";
+        session.accessToken = token.accessToken || "";
       }
 
       return session;

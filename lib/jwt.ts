@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 
 export const generateCustomJWT = async (user: any) => {
   const payload = {
-    id_user: user.id_user,
+    id_user: user.id_user || user.id,
     email: user.email,
     role: user.role,
   };
