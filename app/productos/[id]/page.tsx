@@ -11,6 +11,7 @@ import NavbarWhite from "@/components/navbarWhite";
 import { ProductData } from "@/types/productTypes";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 
 interface CartItems {
   cart_id: number | null;
@@ -45,6 +46,8 @@ export default function ProductPage() {
 
   // Authentication
   const { isAuthenticated, user } = useAuth();
+  const { data: session } = useSession();
+  const token = session?.accessToken;
 
   const fetchCartItems = async () => {
     try {
@@ -52,7 +55,12 @@ export default function ProductPage() {
       if (!user?.id_user) return;
 
       const response = await fetch(
-        `${API_BASE_URL}/api/cart/user/${user.id_user}/count`
+        `${API_BASE_URL}/api/cart/user/${user.id_user}/count`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       if (!response.ok) {
         throw new Error("Failed to fetch cart items");
@@ -74,6 +82,7 @@ export default function ProductPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           user_id: user?.id_user,
@@ -127,6 +136,7 @@ export default function ProductPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           cart_id: currentCartId,
@@ -556,14 +566,14 @@ export default function ProductPage() {
                   {isAddingToCart
                     ? "Agregando..."
                     : product.is_deleted
-                    ? "No disponible"
-                    : user?.role === "vendedor" ||
-                      user?.role === "superadmin" ||
-                      user?.role === "admin_tienda"
-                    ? "No puedes agregar productos al carrito"
-                    : product.stock > 0
-                    ? "Añadir al carrito"
-                    : "Agotado"}
+                      ? "No disponible"
+                      : user?.role === "vendedor" ||
+                          user?.role === "superadmin" ||
+                          user?.role === "admin_tienda"
+                        ? "No puedes agregar productos al carrito"
+                        : product.stock > 0
+                          ? "Añadir al carrito"
+                          : "Agotado"}
                 </Button>
               </div>
             </CardContent>
