@@ -7,17 +7,6 @@ interface Category {
 }
 
 const Footer = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
-
-  useEffect(() => {
-    fetch("/api/categories")
-      .then((res) => res.json())
-      .then((data) => {
-        setCategories(data);
-      })
-      .catch((err) => console.error("Error fetching categories:", err));
-  }, []);
-
   return (
     <footer className="bg-black text-white">
       <div className="overflow-visible h-full flex items-center justify-center">
@@ -26,17 +15,11 @@ const Footer = () => {
         </span>
       </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 place-items-center">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 place-items-center">
           <div>
             <h3 className="text-lg font-semibold mb-4">Horario de Atención</h3>
             <p>Lun - Sab: 12:00 p.m. - 7:00 p.m.</p>
             <p>Domingo: Cerrado</p>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Categorias</h3>
-            {categories.map((category, index) => (
-              <p key={category.id}>{category.name}</p>
-            ))}
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-4">Contacto</h3>
