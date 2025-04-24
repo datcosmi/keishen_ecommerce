@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   EnvelopeIcon,
   LockClosedIcon,
@@ -23,9 +23,11 @@ export default function Login() {
   const { isAuthenticated } = useAuth();
 
   // Redirect if already logged in
-  if (isAuthenticated) {
-    router.push("/");
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/");
+    }
+  }, [isAuthenticated, router]);
 
   const validateEmail = (email: string) => {
     const emailRegex =
@@ -33,11 +35,11 @@ export default function Login() {
     return emailRegex.test(email);
   };
 
-  const validatePassword = (password: string) => {
-    const passwordRegex =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).{8,}$/;
-    return passwordRegex.test(password);
-  };
+  // const validatePassword = (password: string) => {
+  //   const passwordRegex =
+  //     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).{8,}$/;
+  //   return passwordRegex.test(password);
+  // };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,13 +54,13 @@ export default function Login() {
       return;
     }
 
-    if (!validatePassword(password)) {
-      setError(
-        "La contraseña debe tener al menos 8 caracteres, incluyendo mayúsculas, minúsculas, números y símbolos."
-      );
-      setLoading(false);
-      return;
-    }
+    // if (!validatePassword(password)) {
+    //   setError(
+    //     "La contraseña debe tener al menos 8 caracteres, incluyendo mayúsculas, minúsculas, números y símbolos."
+    //   );
+    //   setLoading(false);
+    //   return;
+    // }
 
     try {
       // Use NextAuth's signIn method for credentials
@@ -71,6 +73,10 @@ export default function Login() {
       if (result?.error) {
         setError("Email o contraseña incorrectos");
       } else {
+
+        // Fetch session to get the token
+        // const session = await getSession();
+        // console.log("accessToken", session?.accessToken);
         // Redirect to dashboard on success
         router.push("/");
       }
@@ -144,7 +150,7 @@ export default function Login() {
               </div>
 
               {/* Remember me checkbox */}
-              <div className="flex items-center">
+              {/* <div className="flex items-center">
                 <input
                   id="remember-me"
                   type="checkbox"
@@ -158,7 +164,7 @@ export default function Login() {
                 >
                   Mantener mi sesión iniciada
                 </label>
-              </div>
+              </div> */}
 
               {/* Forgot password link */}
               <div className="text-right">

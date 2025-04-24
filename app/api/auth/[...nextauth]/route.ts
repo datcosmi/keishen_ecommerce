@@ -1,11 +1,11 @@
-// /app/api/auth/[...nextauth]/route.ts
 import NextAuth from "next-auth/next";
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { SupabaseAdapter } from "@auth/supabase-adapter";
 import { createClient } from "@supabase/supabase-js";
-import { CustomUser } from "@/types/usersTypes";
+// import { CustomUser } from "@/types/usersTypes";
+import { generateCustomJWT } from "@/lib/jwt";
 import bcrypt from "bcryptjs";
 
 const supabase = createClient(
@@ -132,11 +132,16 @@ export const authOptions: NextAuthOptions = {
     },
   },
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
+      console.log("JWT Callback:");
+      console.log("token:", token);
+
       // Add user fields to the token
       if (user) {
         token.id_user = user.id_user;
         token.role = user.role;
+
+        token.accessToken = await generateCustomJWT(user);
       }
 
       // If token already has user info but we need to refresh it
@@ -159,9 +164,9 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      if (account?.access_token) {
-        token.accessToken = account.access_token;
-      }
+      // if (account?.access_token) {
+      //   token.accessToken = account.access_token;
+      // }
 
       return token;
     },
@@ -170,7 +175,7 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id_user = token.id_user as number;
         session.user.role = token.role as string;
-        session.token = token.accessToken || "";
+        session.accessToken = token.accessToken || "";
       }
 
       return session;

@@ -17,13 +17,24 @@ export interface OrderDetail {
   amount: number;
   unit_price: number;
   producto: Product;
+  discount: number;
 }
 
 export interface Order {
   pedido_id: number;
   fecha_pedido: string;
-  status: "pendiente" | "enviado" | "finalizado";
+  status:
+    | "pendiente"
+    | "enviado"
+    | "finalizado"
+    | "cancelado"
+    | "pagado"
+    | "reembolsado";
   metodo_pago: "mercado pago" | "paypal" | "efectivo";
   cliente: string;
+  surname: string;
+  email: string;
+  phone: string;
+  comentarios: string;
   detalles: OrderDetail[];
 }

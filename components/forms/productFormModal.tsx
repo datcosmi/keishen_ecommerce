@@ -1,12 +1,10 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Upload } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -16,53 +14,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Image from "next/image";
+import { Category } from "@/types/categoryTypes";
+import {
+  ProductDetail,
+  ProductFormData,
+  ProductFormModalProps,
+} from "@/types/productFormTypes";
+import BasicInfoTab from "./form-components/basicInfoTab";
+import ImagesTab from "./form-components/imagesTab";
+import VariantsTab from "./form-components/variantsTab";
+import { useSession } from "next-auth/react";
 
-const API_BASE_URL = "http://localhost:3001/api";
-
-interface Category {
-  id_cat: number;
-  name: string;
-}
-
-interface ProductDetail {
-  detail_name: string;
-  detail_desc: string;
-  stock?: number;
-  id_pd?: number;
-}
-
-interface ProductFormData {
-  name: string;
-  description: string;
-  price: number;
-  cat_id: number;
-  stock: number;
-  colorDetails: ProductDetail[];
-  sizeDetails: ProductDetail[];
-  tallaSizeDetails: ProductDetail[];
-  materialDetails: ProductDetail[];
-}
-
-interface ProductFormModalProps {
-  onProductAdded: (product: any) => void;
-  onProductUpdated?: (product: any) => void;
-  product?: any;
-  buttonLabel?: string;
-  buttonIcon?: React.ReactNode;
-  isOpen?: boolean;
-  onOpenChange?: (open: boolean) => void;
-}
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const IMAGES_BASE_URL =
+  process.env.NEXT_PUBLIC_IMAGES_URL || "https://keishen.com.mx";
 
 const ProductFormModal: React.FC<ProductFormModalProps> = ({
   onProductAdded,
@@ -72,6 +38,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   buttonIcon = <Plus className="h-5 w-5 mr-2" />,
   isOpen,
   onOpenChange,
+  existingProducts,
 }) => {
   const router = useRouter();
   const [internalOpen, setInternalOpen] = useState(false);
@@ -92,27 +59,70 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     sizeDetails: [],
     tallaSizeDetails: [],
     materialDetails: [],
+    customDetails: [],
   });
 
   // Input states for product details/variants
   const [colorInput, setColorInput] = useState("#000000");
-  const [colorStockInput, setColorStockInput] = useState<number>(0);
+  const [colorStockInput, setColorStockInput] = useState<string>("");
   const [sizeInput, setSizeInput] = useState("");
-  const [sizeStockInput, setSizeStockInput] = useState<number>(0);
+  const [sizeStockInput, setSizeStockInput] = useState<string>("");
   const [tallaInput, setTallaInput] = useState("");
-  const [tallaStockInput, setTallaStockInput] = useState<number>(0);
+  const [tallaStockInput, setTallaStockInput] = useState<string>("");
   const [materialInput, setMaterialInput] = useState("");
-  const [materialStockInput, setMaterialStockInput] = useState<number>(0);
+  const [materialStockInput, setMaterialStockInput] = useState<string>("");
+  const [detailsToUpdate, setDetailsToUpdate] = useState<
+    Array<{ id_pd: number; data: { stock: number } }>
+  >([]);
+
+  const [customTypeInput, setCustomTypeInput] = useState("");
+  const [customValueInput, setCustomValueInput] = useState("");
+  const [customStockInput, setCustomStockInput] = useState<string>("");
 
   // Image states
   const [images, setImages] = useState<File[]>([]);
   const [productImages, setProductImages] = useState<any[]>([]);
   const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
 
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
+
+  const calculateTotalVariantStock = () => {
+    const colorStock = formData.colorDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const sizeStock = formData.sizeDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const tallaStock = formData.tallaSizeDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const materialStock = formData.materialDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+
+    console.log("Current stocks:", {
+      colorStock,
+      sizeStock,
+      tallaStock,
+      materialStock,
+    });
+    return colorStock + sizeStock + tallaStock + materialStock;
+  };
+
   // Fetch categories on component mount
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/categories`);
+      const response = await fetch(`${API_BASE_URL}/api/categories`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!response.ok) {
         throw new Error(`Error fetching categories: ${response.statusText}`);
       }
@@ -129,6 +139,48 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   }, []);
 
   useEffect(() => {
+    console.log("Current formData.materialDetails:", formData.materialDetails);
+  }, [formData.materialDetails]);
+
+  useEffect(() => {
+    // Check each variant type individually
+    const colorStock = formData.colorDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const sizeStock = formData.sizeDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const tallaStock = formData.tallaSizeDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const materialStock = formData.materialDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+
+    if (
+      (colorStock > formData.stock ||
+        sizeStock > formData.stock ||
+        tallaStock > formData.stock ||
+        materialStock > formData.stock) &&
+      formData.stock > 0
+    ) {
+      toast.warning(
+        "Atención: El stock de alguna variante supera el stock total del producto"
+      );
+    }
+  }, [
+    formData.stock,
+    formData.colorDetails,
+    formData.sizeDetails,
+    formData.tallaSizeDetails,
+    formData.materialDetails,
+  ]);
+
+  useEffect(() => {
     if (product) {
       setFormData({
         name: product.name,
@@ -137,21 +189,29 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         cat_id: product.id_cat || 0,
         stock: product.stock,
         colorDetails: product.details
-          .filter((d: any) => d.detail_name === "Color")
+          .filter((d: any) => d.detail_name === "Color" && !d.is_deleted)
           .map((d: any) => ({ ...d })),
         sizeDetails: product.details
-          .filter((d: any) => d.detail_name === "Tamaño")
+          .filter((d: any) => d.detail_name === "Tamaño" && !d.is_deleted)
           .map((d: any) => ({ ...d })),
         tallaSizeDetails: product.details
-          .filter((d: any) => d.detail_name === "Talla")
+          .filter((d: any) => d.detail_name === "Talla" && !d.is_deleted)
           .map((d: any) => ({ ...d })),
         materialDetails: product.details
-          .filter((d: any) => d.detail_name === "Material")
+          .filter((d: any) => d.detail_name === "Material" && !d.is_deleted)
+          .map((d: any) => ({ ...d })),
+        // Add this block to load custom details
+        customDetails: product.details
+          .filter(
+            (d: any) =>
+              !["Color", "Tamaño", "Talla", "Material"].includes(
+                d.detail_name
+              ) && !d.is_deleted
+          )
           .map((d: any) => ({ ...d })),
       });
       if (product.images && product.images.length > 0) {
         setProductImages(product.images);
-        console.log("Product", product);
       }
     }
   }, [product]);
@@ -200,6 +260,23 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       colorInput &&
       !formData.colorDetails.some((detail) => detail.detail_desc === colorInput)
     ) {
+      const stockValue = parseInt(colorStockInput) || 0;
+
+      // Calculate current color stock only
+      const currentColorStock = formData.colorDetails.reduce(
+        (sum, detail) => sum + (detail.stock || 0),
+        0
+      );
+
+      const newColorTotal = currentColorStock + stockValue;
+
+      if (newColorTotal > formData.stock) {
+        toast.error(
+          "La suma del stock de colores no puede superar el stock total del producto."
+        );
+        return;
+      }
+
       setFormData((prev) => ({
         ...prev,
         colorDetails: [
@@ -207,12 +284,12 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           {
             detail_name: "Color",
             detail_desc: colorInput,
-            stock: colorStockInput,
+            stock: stockValue,
           },
         ],
       }));
       setColorInput("#000000");
-      setColorStockInput(0);
+      setColorStockInput("");
     }
   };
 
@@ -225,6 +302,30 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }));
   };
 
+  const editColorStock = (detail: any, newStock: number) => {
+    // Make sure we have an id_pd to work with
+    if (detail.detail_id) {
+      // Add to the update queue
+      setDetailsToUpdate((prev) => {
+        // Remove if already in queue
+        const filtered = prev.filter((item) => item.id_pd !== detail.detail_id);
+        // Add updated version
+        return [
+          ...filtered,
+          { id_pd: detail.detail_id as number, data: { stock: newStock } },
+        ];
+      });
+    }
+
+    // Update local state
+    setFormData((prev) => ({
+      ...prev,
+      colorDetails: prev.colorDetails.map((d) =>
+        d.detail_desc === detail.detail_desc ? { ...d, stock: newStock } : d
+      ),
+    }));
+  };
+
   const addSize = () => {
     if (
       sizeInput.trim() &&
@@ -232,6 +333,23 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         (detail) => detail.detail_desc === sizeInput.trim()
       )
     ) {
+      const stockValue = parseInt(sizeStockInput) || 0;
+
+      // Calculate current size stock only
+      const currentSizeStock = formData.sizeDetails.reduce(
+        (sum, detail) => sum + (detail.stock || 0),
+        0
+      );
+
+      const newSizeTotal = currentSizeStock + stockValue;
+
+      if (newSizeTotal > formData.stock) {
+        toast.error(
+          "La suma del stock de tamaños no puede superar el stock total del producto."
+        );
+        return;
+      }
+
       setFormData((prev) => ({
         ...prev,
         sizeDetails: [
@@ -239,12 +357,12 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           {
             detail_name: "Tamaño",
             detail_desc: sizeInput.trim(),
-            stock: sizeStockInput,
+            stock: stockValue,
           },
         ],
       }));
       setSizeInput("");
-      setSizeStockInput(0);
+      setSizeStockInput("");
     }
   };
 
@@ -257,6 +375,25 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }));
   };
 
+  const editSizeStock = (detail: any, newStock: number) => {
+    if (detail.detail_id) {
+      setDetailsToUpdate((prev) => {
+        const filtered = prev.filter((item) => item.id_pd !== detail.detail_id);
+        return [
+          ...filtered,
+          { id_pd: detail.detail_id as number, data: { stock: newStock } },
+        ];
+      });
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      sizeDetails: prev.sizeDetails.map((d) =>
+        d.detail_desc === detail.detail_desc ? { ...d, stock: newStock } : d
+      ),
+    }));
+  };
+
   const addTalla = () => {
     if (
       tallaInput.trim() &&
@@ -264,6 +401,23 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         (detail) => detail.detail_desc === tallaInput.trim()
       )
     ) {
+      const stockValue = parseInt(tallaStockInput) || 0;
+
+      // Calculate current talla stock only
+      const currentTallaStock = formData.tallaSizeDetails.reduce(
+        (sum, detail) => sum + (detail.stock || 0),
+        0
+      );
+
+      const newTallaTotal = currentTallaStock + stockValue;
+
+      if (newTallaTotal > formData.stock) {
+        toast.error(
+          "La suma del stock de tallas no puede superar el stock total del producto."
+        );
+        return;
+      }
+
       setFormData((prev) => ({
         ...prev,
         tallaSizeDetails: [
@@ -271,12 +425,12 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           {
             detail_name: "Talla",
             detail_desc: tallaInput.trim(),
-            stock: tallaStockInput,
+            stock: stockValue,
           },
         ],
       }));
       setTallaInput("");
-      setTallaStockInput(0);
+      setTallaStockInput("");
     }
   };
 
@@ -289,6 +443,25 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }));
   };
 
+  const editTallaStock = (detail: any, newStock: number) => {
+    if (detail.detail_id) {
+      setDetailsToUpdate((prev) => {
+        const filtered = prev.filter((item) => item.id_pd !== detail.detail_id);
+        return [
+          ...filtered,
+          { id_pd: detail.detail_id as number, data: { stock: newStock } },
+        ];
+      });
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      tallaSizeDetails: prev.tallaSizeDetails.map((d) =>
+        d.detail_desc === detail.detail_desc ? { ...d, stock: newStock } : d
+      ),
+    }));
+  };
+
   const addMaterial = () => {
     if (
       materialInput.trim() &&
@@ -296,6 +469,24 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         (detail) => detail.detail_desc === materialInput.trim()
       )
     ) {
+      // Calculate stock only for the material type
+      const stockValue = parseInt(materialStockInput) || 0;
+
+      // Calculate current material stock only
+      const currentMaterialStock = formData.materialDetails.reduce(
+        (sum, detail) => sum + (detail.stock || 0),
+        0
+      );
+
+      const newMaterialTotal = currentMaterialStock + stockValue;
+
+      if (newMaterialTotal > formData.stock) {
+        toast.error(
+          "La suma del stock de materiales no puede superar el stock total del producto."
+        );
+        return;
+      }
+
       setFormData((prev) => ({
         ...prev,
         materialDetails: [
@@ -303,20 +494,125 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           {
             detail_name: "Material",
             detail_desc: materialInput.trim(),
-            stock: materialStockInput,
+            stock: stockValue,
           },
         ],
       }));
       setMaterialInput("");
-      setMaterialStockInput(0);
+      setMaterialStockInput("");
     }
   };
 
   const removeMaterial = (materialToRemove: string) => {
+    console.log("Removing material:", materialToRemove);
+    console.log("Before removal:", formData.materialDetails);
+
+    setFormData((prev) => {
+      const updatedDetails = prev.materialDetails.filter(
+        (detail) => detail.detail_desc !== materialToRemove
+      );
+      console.log("After removal:", updatedDetails);
+      return {
+        ...prev,
+        materialDetails: updatedDetails,
+      };
+    });
+  };
+
+  const editMaterialStock = (detail: any, newStock: number) => {
+    if (detail.detail_id) {
+      setDetailsToUpdate((prev) => {
+        const filtered = prev.filter((item) => item.id_pd !== detail.detail_id);
+        return [
+          ...filtered,
+          { id_pd: detail.detail_id as number, data: { stock: newStock } },
+        ];
+      });
+    }
+
     setFormData((prev) => ({
       ...prev,
-      materialDetails: prev.materialDetails.filter(
-        (detail) => detail.detail_desc !== materialToRemove
+      materialDetails: prev.materialDetails.map((d) =>
+        d.detail_desc === detail.detail_desc ? { ...d, stock: newStock } : d
+      ),
+    }));
+  };
+
+  const addCustomDetail = () => {
+    if (
+      customTypeInput.trim() &&
+      customValueInput.trim() &&
+      !formData.customDetails.some(
+        (detail) =>
+          detail.detail_name === customTypeInput.trim() &&
+          detail.detail_desc === customValueInput.trim()
+      )
+    ) {
+      const stockValue = parseInt(customStockInput) || 0;
+
+      // Calculate current custom detail stock only
+      const currentCustomStock = formData.customDetails
+        .filter((detail) => detail.detail_name === customTypeInput.trim())
+        .reduce((sum, detail) => sum + (detail.stock || 0), 0);
+
+      const newCustomTotal = currentCustomStock + stockValue;
+
+      if (newCustomTotal > formData.stock) {
+        toast.error(
+          "La suma del stock de este tipo de variante no puede superar el stock total del producto."
+        );
+        return;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        customDetails: [
+          ...prev.customDetails,
+          {
+            detail_name: customTypeInput.trim(),
+            detail_desc: customValueInput.trim(),
+            stock: stockValue,
+          },
+        ],
+      }));
+
+      // Clear inputs but keep the custom type
+      setCustomValueInput("");
+      setCustomStockInput("");
+    }
+  };
+
+  const removeCustomDetail = (detailName: string, detailDesc: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      customDetails: prev.customDetails.filter(
+        (detail) =>
+          !(
+            detail.detail_name === detailName &&
+            detail.detail_desc === detailDesc
+          )
+      ),
+    }));
+  };
+
+  const editCustomDetailStock = (detail: any, newStock: number) => {
+    if (detail.detail_id) {
+      setDetailsToUpdate((prev) => {
+        const filtered = prev.filter((item) => item.id_pd !== detail.detail_id);
+        return [
+          ...filtered,
+          { id_pd: detail.detail_id as number, data: { stock: newStock } },
+        ];
+      });
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      customDetails: prev.customDetails.map((d) =>
+        d.detail_name === detail.detail_name &&
+        d.detail_desc === detail.detail_desc
+          ? { ...d, stock: newStock }
+          : d
       ),
     }));
   };
@@ -338,10 +634,11 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         JSON.stringify(detailsWithProductId, null, 2)
       );
 
-      const response = await fetch(`${API_BASE_URL}/product/detail`, {
+      const response = await fetch(`${API_BASE_URL}/api/product/detail`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(detailsWithProductId),
       });
@@ -374,8 +671,82 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }
   };
 
+  const bulkUpdateProductDetails = async (
+    details: Array<{ id_pd: number; data: { stock: number } }>
+  ) => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/products/details/bulk-update`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(details),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Error updating product details: ${response.statusText}`
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error updating product details:", error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check each variant type separately
+    const colorStock = formData.colorDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const sizeStock = formData.sizeDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const tallaStock = formData.tallaSizeDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+    const materialStock = formData.materialDetails.reduce(
+      (sum, detail) => sum + (detail.stock || 0),
+      0
+    );
+
+    if (
+      colorStock > formData.stock ||
+      sizeStock > formData.stock ||
+      tallaStock > formData.stock ||
+      materialStock > formData.stock
+    ) {
+      toast.error(
+        "La suma del stock de cada tipo de variante no puede superar el stock total del producto"
+      );
+      return;
+    }
+
+    // Check for duplicate product names
+    if (!product && existingProducts) {
+      // Only check when adding new products, not when editing
+      const isDuplicate = existingProducts.some(
+        (existingProduct) =>
+          existingProduct.name.toLowerCase() === formData.name.toLowerCase()
+      );
+
+      if (isDuplicate) {
+        toast.error("Ya existe un producto con este nombre");
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -387,17 +758,23 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         stock: formData.stock,
       };
 
+      if (product && detailsToUpdate.length > 0) {
+        // Call the bulk update endpoint
+        await bulkUpdateProductDetails(detailsToUpdate);
+      }
+
       let productId;
 
       if (product) {
         // UPDATE EXISTING PRODUCT
         productId = product.id;
         const updateResponse = await fetch(
-          `${API_BASE_URL}/product/${productId}`,
+          `${API_BASE_URL}/api/product/${productId}`,
           {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(productData),
           }
@@ -410,10 +787,11 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         }
       } else {
         // CREATE NEW PRODUCT
-        const productResponse = await fetch(`${API_BASE_URL}/product`, {
+        const productResponse = await fetch(`${API_BASE_URL}/api/product`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(productData),
         });
@@ -434,6 +812,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         ...formData.sizeDetails,
         ...formData.tallaSizeDetails,
         ...formData.materialDetails,
+        ...formData.customDetails,
       ];
 
       if (product) {
@@ -441,6 +820,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         const existingDetailIds = new Set(
           product.details.map((detail: any) => detail.id_pd)
         );
+
         const detailsByType: Record<string, Set<string>> = {
           Color: new Set(
             product.details
@@ -462,6 +842,21 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
               .filter((d: any) => d.detail_name === "Material")
               .map((d: any) => d.detail_desc)
           ),
+          // Dynamic mapping for custom details
+          ...product.details
+            .filter(
+              (d: any) =>
+                !["Color", "Tamaño", "Talla", "Material"].includes(
+                  d.detail_name
+                )
+            )
+            .reduce((acc: Record<string, Set<string>>, curr: any) => {
+              if (!acc[curr.detail_name]) {
+                acc[curr.detail_name] = new Set();
+              }
+              acc[curr.detail_name].add(curr.detail_desc);
+              return acc;
+            }, {}),
         };
 
         // Find details to delete (ones that exist in original but not in form)
@@ -482,16 +877,42 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
             return !formData.materialDetails.some(
               (d: ProductDetail) => d.detail_desc === detail.detail_desc
             );
+          } else {
+            // Handle custom detail types
+            return !formData.customDetails.some(
+              (d: ProductDetail) =>
+                d.detail_name === detail.detail_name &&
+                d.detail_desc === detail.detail_desc
+            );
           }
-          return true; // Delete any unrecognized types
         });
 
-        // Delete only removed details
-        for (const detail of detailsToDelete) {
-          console.log("Deleting detail:", detail);
-          await fetch(`${API_BASE_URL}/product/${detail.detail_id}/detail`, {
-            method: "DELETE",
-          });
+        // Soft delete removed details using bulk update
+        if (detailsToDelete.length > 0) {
+          const detailsToSoftDelete = detailsToDelete.map((detail: any) => ({
+            id_pd: detail.detail_id,
+            data: { is_deleted: true },
+          }));
+
+          console.log("Soft deleting details:", detailsToSoftDelete);
+
+          const softDeleteResponse = await fetch(
+            `${API_BASE_URL}/api/products/details/bulk-update`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify(detailsToSoftDelete),
+            }
+          );
+
+          if (!softDeleteResponse.ok) {
+            throw new Error(
+              `Error soft deleting product details: ${softDeleteResponse.statusText}`
+            );
+          }
         }
 
         // Only add new details
@@ -507,6 +928,11 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           ),
           ...formData.materialDetails.filter(
             (d: ProductDetail) => !detailsByType["Material"].has(d.detail_desc)
+          ),
+          // Add custom details
+          ...formData.customDetails.filter(
+            (d: ProductDetail) =>
+              !detailsByType[d.detail_name]?.has(d.detail_desc)
           ),
         ];
 
@@ -529,10 +955,11 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
       // Si hay imágenes para eliminar
       if (imagesToDelete.length > 0) {
-        await fetch(`${API_BASE_URL}/images`, {
+        await fetch(`${API_BASE_URL}/api/images`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ imageIds: imagesToDelete }),
         });
@@ -545,15 +972,23 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           formData.append("images", image);
         });
 
-        await fetch(`${API_BASE_URL}/images/upload-multiple/${productId}`, {
+        await fetch(`${API_BASE_URL}/api/images/upload-multiple/${productId}`, {
           method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
           body: formData,
         });
       }
 
       // Fetch the complete updated product
       const completeProductResponse = await fetch(
-        `${API_BASE_URL}/product/${productId}/details-images`
+        `${API_BASE_URL}/api/product/${productId}/details-images`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       if (!completeProductResponse.ok) {
@@ -597,14 +1032,19 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       sizeDetails: [],
       tallaSizeDetails: [],
       materialDetails: [],
+      customDetails: [],
     });
     setColorInput("#000000");
     setSizeInput("");
     setTallaInput("");
     setMaterialInput("");
+    setCustomTypeInput("");
+    setCustomValueInput("");
+    setCustomStockInput("");
     setImages([]);
     setProductImages([]);
     setImagesToDelete([]);
+    setDetailsToUpdate([]);
   };
 
   return (
@@ -636,396 +1076,74 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
             </TabsList>
 
             {/* Basic Information Tab */}
-            <TabsContent value="basicInfo" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nombre del Producto *</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Nombre del producto"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Descripción *</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Describe el producto"
-                  required
-                  className="min-h-[100px]"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">Precio *</Label>
-                  <Input
-                    id="price"
-                    name="price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.price || ""}
-                    onChange={handleInputChange}
-                    placeholder="0.00"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="stock">Stock *</Label>
-                  <Input
-                    id="stock"
-                    name="stock"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={formData.stock || ""}
-                    onChange={handleInputChange}
-                    placeholder="0"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="cat_id">Categoría *</Label>
-                  <Select
-                    value={formData.cat_id ? formData.cat_id.toString() : ""}
-                    onValueChange={(value) =>
-                      handleSelectChange("cat_id", value)
-                    }
-                    required
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona una categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem
-                          key={category.id_cat}
-                          value={category.id_cat.toString()}
-                        >
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+            <TabsContent value="basicInfo">
+              <BasicInfoTab
+                formData={formData}
+                handleInputChange={handleInputChange}
+                handleSelectChange={handleSelectChange}
+                categories={categories}
+              />
             </TabsContent>
 
-            <TabsContent value="images" className="space-y-4">
-              <div className="space-y-4">
-                <Label>Imágenes del Producto</Label>
-
-                {/* Área para cargar nuevas imágenes */}
-                <div className="border-2 border-dashed rounded-md p-6 text-center cursor-pointer hover:bg-gray-50 transition-colors">
-                  <Input
-                    type="file"
-                    id="product-images"
-                    className="hidden"
-                    onChange={handleFileChange}
-                    multiple
-                    accept="image/*"
-                  />
-                  <Label
-                    htmlFor="product-images"
-                    className="cursor-pointer flex flex-col items-center"
-                  >
-                    <Upload className="h-8 w-8 mb-2 text-gray-400" />
-                    <span className="text-sm font-medium">
-                      Haz clic para seleccionar imágenes
-                    </span>
-                    <span className="text-xs text-gray-500 mt-1">
-                      o arrastra y suelta tus archivos aquí
-                    </span>
-                  </Label>
-                </div>
-
-                {/* Vista previa de imágenes nuevas */}
-                {images.length > 0 && (
-                  <div className="mt-4">
-                    <Label className="mb-2 block">
-                      Imágenes nuevas seleccionadas
-                    </Label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {images.map((image, idx) => (
-                        <div
-                          key={idx}
-                          className="relative rounded-md overflow-hidden h-32 bg-gray-100"
-                        >
-                          <Image
-                            src={URL.createObjectURL(image)}
-                            alt={`Preview ${idx}`}
-                            width={500}
-                            height={500}
-                            className="w-full h-full object-cover"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-1 right-1 h-6 w-6 rounded-full"
-                            onClick={() => removeSelectedImage(idx)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Imágenes existentes del producto (para modo edición) */}
-                {productImages.length > 0 && (
-                  <div className="mt-6">
-                    <Label className="mb-2 block">
-                      Imágenes actuales del producto
-                    </Label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {productImages.map((image) => (
-                        <div
-                          key={image.image_id}
-                          className="relative rounded-md overflow-hidden h-32 bg-gray-100"
-                        >
-                          <Image
-                            src={`http://localhost:3001${image.image_url}`}
-                            alt={`Image not found`}
-                            width={500}
-                            height={500}
-                            className="w-full h-full object-cover"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-1 right-1 h-6 w-6 rounded-full"
-                            onClick={() => handleImageDelete(image.image_id)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+            {/* Images Tab */}
+            <TabsContent value="images">
+              <ImagesTab
+                images={images}
+                productImages={productImages}
+                handleFileChange={handleFileChange}
+                removeSelectedImage={removeSelectedImage}
+                handleImageDelete={handleImageDelete}
+                IMAGES_BASE_URL={IMAGES_BASE_URL}
+              />
             </TabsContent>
 
             {/* Variants Tab */}
-            <TabsContent value="variants" className="space-y-6">
-              {/* Colors */}
-              <div className="space-y-2">
-                <Label>Colores Disponibles</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="color"
-                    value={colorInput}
-                    onChange={(e) => setColorInput(e.target.value)}
-                    className="w-16"
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="Stock"
-                    value={colorStockInput}
-                    onChange={(e) =>
-                      setColorStockInput(parseInt(e.target.value) || 0)
-                    }
-                    className="w-24"
-                  />
-                  <Button
-                    type="button"
-                    onClick={addColor}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    Añadir Color
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.colorDetails.length > 0 ? (
-                    formData.colorDetails.map((detail) => (
-                      <div
-                        key={detail.detail_desc}
-                        className="flex items-center gap-1 px-3 py-1 rounded-md border"
-                      >
-                        <div
-                          className="h-4 w-4 rounded-full"
-                          style={{ backgroundColor: detail.detail_desc }}
-                        />
-                        <span className="text-sm">{detail.detail_desc}</span>
-                        <span className="text-xs text-gray-500 ml-1">
-                          Stock: {detail.stock || 0}
-                        </span>
-                        <X
-                          className="h-3 w-3 ml-1 cursor-pointer"
-                          onClick={() => removeColor(detail.detail_desc)}
-                        />
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      No hay colores añadidos
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Sizes */}
-              <div className="space-y-2">
-                <Label>Tamaños Disponibles</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={sizeInput}
-                    onChange={(e) => setSizeInput(e.target.value)}
-                    placeholder="Añadir tamaño (ej: 10cm x 15cm)"
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="Stock"
-                    value={sizeStockInput}
-                    onChange={(e) =>
-                      setSizeStockInput(parseInt(e.target.value) || 0)
-                    }
-                    className="w-24"
-                  />
-                  <Button type="button" onClick={addSize} variant="outline">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.sizeDetails.length > 0 ? (
-                    formData.sizeDetails.map((detail) => (
-                      <Badge
-                        key={detail.detail_desc}
-                        variant="secondary"
-                        className="px-3 py-1"
-                      >
-                        {detail.detail_desc}
-                        <span className="text-xs text-gray-500 ml-1">
-                          Stock: {detail.stock || 0}
-                        </span>
-                        <X
-                          className="h-3 w-3 ml-1 cursor-pointer"
-                          onClick={() => removeSize(detail.detail_desc)}
-                        />
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      No hay tamaños añadidos
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Tallas */}
-              <div className="space-y-2">
-                <Label>Tallas Disponibles</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={tallaInput}
-                    onChange={(e) => setTallaInput(e.target.value)}
-                    placeholder="Añadir talla (ej: S, M, L, XL)"
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="Stock"
-                    value={tallaStockInput}
-                    onChange={(e) =>
-                      setTallaStockInput(parseInt(e.target.value) || 0)
-                    }
-                    className="w-24"
-                  />
-                  <Button type="button" onClick={addTalla} variant="outline">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.tallaSizeDetails.length > 0 ? (
-                    formData.tallaSizeDetails.map((detail) => (
-                      <Badge
-                        key={detail.detail_desc}
-                        variant="secondary"
-                        className="px-3 py-1"
-                      >
-                        {detail.detail_desc}
-                        <span className="text-xs text-gray-500 ml-1">
-                          Stock: {detail.stock || 0}
-                        </span>
-                        <X
-                          className="h-3 w-3 ml-1 cursor-pointer"
-                          onClick={() => removeTalla(detail.detail_desc)}
-                        />
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      No hay tallas añadidas
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Materials */}
-              <div className="space-y-2">
-                <Label>Materiales Disponibles</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={materialInput}
-                    onChange={(e) => setMaterialInput(e.target.value)}
-                    placeholder="Añadir material (ej: Algodón, Poliéster)"
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="Stock"
-                    value={materialStockInput}
-                    onChange={(e) =>
-                      setMaterialStockInput(parseInt(e.target.value) || 0)
-                    }
-                    className="w-24"
-                  />
-                  <Button type="button" onClick={addMaterial} variant="outline">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.materialDetails.length > 0 ? (
-                    formData.materialDetails.map((detail) => (
-                      <Badge
-                        key={detail.detail_desc}
-                        variant="secondary"
-                        className="px-3 py-1"
-                      >
-                        {detail.detail_desc}
-                        <span className="text-xs text-gray-500 ml-1">
-                          Stock: {detail.stock || 0}
-                        </span>
-                        <X
-                          className="h-3 w-3 ml-1 cursor-pointer"
-                          onClick={() => removeMaterial(detail.detail_desc)}
-                        />
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      No hay materiales añadidos
-                    </p>
-                  )}
-                </div>
-              </div>
+            <TabsContent value="variants">
+              <VariantsTab
+                formData={formData}
+                // Color props
+                colorInput={colorInput}
+                setColorInput={setColorInput}
+                colorStockInput={colorStockInput}
+                setColorStockInput={setColorStockInput}
+                addColor={addColor}
+                removeColor={removeColor}
+                editColorStock={editColorStock}
+                // Size props
+                sizeInput={sizeInput}
+                setSizeInput={setSizeInput}
+                sizeStockInput={sizeStockInput}
+                setSizeStockInput={setSizeStockInput}
+                addSize={addSize}
+                removeSize={removeSize}
+                editSizeStock={editSizeStock}
+                // Talla props
+                tallaInput={tallaInput}
+                setTallaInput={setTallaInput}
+                tallaStockInput={tallaStockInput}
+                setTallaStockInput={setTallaStockInput}
+                addTalla={addTalla}
+                removeTalla={removeTalla}
+                editTallaStock={editTallaStock}
+                // Material props
+                materialInput={materialInput}
+                setMaterialInput={setMaterialInput}
+                materialStockInput={materialStockInput}
+                setMaterialStockInput={setMaterialStockInput}
+                addMaterial={addMaterial}
+                removeMaterial={removeMaterial}
+                editMaterialStock={editMaterialStock}
+                // Custom detail props
+                customTypeInput={customTypeInput}
+                setCustomTypeInput={setCustomTypeInput}
+                customValueInput={customValueInput}
+                setCustomValueInput={setCustomValueInput}
+                customStockInput={customStockInput}
+                setCustomStockInput={setCustomStockInput}
+                addCustomDetail={addCustomDetail}
+                removeCustomDetail={removeCustomDetail}
+                editCustomDetailStock={editCustomDetailStock}
+              />
             </TabsContent>
           </Tabs>
 
@@ -1044,8 +1162,8 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   ? "Actualizando..."
                   : "Guardando..."
                 : product
-                ? "Actualizar Producto"
-                : "Guardar Producto"}
+                  ? "Actualizar Producto"
+                  : "Guardar Producto"}
             </Button>
           </DialogFooter>
         </form>

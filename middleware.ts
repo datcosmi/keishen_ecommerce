@@ -10,15 +10,23 @@ const protectedRoutes = [
   },
   {
     path: "/panel/products",
-    roles: ["admin_tienda", "superadmin"],
+    roles: ["admin_tienda", "superadmin", "vendedor"],
   },
   {
     path: "/panel/pedidos",
     roles: ["vendedor", "admin_tienda", "superadmin"],
   },
   {
-    path: "/panel/profile",
-    roles: ["admin_tienda", "cliente", "vendedor", "superadmin"],
+    path: "/panel/users",
+    roles: ["superadmin"],
+  },
+  {
+    path: "/payment",
+    roles: ["cliente"],
+  },
+  {
+    path: "/compra-confirmada",
+    roles: ["cliente"],
   },
 ];
 
@@ -61,6 +69,8 @@ export const config = {
     "/panel/dashboard/:path*",
     "/panel/products/:path*",
     "/panel/pedidos/:path*",
-    "/panel/profile/:path*",
+    "/panel/users/:path*",
+    "/payment/:path*",
+    "/compra-confirmada/:path*",
   ],
 };

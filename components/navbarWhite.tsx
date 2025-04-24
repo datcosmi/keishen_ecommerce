@@ -11,6 +11,7 @@ import {
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "./ui/button";
+import { useSession } from "next-auth/react";
 
 interface Category {
   id_cat: number;
@@ -22,7 +23,7 @@ interface CartItems {
   total_items: number;
 }
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function NavbarWhite() {
   const pathname = usePathname();
@@ -36,6 +37,7 @@ export default function NavbarWhite() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const dropdownRef = useRef<NodeJS.Timeout | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   // Search for products
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,7 +47,14 @@ export default function NavbarWhite() {
   const router = useRouter();
 
   // Authentication
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
+  const { data: session } = useSession();
+  const token = session?.accessToken;
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/");
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -59,7 +68,7 @@ export default function NavbarWhite() {
   const fetchCategories = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/categories`);
+      const response = await fetch(`${API_BASE_URL}/api/categories`);
       if (!response.ok) {
         throw new Error("Failed to fetch categories");
       }
@@ -76,7 +85,12 @@ export default function NavbarWhite() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `${API_BASE_URL}/cart/user/${user?.id_user}/count`
+        `${API_BASE_URL}/api/cart/user/${user?.id_user}/count`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       if (!response.ok) {
         throw new Error("Failed to fetch cart items");
@@ -176,6 +190,23 @@ export default function NavbarWhite() {
     }
   };
 
+  const userMenuRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleUserMouseLeave = () => {
+    const timer = setTimeout(() => {
+      setShowUserMenu(false);
+    }, 300); // Delay before hiding the menu
+
+    userMenuRef.current = timer;
+  };
+
+  const handleUserMouseEnter = () => {
+    if (userMenuRef.current) {
+      clearTimeout(userMenuRef.current);
+    }
+    setShowUserMenu(true);
+  };
+
   return (
     <nav className="sticky top-0 w-full bg-white z-50 transition-all duration-300 shadow-md">
       {/* Logo */}
@@ -205,7 +236,7 @@ export default function NavbarWhite() {
               </Button>
             </Link>
 
-            <Link href="/login">
+            <Link href="/register">
               <Button
                 variant="default"
                 className="bg-whites text-black hover:bg-black hover:text-white"
@@ -250,41 +281,6 @@ export default function NavbarWhite() {
                 </span>
               </Link>
             </div>
-
-            {/* Dropdown menu with a larger design and title */}
-            {showProductsMenu && (
-              <div
-                className="absolute top-6 left-1/2 transform -translate-x-1/2 mt-2 w-64 bg-white border border-gray-200 rounded-md shadow-lg py-2 z-50"
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-              >
-                {/* Title for the dropdown */}
-                <div className="px-4 py-2 border-b border-gray-200">
-                  <h3 className="text-yellow-500 font-medium text-sm uppercase tracking-wider">
-                    Categorías
-                  </h3>
-                </div>
-
-                {isLoading ? (
-                  <div className="px-4 py-3 text-sm text-gray-500">
-                    Cargando...
-                  </div>
-                ) : (
-                  <div className="py-2">
-                    {categories.map((category) => (
-                      <Link
-                        key={category.id_cat}
-                        href={`/categoria/${category.name}`}
-                      >
-                        <div className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 hover:text-yellow-500 transition-colors">
-                          {category.name}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           <Link href="/contacto">
@@ -378,21 +374,86 @@ export default function NavbarWhite() {
               )}
           </div>
 
-          <Link href="/carrito">
-            <div className="relative">
-              <ShoppingCartIcon className="h-6 w-6 text-black cursor-pointer" />
-              {isAuthenticated && (
-                <span className="absolute -top-3 -right-3 bg-yellow-300 text-black text-xs px-2 py-1 rounded-full">
-                  {cartItems.total_items || 0}
-                </span>
-              )}
-            </div>
-          </Link>
+          {user?.role === "cliente" && (
+            <Link href="/carrito">
+              <div className="relative">
+                <ShoppingCartIcon className="h-6 w-6 text-black cursor-pointer" />
+                {isAuthenticated && (
+                  <span className="absolute -top-3 -right-3 bg-yellow-300 text-black text-xs px-2 py-1 rounded-full">
+                    {cartItems.total_items || 0}
+                  </span>
+                )}
+              </div>
+            </Link>
+          )}
 
           {isAuthenticated && (
-            <Link href="/panel/dashboard">
-              <UserIcon className="h-6 w-6 text-black cursor-pointer" />
-            </Link>
+            <div className="relative">
+              <div
+                className="cursor-pointer"
+                onMouseEnter={handleUserMouseEnter}
+                onMouseLeave={handleUserMouseLeave}
+              >
+                <UserIcon className="h-6 w-6 text-black" />
+              </div>
+
+              {showUserMenu && (
+                <div
+                  className="absolute top-8 right-0 mt-1 w-48 bg-white  rounded-md shadow-lg py-2 z-50"
+                  onMouseEnter={handleUserMouseEnter}
+                  onMouseLeave={handleUserMouseLeave}
+                >
+                  <div className="px-4 py-2 border-b border-gray-200">
+                    <p className="text-yellow-400 font-medium text-sm">
+                      {user?.name} {user?.surname}
+                    </p>
+                    <p className="text-gray-600 text-xs truncate">
+                      {user?.email}
+                    </p>
+                  </div>
+
+                  <div className="py-1">
+                    <Link href="/profile">
+                      <div className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-yellow-400">
+                        Mi Perfil
+                      </div>
+                    </Link>
+
+                    {user?.role === "cliente" && (
+                      <Link href="/pedidos">
+                        <div className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-yellow-400">
+                          Mis Pedidos
+                        </div>
+                      </Link>
+                    )}
+
+                    {(user?.role === "admin_tienda" ||
+                      user?.role === "superadmin") && (
+                      <Link href="/panel/dashboard">
+                        <div className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-yellow-400">
+                          Panel de Administración
+                        </div>
+                      </Link>
+                    )}
+
+                    {user?.role === "vendedor" && (
+                      <Link href="/panel/pedidos">
+                        <div className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-yellow-400">
+                          Panel de Vendedor
+                        </div>
+                      </Link>
+                    )}
+
+                    <div
+                      className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-yellow-400 cursor-pointer"
+                      onClick={handleLogout}
+                    >
+                      Cerrar Sesión
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

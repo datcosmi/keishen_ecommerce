@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface ProductDiscount {
   id_discount: number;
@@ -58,6 +58,7 @@ interface ProductData {
   category_id: number;
   category: string;
   stock: number;
+  is_deleted: boolean;
   product_details: ProductDetail[];
   product_images: ProductImage[];
   discount_product: ProductDiscount[];
@@ -107,11 +108,11 @@ export default function ProductsPage() {
         // Fetch products and categories in parallel
         const [productsResponse, categoriesResponse] = await Promise.all([
           fetch(
-            `${API_BASE_URL}/products/full-details${
+            `${API_BASE_URL}/api/products/full-details${
               searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ""
             }`
           ),
-          fetch(`${API_BASE_URL}/categories`),
+          fetch(`${API_BASE_URL}/api/categories`),
         ]);
 
         const productsData: ProductData[] = await productsResponse.json();
@@ -136,7 +137,12 @@ export default function ProductsPage() {
   const transformProducts = (productsData: ProductData[]): DisplayProduct[] => {
     const currentDate = new Date();
 
-    return productsData.map((product) => {
+    // Filter out deleted products
+    const activeProducts = productsData.filter(
+      (product) => !product.is_deleted
+    );
+
+    return activeProducts.map((product) => {
       // Group product details by detail_name
       const variables: { [key: string]: string[] } = {};
       product.product_details.forEach((detail) => {
@@ -726,19 +732,19 @@ export default function ProductsPage() {
                     href={`/productos/${product.id}`}
                     className="block"
                   >
-                    <Card className="overflow-hidden h-full transition-all duration-300 hover:shadow-md">
+                    <Card className="overflow-hidden h-full transition-all duration-300 hover:shadow-md transform hover:scale-105">
                       <CardContent className="p-0">
                         <div className="relative aspect-square bg-gray-100">
                           <Image
                             src={
                               product.image === "/images/placeholder.png"
                                 ? product.image
-                                : `http://localhost:3001${product.image}`
+                                : `${API_BASE_URL}${product.image}`
                             }
                             alt={product.name}
                             fill
                             priority
-                            className="object-cover p-6 transition-transform duration-300 group-hover:scale-105"
+                            className="object-cover transition-transform duration-300 group-hover:scale-105"
                             sizes="(max-width: 768px) 100vw, 50vw"
                           />
                           {/* Badges overlay */}

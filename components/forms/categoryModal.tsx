@@ -15,11 +15,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { useSession } from "next-auth/react";
 
 interface Category {
   id_cat: number;
   name: string;
 }
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface CategoryModalProps {
   onCategoryAdded: (category: Category) => void;
@@ -44,6 +47,10 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
   // Determinar qué estado de apertura usar
   const open =
     externalOpenState !== undefined ? externalOpenState : internalOpen;
+
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
 
   // Función para cambiar el estado de apertura
   const setOpen = (value: boolean) => {
@@ -87,17 +94,17 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
     try {
       // URL y método HTTP dependen de si estamos creando o actualizando
       const url = isEdit
-        ? `http://localhost:3001/api/categories/${formData.id_cat}`
-        : "http://localhost:3001/api/categories";
+        ? `${API_BASE_URL}/api/categories/${formData.id_cat}`
+        : `${API_BASE_URL}/api/categories`;
       const method = isEdit ? "PUT" : "POST";
 
-      // Si estamos creando, solo enviamos el nombre (ya que id_cat es autoincrementable)
       const bodyData = isEdit ? formData : { name: formData.name };
 
       const response = await fetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(bodyData),
       });
@@ -204,8 +211,8 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                   ? "Actualizando..."
                   : "Guardando..."
                 : isEdit
-                ? "Actualizar Categoría"
-                : "Guardar Categoría"}
+                  ? "Actualizar Categoría"
+                  : "Guardar Categoría"}
             </Button>
           </DialogFooter>
         </form>

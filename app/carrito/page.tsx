@@ -6,6 +6,9 @@ import NavbarWhite from "@/components/navbarWhite";
 import Footer from "@/components/footer";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 interface CartItem {
   id: number;
@@ -28,6 +31,8 @@ interface CartSummary {
   total: number;
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export default function CartPage() {
   const { user } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -39,6 +44,11 @@ export default function CartPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
 
   const fetchCart = async () => {
     if (!user?.id_user) {
@@ -49,7 +59,12 @@ export default function CartPage() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `http://localhost:3001/api/cart/user/${user.id_user}/full-details`
+        `${API_BASE_URL}/api/cart/user/${user.id_user}/full-details`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       if (!response.ok) {
@@ -65,8 +80,26 @@ export default function CartPage() {
         return;
       }
 
-      // Process cart data
-      const cartData = data[0]; // Get first cart (assuming only one active cart per user)
+      const activeCart = data.find((cart: any) => cart.status === "pendiente");
+
+      if (!activeCart) {
+        // No active carts found
+        setCartItems([]);
+        updateCartSummary([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Process the active cart data
+      const cartData = activeCart;
+
+      // Check if cart status is "finalizado" (completed)
+      if (cartData.status === "finalizado") {
+        setCartItems([]);
+        updateCartSummary([]);
+        setIsLoading(false);
+        return;
+      }
 
       // Transform cart items to match our interface
       const transformedItems = cartData.items.map((item: any) => {
@@ -181,16 +214,14 @@ export default function CartPage() {
         : Math.max(1, item.quantity - 1);
 
       // Update quantity in API
-      const response = await fetch(
-        `http://localhost:3001/api/cart/${id}/product`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ amount: newQuantity }),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/cart/${id}/product`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ amount: newQuantity }),
+      });
 
       if (!response.ok) {
         throw new Error("No se pudo actualizar la cantidad");
@@ -224,12 +255,12 @@ export default function CartPage() {
   const removeItem = async (id: number) => {
     try {
       // Delete item from API
-      const response = await fetch(
-        `http://localhost:3001/api/cart/${id}/product`,
-        {
-          method: "DELETE",
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/cart/${id}/product`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error("No se pudo eliminar el producto");
@@ -267,10 +298,10 @@ export default function CartPage() {
       // });
 
       // Placeholder for checkout functionality
-      toast.info("Redirigiendo al proceso de pago...");
+      toast.loading("Redirigiendo al proceso de pago...");
 
       // Redirect to checkout page or payment gateway
-      // router.push('/checkout');
+      router.push("/payment");
     } catch (err) {
       console.error("Error during checkout:", err);
       toast.error("Ocurrió un error al procesar el pago. Inténtalo más tarde.");
@@ -342,7 +373,7 @@ export default function CartPage() {
     <div className="min-h-screen bg-white">
       <NavbarWhite />
 
-      <main className="max-w-7xl mx-auto px-8 py-12">
+      <main className="max-w-7xl mx-auto px-8 py-12 pb-36">
         <h1 className="text-3xl font-medium text-gray-800 mb-12">
           Carrito de compras
         </h1>
@@ -363,22 +394,29 @@ export default function CartPage() {
                 </button>
 
                 <div className="w-full md:w-32 h-32 bg-gray-100 rounded-lg relative flex-shrink-0">
-                  <Image
-                    src={
-                      item.image.length > 0
-                        ? `http://localhost:3001${item.image}`
-                        : "/images/placeholder.png"
-                    }
-                    alt={item.name}
-                    fill
-                    className="object-cover rounded-lg"
-                  />
+                  <Link href={`/productos/${item.product_id}`}>
+                    <Image
+                      src={
+                        item.image.length > 0
+                          ? `${API_BASE_URL}${item.image}`
+                          : "/images/placeholder.png"
+                      }
+                      alt={item.name}
+                      fill
+                      className="object-cover rounded-lg"
+                    />
+                  </Link>
                 </div>
 
                 <div className="flex-1 space-y-1">
                   <p className="text-sm text-gray-500">{item.type}</p>
                   <h3 className="flex gap-3 text-lg font-medium text-gray-900">
-                    {item.name}{" "}
+                    <Link
+                      href={`/productos/${item.product_id}`}
+                      className="hover:underline hover:text-blue-500"
+                    >
+                      {item.name}
+                    </Link>{" "}
                     {item.discount_percent > 0 && (
                       <div className="flex items-center mt-1">
                         <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded">
@@ -533,23 +571,9 @@ export default function CartPage() {
                 className="w-full bg-black text-white py-4 rounded-xl font-medium hover:bg-gray-900 transition-colors"
                 onClick={handleCheckout}
               >
-                Pagar
+                Proceder al pago
               </button>
             </div>
-          </div>
-        </div>
-
-        <div className="mt-16">
-          <h3 className="text-xl font-medium text-gray-800 mb-8">
-            También podría interesarte
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((item) => (
-              <div
-                key={item}
-                className="aspect-square bg-gray-100 rounded-lg shadow-sm"
-              />
-            ))}
           </div>
         </div>
       </main>

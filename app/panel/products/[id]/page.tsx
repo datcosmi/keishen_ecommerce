@@ -41,8 +41,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/hooks/useAuth";
+import { useSession } from "next-auth/react";
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const IMAGES_BASE_URL =
+  process.env.NEXT_PUBLIC_IMAGES_URL || "https://keishen.com.mx";
 
 // Group details by name
 const groupDetailsByName = (details: ProductDetail[]) => {
@@ -177,12 +181,17 @@ const AdminProductDetailPage: React.FC = () => {
     discountType: "product" | "category" | "none";
     originalPrice: number;
   } | null>(null);
+  const { user } = useAuth();
+
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
 
   const fetchProductDetails = async () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${API_BASE_URL}/product/${params.id}/full-details`
+        `${API_BASE_URL}/api/product/${params.id}/full-details`
       );
 
       if (!response.ok) {
@@ -196,6 +205,12 @@ const AdminProductDetailPage: React.FC = () => {
         Array.isArray(data) && data.length > 0 ? data[0] : data;
 
       setProductData(formattedData);
+
+      if (formattedData && formattedData.is_deleted) {
+        setError("Este producto ha sido eliminado.");
+        setProductData(null);
+        return;
+      }
 
       // Calculate discounted price
       const discountInfo = calculateDiscountedPrice(
@@ -238,6 +253,7 @@ const AdminProductDetailPage: React.FC = () => {
         image_url: img.image_url,
       })),
       inStock: data.stock > 0,
+      is_deleted: data.is_deleted || false,
     };
   };
 
@@ -313,12 +329,18 @@ const AdminProductDetailPage: React.FC = () => {
   const handleDelete = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/product`, {
-        method: "DELETE",
+      const response = await fetch(`${API_BASE_URL}/api/products/bulk-update`, {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ ids: [product.id_product] }),
+        body: JSON.stringify([
+          {
+            id_prod: product.id_product,
+            data: { is_deleted: true },
+          },
+        ]),
       });
 
       if (!response.ok) {
@@ -381,48 +403,53 @@ const AdminProductDetailPage: React.FC = () => {
               />
               <span className="ml-2">Actualizar</span>
             </Button>
-            <Button
-              variant="outline"
-              onClick={handleEdit}
-              className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
-            >
-              <Edit size={16} className="mr-1" />
-              Editar
-            </Button>
 
-            <AlertDialog
-              open={deleteDialogOpen}
-              onOpenChange={setDeleteDialogOpen}
-            >
-              <AlertDialogTrigger asChild>
+            {user?.role !== "vendedor" && (
+              <>
                 <Button
                   variant="outline"
-                  className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                  onClick={handleEdit}
+                  className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
                 >
-                  <Trash2 size={16} className="mr-1" />
-                  Eliminar
+                  <Edit size={16} className="mr-1" />
+                  Editar
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Confirmar eliminación</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    ¿Estás seguro de que deseas eliminar este producto? Esta
-                    acción no se puede deshacer.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    className="bg-red-600 hover:bg-red-700"
-                    disabled={loading}
-                  >
-                    {loading ? "Eliminando..." : "Eliminar"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+
+                <AlertDialog
+                  open={deleteDialogOpen}
+                  onOpenChange={setDeleteDialogOpen}
+                >
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                    >
+                      <Trash2 size={16} className="mr-1" />
+                      Eliminar
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirmar eliminación</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        ¿Estás seguro de que deseas eliminar este producto? Esta
+                        acción no se puede deshacer.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDelete}
+                        className="bg-red-600 hover:bg-red-700"
+                        disabled={loading}
+                      >
+                        {loading ? "Eliminando..." : "Eliminar"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            )}
           </div>
 
           {/* Edit Modal */}
@@ -447,7 +474,7 @@ const AdminProductDetailPage: React.FC = () => {
               <div className="relative aspect-square w-full bg-gray-100">
                 {product_images.length > 0 ? (
                   <Image
-                    src={`http://localhost:3001${product_images[selectedImage].image_url}`}
+                    src={`${IMAGES_BASE_URL}${product_images[selectedImage].image_url}`}
                     alt={product.product_name}
                     fill
                     sizes="20vw"
@@ -476,10 +503,8 @@ const AdminProductDetailPage: React.FC = () => {
                       onClick={() => setSelectedImage(index)}
                     >
                       <Image
-                        src={`http://localhost:3001${image.image_url}`}
-                        alt={`http://localhost:3001${
-                          product.product_name
-                        } - vista ${index + 1}`}
+                        src={`${IMAGES_BASE_URL}${image.image_url}`}
+                        alt={`${product.product_name} - vista ${index + 1}`}
                         fill
                         sizes="5vw"
                         priority
@@ -775,8 +800,8 @@ const AdminProductDetailPage: React.FC = () => {
                           product.stock <= 0
                             ? "bg-red-500"
                             : product.stock < 10
-                            ? "bg-amber-500"
-                            : "bg-green-500"
+                              ? "bg-amber-500"
+                              : "bg-green-500"
                         }`}
                         style={{
                           width: `${Math.min(

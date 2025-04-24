@@ -11,6 +11,7 @@ import {
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "./ui/button";
+import { useSession } from "next-auth/react";
 
 interface Category {
   id_cat: number;
@@ -22,7 +23,7 @@ interface CartItems {
   total_items: number;
 }
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function NavbarBlack() {
   const pathname = usePathname();
@@ -48,6 +49,8 @@ export default function NavbarBlack() {
 
   // Authentication
   const { isAuthenticated, user, logout } = useAuth();
+  const { data: session } = useSession();
+  const token = session?.accessToken;
 
   const handleLogout = async () => {
     await logout();
@@ -66,7 +69,7 @@ export default function NavbarBlack() {
   const fetchCategories = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/categories`);
+      const response = await fetch(`${API_BASE_URL}/api/categories`);
       if (!response.ok) {
         throw new Error("Failed to fetch categories");
       }
@@ -83,7 +86,12 @@ export default function NavbarBlack() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `${API_BASE_URL}/cart/user/${user?.id_user}/count`
+        `${API_BASE_URL}/api/cart/user/${user?.id_user}/count`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       if (!response.ok) {
         throw new Error("Failed to fetch cart items");
@@ -133,9 +141,7 @@ export default function NavbarBlack() {
     if (term.length >= 2) {
       try {
         const response = await fetch(
-          `http://localhost:3001/api/products/search?q=${encodeURIComponent(
-            term
-          )}`
+          `${API_BASE_URL}/api/products/search?q=${encodeURIComponent(term)}`
         );
         if (!response.ok) throw new Error("Search failed");
         const data = await response.json();
@@ -256,41 +262,6 @@ export default function NavbarBlack() {
               </span>
             </Link>
           </div>
-
-          {/* Dropdown menu with a larger design and title */}
-          {showProductsMenu && (
-            <div
-              className="absolute top-6 left-1/2 transform -translate-x-1/2 mt-2 w-64 bg-black border border-gray-700 rounded-md shadow-lg py-2 z-50"
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-            >
-              {/* Title for the dropdown */}
-              <div className="px-4 py-2 border-b border-gray-700">
-                <h3 className="text-yellow-300 font-medium text-sm uppercase tracking-wider">
-                  Categorías
-                </h3>
-              </div>
-
-              {isLoading ? (
-                <div className="px-4 py-3 text-sm text-gray-300">
-                  Cargando...
-                </div>
-              ) : (
-                <div className="py-2">
-                  {categories.map((category) => (
-                    <Link
-                      key={category.id_cat}
-                      href={`/categoria/${category.name}`}
-                    >
-                      <div className="block px-4 py-3 text-sm text-gray-300 hover:bg-gray-800 hover:text-yellow-300 transition-colors">
-                        {category.name}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         <Link href="/contacto">
@@ -346,7 +317,7 @@ export default function NavbarBlack() {
                   <div className="w-12 h-12 relative mr-2 bg-gray-800 rounded">
                     {product.image_url ? (
                       <Image
-                        src={`http://localhost:3001${product.image_url}`}
+                        src={`${API_BASE_URL}${product.image_url}`}
                         alt={product.product_name}
                         fill
                         className="object-cover rounded p-1"
@@ -391,16 +362,18 @@ export default function NavbarBlack() {
             )}
         </div>
 
-        <Link href="/carrito">
-          <div className="relative">
-            <ShoppingCartIcon className="h-6 w-6 text-white" />
-            {isAuthenticated && (
-              <span className="absolute -top-3 -right-3 bg-yellow-400 text-black text-xs px-2 py-1 rounded-full">
-                {cartItems.total_items || 0}
-              </span>
-            )}
-          </div>
-        </Link>
+        {user?.role === "cliente" && (
+          <Link href="/carrito">
+            <div className="relative">
+              <ShoppingCartIcon className="h-6 w-6 text-white" />
+              {isAuthenticated && (
+                <span className="absolute -top-3 -right-3 bg-yellow-400 text-black text-xs px-2 py-1 rounded-full">
+                  {cartItems.total_items || 0}
+                </span>
+              )}
+            </div>
+          </Link>
+        )}
 
         {!isAuthenticated && (
           <div className="flex gap-3">
@@ -413,7 +386,7 @@ export default function NavbarBlack() {
               </Button>
             </Link>
 
-            <Link href="/login">
+            <Link href="/register">
               <Button
                 variant="default"
                 className="bg-black hover:bg-white hover:text-black"
@@ -455,6 +428,14 @@ export default function NavbarBlack() {
                       Mi Perfil
                     </div>
                   </Link>
+
+                  {user?.role === "cliente" && (
+                    <Link href="/pedidos">
+                      <div className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-yellow-300">
+                        Mis Pedidos
+                      </div>
+                    </Link>
+                  )}
 
                   {(user?.role === "admin_tienda" ||
                     user?.role === "superadmin") && (

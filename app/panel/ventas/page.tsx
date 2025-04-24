@@ -30,9 +30,10 @@ import {
   ShoppingCart,
   Package,
   Check,
+  RefreshCw,
 } from "lucide-react";
-import Sidebar from "@/components/sidebar";
 import { Order } from "@/types/orderTypes";
+import { useSession } from "next-auth/react";
 
 // Colores para las gráficas
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28"];
@@ -42,17 +43,25 @@ const STATUS_COLORS = {
   finalizado: "#00C49F",
 };
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const OrdersDashboard = () => {
   const [pedidos, setPedidos] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
+
   useEffect(() => {
     const fetchPedidos = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/pedidos/details`);
+        const response = await fetch(`${API_BASE_URL}/api/pedidos/details`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (!response.ok) {
           throw new Error("Error al cargar los pedidos");
         }
@@ -117,40 +126,46 @@ const OrdersDashboard = () => {
   ];
 
   // Preparar datos de ingresos diarios
-  const dailyRevenueMap = pedidos.reduce((acc, pedido) => {
-    const date = new Date(pedido.fecha_pedido).toISOString().split("T")[0];
-    const orderTotal = pedido.detalles.reduce(
-      (sum, detalle) => sum + detalle.amount * detalle.unit_price,
-      0
-    );
+  const dailyRevenueMap = pedidos.reduce(
+    (acc, pedido) => {
+      const date = new Date(pedido.fecha_pedido).toISOString().split("T")[0];
+      const orderTotal = pedido.detalles.reduce(
+        (sum, detalle) => sum + detalle.amount * detalle.unit_price,
+        0
+      );
 
-    acc[date] = (acc[date] || 0) + orderTotal;
-    return acc;
-  }, {} as Record<string, number>);
+      acc[date] = (acc[date] || 0) + orderTotal;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const dailyRevenueData = Object.entries(dailyRevenueMap)
     .map(([date, revenue]) => ({ date, revenue }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
   // Calcular productos más vendidos
-  const productSalesMap = pedidos.reduce((acc, pedido) => {
-    pedido.detalles.forEach((detalle) => {
-      const productoId = detalle.producto.producto_id;
-      const productoNombre = detalle.producto.producto_nombre;
-      const cantidad = detalle.amount;
+  const productSalesMap = pedidos.reduce(
+    (acc, pedido) => {
+      pedido.detalles.forEach((detalle) => {
+        const productoId = detalle.producto.producto_id;
+        const productoNombre = detalle.producto.producto_nombre;
+        const cantidad = detalle.amount;
 
-      if (!acc[productoId]) {
-        acc[productoId] = {
-          name: productoNombre,
-          value: 0,
-        };
-      }
+        if (!acc[productoId]) {
+          acc[productoId] = {
+            name: productoNombre,
+            value: 0,
+          };
+        }
 
-      acc[productoId].value += cantidad;
-    });
+        acc[productoId].value += cantidad;
+      });
 
-    return acc;
-  }, {} as Record<number, { name: string; value: number }>);
+      return acc;
+    },
+    {} as Record<number, { name: string; value: number }>
+  );
 
   const topProducts = Object.values(productSalesMap)
     .sort((a, b) => b.value - a.value)
@@ -169,9 +184,10 @@ const OrdersDashboard = () => {
         </div>
 
         {loading ? (
-          <Card>
+          <Card className="min-h-[300px] flex items-center justify-center">
             <CardContent className="p-6 text-center">
-              <p>Cargando estadísticas...</p>
+              <RefreshCw className="h-8 w-8 mb-4 mx-auto animate-spin text-gray-600" />
+              <p className="text-gray-600">Cargando estadísticas...</p>
             </CardContent>
           </Card>
         ) : (

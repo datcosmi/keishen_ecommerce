@@ -18,7 +18,6 @@ import {
   Tags,
   ShoppingBag,
 } from "lucide-react";
-import Sidebar from "@/components/sidebar";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -52,6 +51,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Discount } from "@/types/discountTypes";
+import DiscountFormModal from "@/components/forms/discountFormModal";
+import { useSession } from "next-auth/react";
 
 // Types for discounts
 type DiscountType = "product" | "category";
@@ -59,7 +60,7 @@ type DiscountType = "product" | "category";
 type SortField = "percent" | "start_date" | "end_date";
 type SortDirection = "asc" | "desc";
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const DiscountDashboard: React.FC = () => {
   const router = useRouter();
@@ -81,14 +82,36 @@ const DiscountDashboard: React.FC = () => {
   const [sortField, setSortField] = useState<SortField>("percent");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
+  const [editingDiscount, setEditingDiscount] = useState<Discount | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
+
+  const handleEditDiscount = async (discountId: number) => {
+    const discountToEdit = discounts.find((d) => d.id_discount === discountId);
+    if (discountToEdit) {
+      // Make sure we include all necessary properties
+      setEditingDiscount({
+        ...discountToEdit,
+        id_discount: discountToEdit.id_discount,
+        // Ensure we include the name of the product or category
+        product_name: discountToEdit.product_name,
+        category_name: discountToEdit.category_name,
+      });
+      setEditModalOpen(true);
+    }
+  };
+
   // Fetch discounts based on type
   const fetchDiscounts = async (type: DiscountType) => {
     setLoading(true);
     try {
       const endpoint =
         type === "product"
-          ? `${API_BASE_URL}/descuentos/products`
-          : `${API_BASE_URL}/descuentos/categories`;
+          ? `${API_BASE_URL}/api/descuentos/products`
+          : `${API_BASE_URL}/api/descuentos/categories`;
 
       const response = await fetch(endpoint);
       if (!response.ok) {
@@ -139,14 +162,15 @@ const DiscountDashboard: React.FC = () => {
     setLoading(true);
     const endpoint =
       type === "product"
-        ? `${API_BASE_URL}/descuentos/product`
-        : `${API_BASE_URL}/descuentos/category`;
+        ? `${API_BASE_URL}/api/descuentos/product`
+        : `${API_BASE_URL}/api/descuentos/category`;
 
     try {
       const response = await fetch(endpoint, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ ids: selectedDiscounts }),
       });
@@ -293,6 +317,17 @@ const DiscountDashboard: React.FC = () => {
                   Cancelar ({selectedDiscounts.length})
                 </Button>
 
+                {selectedDiscounts.length === 1 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleEditDiscount(selectedDiscounts[0])}
+                    className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                  >
+                    <Edit size={16} className="mr-1" />
+                    Editar
+                  </Button>
+                )}
+
                 <AlertDialog
                   open={deleteDialogOpen}
                   onOpenChange={setDeleteDialogOpen}
@@ -332,14 +367,31 @@ const DiscountDashboard: React.FC = () => {
                 </AlertDialog>
               </>
             )}
+            <DiscountFormModal
+              onDiscountAdded={(discount) => {
+                // Handle the newly added discount, e.g., update your list
+                console.log("New discount added:", discount);
+                fetchDiscounts(
+                  discountType === "product" ? "product" : "category"
+                ); // Refresh your discount list
+              }}
+              buttonLabel="Añadir Descuento"
+            />
 
-            <Button
-              variant="outline"
-              className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
-            >
-              <Plus size={16} className="mr-1" />
-              Añadir Descuento
-            </Button>
+            {editingDiscount && (
+              <DiscountFormModal
+                discount={editingDiscount}
+                isOpen={editModalOpen}
+                onOpenChange={setEditModalOpen}
+                onDiscountAdded={() => {}} // Add this line with an empty function
+                onDiscountUpdated={(updatedDiscount) => {
+                  // Update the discount in the list
+                  fetchDiscounts(discountType);
+                  setSelectedDiscounts([]);
+                  setEditingDiscount(null);
+                }}
+              />
+            )}
           </div>
         </div>
 
@@ -351,7 +403,7 @@ const DiscountDashboard: React.FC = () => {
             className={`rounded-lg text-sm font-medium ${
               discountType === "product"
                 ? "bg-black text-white"
-                : "text-gray-600 hover:bg-gray-50"
+                : "text-gray-600 hover:bg-white hover:text-amber-500 hover:border-amber-300"
             }`}
           >
             <ShoppingBag className="mr-2 h-4 w-4" />
@@ -363,7 +415,7 @@ const DiscountDashboard: React.FC = () => {
             className={`rounded-lg text-sm font-medium ${
               discountType === "category"
                 ? "bg-black text-white"
-                : "text-gray-600 hover:bg-gray-50"
+                : "text-gray-600 hover:bg-white hover:text-amber-500 hover:border-amber-300"
             }`}
           >
             <Tags className="mr-2 h-4 w-4" />
@@ -400,9 +452,10 @@ const DiscountDashboard: React.FC = () => {
 
         {/* Estado para cargar los descuentos */}
         {loading ? (
-          <Card>
+          <Card className="min-h-[300px] flex items-center justify-center">
             <CardContent className="p-6 text-center">
-              <p>Cargando descuentos...</p>
+              <RefreshCw className="h-8 w-8 mb-4 mx-auto animate-spin text-gray-600" />
+              <p className="text-gray-600">Cargando descuentos...</p>
             </CardContent>
           </Card>
         ) : (

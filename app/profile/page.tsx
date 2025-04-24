@@ -29,6 +29,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import NavbarBlack from "@/components/navbarBlack";
+import Footer from "@/components/footer";
 
 interface UserData {
   id_user: number;
@@ -41,7 +42,7 @@ interface UserData {
   provider: string | null;
 }
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function ProfilePage() {
   const { user: authUser } = useAuth();
@@ -52,35 +53,35 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState<Partial<UserData>>({});
 
   // Fetch user data from API
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!authUser?.id_user) return;
+  const fetchUserData = async () => {
+    if (!authUser?.id_user) return;
 
-      try {
-        setIsLoading(true);
-        setError(null);
+    try {
+      setIsLoading(true);
+      setError(null);
 
-        const response = await fetch(
-          `${API_BASE_URL}/users/${authUser.id_user}`
-        );
+      const response = await fetch(
+        `${API_BASE_URL}/api/users/${authUser.id_user}`
+      );
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch user data");
-        }
-
-        const data = await response.json();
-        setUserData(data);
-        setFormData(data);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        setError(
-          "Unable to load your profile information. Please try again later."
-        );
-      } finally {
-        setIsLoading(false);
+      if (!response.ok) {
+        throw new Error("Failed to fetch user data");
       }
-    };
 
+      const data = await response.json();
+      setUserData(data);
+      setFormData(data);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      setError(
+        "Unable to load your profile information. Please try again later."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchUserData();
   }, [authUser?.id_user]);
 
@@ -100,7 +101,7 @@ export default function ProfilePage() {
       setError(null);
 
       const response = await fetch(
-        `${API_BASE_URL}/users/${authUser.id_user}`,
+        `${API_BASE_URL}/api/users/${authUser.id_user}`,
         {
           method: "PUT",
           headers: {
@@ -122,6 +123,7 @@ export default function ProfilePage() {
       setError("Failed to update your profile. Please try again.");
     } finally {
       setIsLoading(false);
+      fetchUserData();
     }
   };
 
@@ -149,7 +151,7 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col min-h-screen bg-white">
       <NavbarBlack />
-      <div className="container mx-auto py-10 px-4">
+      <div className="container mx-auto py-10 px-4 pb-30">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold mb-6">Mi Perfil</h1>
 
@@ -366,6 +368,7 @@ export default function ProfilePage() {
           </Tabs>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
