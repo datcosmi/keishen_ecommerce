@@ -133,51 +133,43 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
-      console.log("JWT Callback:");
-      console.log("token:", token);
+      console.log("JWT Callback:", { token, user });
 
-      // Add user fields to the token
-      if (user) {
-        token.id_user = user.id_user;
-        token.role = user.role;
+      // Siempre obtener el usuario actualizado desde Supabase
+      try {
+        const { data: userData, error } = await supabase
+          .from("users")
+          .select("id_user, name, surname, email, role, phone")
+          .eq("email", token.email || user?.email)
+          .single();
 
-        token.accessToken = await generateCustomJWT(user);
-      }
+        if (!error && userData) {
+          token.id_user = userData.id_user;
+          token.role = userData.role;
+          token.name = `${userData.name} ${userData.surname || ""}`.trim();
 
-      // If token already has user info but we need to refresh it
-      else if (token?.email) {
-        try {
-          // Get fresh user data from Supabase
-          const { data: userData, error } = await supabase
-            .from("users")
-            .select("id_user, name, surname, email, role, phone")
-            .eq("email", token.email)
-            .single();
-
-          if (!error && userData) {
-            token.id_user = userData.id_user;
-            token.role = userData.role;
-            token.name = `${userData.name} ${userData.surname || ""}`.trim();
-          }
-        } catch (error) {
-          console.error("Error refreshing user data:", error);
+          // Generar custom JWT para la API
+          token.accessToken = await generateCustomJWT(userData);
+        } else {
+          console.error("No se pudo obtener el usuario de Supabase:", error);
         }
+      } catch (e) {
+        console.error(
+          "Error consultando usuario desde Supabase en callback JWT:",
+          e
+        );
       }
-
-      // if (account?.access_token) {
-      //   token.accessToken = account.access_token;
-      // }
 
       return token;
     },
+
     async session({ session, token }) {
-      // Add user data from token to the session
+      // Asegura que la sesión tenga los datos correctos
       if (token) {
         session.user.id_user = token.id_user as number;
         session.user.role = token.role as string;
         session.accessToken = token.accessToken || "";
       }
-
       return session;
     },
   },
