@@ -73,6 +73,10 @@ export default function Login() {
       if (result?.error) {
         setError("Email o contraseña incorrectos");
       } else {
+
+        // Fetch session to get the token
+        // const session = await getSession();
+        // console.log("accessToken", session?.accessToken);
         // Redirect to dashboard on success
         router.push("/");
       }
