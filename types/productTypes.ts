@@ -21,6 +21,7 @@ export interface ProductData {
   category: string;
   stock: number;
   is_deleted: boolean;
+  rating?: number;
   product_details: ProductDetail[];
   product_images: ProductImage[];
   discount_product: ProductDiscount[];

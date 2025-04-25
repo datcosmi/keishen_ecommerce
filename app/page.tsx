@@ -9,6 +9,7 @@ import { ProductData } from "@/types/productTypes";
 import { Category } from "@/types/categoryTypes";
 import PaymentMethodsSection from "@/components/paymentMethodsSection";
 import FeaturedDiscountSection from "@/components/featuredDiscountSection";
+import TopRatedSection from "@/components/topRatedSection";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -16,6 +17,7 @@ export default function LandingPage() {
   const [allProducts, setAllProducts] = useState<ProductData[]>([]);
   const [displayProducts, setDisplayProducts] = useState<ProductData[]>([]);
   const [bestSellers, setBestSellers] = useState<ProductData[]>([]);
+  const [topRatedProducts, setTopRatedProducts] = useState<ProductData[]>([]);
   const [highestDiscountProduct, setHighestDiscountProduct] =
     useState<ProductData | null>(null);
   const [discountedProducts, setDiscountedProducts] = useState<ProductData[]>(
@@ -72,6 +74,22 @@ export default function LandingPage() {
       setBestSellers(inStockProducts);
     } catch (error) {
       console.error("Error fetching best sellers:", error);
+    }
+  };
+
+  const fetchTopRatedProducts = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/products/top-rated`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch top rated products");
+      }
+      const data: ProductData[] = await response.json();
+
+      // Filter products in stock
+      const inStockProducts = data.filter((product) => product.stock > 0);
+      setTopRatedProducts(inStockProducts);
+    } catch (error) {
+      console.error("Error fetching top rated products:", error);
     }
   };
 
@@ -194,6 +212,7 @@ export default function LandingPage() {
   useEffect(() => {
     fetchProducts();
     fetchBestSellers();
+    fetchTopRatedProducts();
     fetchCategories();
   }, []);
 
@@ -293,6 +312,9 @@ export default function LandingPage() {
 
       {/* Best Sellers Section */}
       <BestSellersSection bestSellers={bestSellers} />
+
+      {/* Top Rated Products Section */}
+      <TopRatedSection topRatedProducts={topRatedProducts} />
 
       {/* Products Section */}
       <ProductsSection allProducts={displayProducts} />
