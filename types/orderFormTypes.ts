@@ -42,7 +42,7 @@ export interface Product {
 export interface OrderData {
   user_id?: string | number;
   fecha_pedido: string;
-  status: "pendiente" | "enviado" | "finalizado";
+  status: "pendiente" | "enviado" | "pagado" | "finalizado";
   metodo_pago: "efectivo" | "mercado pago" | "paypal";
 }
 

@@ -438,7 +438,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
 
   // Handle status selection
   const handleStatusSelect = (
-    status: "pendiente" | "enviado" | "finalizado"
+    status: "pendiente" | "enviado" | "pagado" | "finalizado"
   ) => {
     setOrderData({
       ...orderData,
@@ -1053,6 +1053,19 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
                       }
                     >
                       Enviado
+                    </Button>
+                    <Button
+                      variant={
+                        orderData.status === "pagado" ? "default" : "outline"
+                      }
+                      onClick={() => handleStatusSelect("pagado")}
+                      className={
+                        orderData.status === "pagado"
+                          ? "bg-black hover:bg-gray-800"
+                          : ""
+                      }
+                    >
+                      Pagado
                     </Button>
                     <Button
                       variant={

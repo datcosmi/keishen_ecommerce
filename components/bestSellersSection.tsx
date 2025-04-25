@@ -398,7 +398,7 @@ const BestSellersSection: React.FC<BestSellersSectionProps> = ({
             </p>
           </div>
 
-          <Link href="/productos/mas-vendidos">
+          <Link href="/productos">
             <Button
               variant="outline"
               className="border-black text-black hover:bg-yellow-300 hover:text-black hover:border-yellow-300"
