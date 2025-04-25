@@ -30,6 +30,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import NavbarBlack from "@/components/navbarBlack";
 import Footer from "@/components/footer";
+import { useSession } from "next-auth/react";
 
 interface UserData {
   id_user: number;
@@ -52,6 +53,10 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<UserData>>({});
 
+  // Get token from session
+  const { data: session } = useSession();
+  const token = session?.accessToken;
+
   // Fetch user data from API
   const fetchUserData = async () => {
     if (!authUser?.id_user) return;
@@ -61,7 +66,12 @@ export default function ProfilePage() {
       setError(null);
 
       const response = await fetch(
-        `${API_BASE_URL}/api/users/${authUser.id_user}`
+        `${API_BASE_URL}/api/users/${authUser.id_user}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       if (!response.ok) {
@@ -106,6 +116,7 @@ export default function ProfilePage() {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(formData),
         }
