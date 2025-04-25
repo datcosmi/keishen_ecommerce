@@ -460,7 +460,8 @@ export default function DashboardHome() {
                               #{pedido.pedido_id}
                             </TableCell>
                             <TableCell>
-                              {pedido.cliente || "No especificado"}
+                              {pedido.cliente || "No especificado"}{" "}
+                              {pedido.surname || ""}
                             </TableCell>
                             <TableCell>
                               {new Date(pedido.fecha_pedido).toLocaleDateString(

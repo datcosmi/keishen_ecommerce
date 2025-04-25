@@ -599,7 +599,7 @@ const OrderDashboard: React.FC = () => {
                   <X size={16} className="mr-1" />
                   Cancelar ({selectedOrders.length})
                 </Button>
-                {singleOrderSelected && (
+                {/* {singleOrderSelected && (
                   <Button
                     variant="outline"
                     className="bg-blue-50 text-blue-600 hover:text-blue-700 border-blue-200 hover:bg-blue-100"
@@ -608,7 +608,7 @@ const OrderDashboard: React.FC = () => {
                     <Edit size={16} className="mr-1" />
                     Editar
                   </Button>
-                )}
+                )} */}
                 <AlertDialog
                   open={confirmDelete}
                   onOpenChange={setConfirmDelete}

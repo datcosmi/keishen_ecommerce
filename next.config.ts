@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
         hostname: "keishen.com.mx",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "assets.keishen.com.mx",
+        pathname: "/**",
+      },
     ],
   },
   eslint: {

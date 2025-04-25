@@ -9,6 +9,7 @@ import {
   Tag,
   Edit,
   Trash2,
+  Star,
 } from "lucide-react";
 import {
   Card,
@@ -43,6 +44,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useSession } from "next-auth/react";
+import { ParamValue } from "next/dist/server/request/params";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const IMAGES_BASE_URL =
@@ -183,6 +185,10 @@ const AdminProductDetailPage: React.FC = () => {
   } | null>(null);
   const { user } = useAuth();
 
+  // Ratings
+  const [rating, setRating] = useState<number>(0);
+  const [reviewCount, setReviewCount] = useState<number>(0);
+
   // Get token from session
   const { data: session } = useSession();
   const token = session?.accessToken;
@@ -228,9 +234,29 @@ const AdminProductDetailPage: React.FC = () => {
     }
   };
 
+  const fetchRatings = async () => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/ratings/product/${params.id}/average`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch ratings");
+      }
+      const data = await response.json();
+      setRating(data.average);
+      setReviewCount(data.count);
+    } catch (error) {
+      console.error("Error fetching ratings:", error);
+      // Fall back to default values
+      setRating(0);
+      setReviewCount(0);
+    }
+  };
+
   useEffect(() => {
     if (params.id) {
       fetchProductDetails();
+      fetchRatings();
     }
   }, [params.id]);
 
@@ -606,6 +632,34 @@ const AdminProductDetailPage: React.FC = () => {
                       <TableCell className="font-medium">Descripción</TableCell>
                       <TableCell className="whitespace-normal">
                         {product.description}
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Valoración</TableCell>
+                      <TableCell>
+                        {/* Ratings */}
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="flex items-center">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-5 w-5 ${
+                                  i < rating
+                                    ? "fill-yellow-400 text-yellow-400"
+                                    : "fill-gray-200 text-gray-200"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-gray-500">
+                            {rating > 0
+                              ? rating.toFixed(1)
+                              : "Sin calificaciones"}{" "}
+                            {reviewCount > 0
+                              ? `(${reviewCount} calificaciones)`
+                              : ""}
+                          </span>
+                        </div>
                       </TableCell>
                     </TableRow>
                   </TableBody>

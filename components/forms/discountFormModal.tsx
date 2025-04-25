@@ -325,6 +325,7 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(discountData),
         });

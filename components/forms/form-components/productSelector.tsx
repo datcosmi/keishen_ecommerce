@@ -184,6 +184,36 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     setProductSearch("");
   };
 
+  // Function to validate if a string is a valid hex color
+  const isValidHexColor = (hex: string): boolean => {
+    // Check if string starts with # and has either 4, 7, or 9 characters (for #RGB, #RRGGBB, or #RRGGBBAA)
+    return /^#([0-9A-F]{3}){1,2}([0-9A-F]{2})?$/i.test(hex);
+  };
+
+  // Function to determine if a color is dark (to show white text) or light (to show black text)
+  const isColorDark = (hexColor: string): boolean => {
+    // Remove # if present
+    const hex = hexColor.replace("#", "");
+
+    // Convert to RGB
+    let r = 0,
+      g = 0,
+      b = 0;
+    if (hex.length === 3) {
+      r = parseInt(hex[0] + hex[0], 16);
+      g = parseInt(hex[1] + hex[1], 16);
+      b = parseInt(hex[2] + hex[2], 16);
+    } else if (hex.length >= 6) {
+      r = parseInt(hex.substring(0, 2), 16);
+      g = parseInt(hex.substring(2, 4), 16);
+      b = parseInt(hex.substring(4, 6), 16);
+    }
+
+    // Calculate luminance
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance < 0.5;
+  };
+
   return (
     <div className="mt-4">
       <h3 className="text-lg font-medium mb-2">Agregar Productos</h3>
@@ -236,35 +266,94 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       {detailName}
                     </label>
-                    <div className="flex flex-wrap gap-2">
-                      {details.map((detail) => (
-                        <Button
-                          key={detail.detail_id}
-                          type="button"
-                          variant={
+
+                    {/* Special handling for Color detail_name */}
+                    {detailName.toLowerCase() === "color" ? (
+                      <div className="flex flex-wrap gap-2">
+                        {details.map((detail) => {
+                          const isValidColor = isValidHexColor(
+                            detail.detail_desc
+                          );
+                          const isSelected =
                             currentDetail.selected_details?.includes(
                               detail.detail_id
-                            )
-                              ? "default"
-                              : "outline"
-                          }
-                          className={
-                            currentDetail.selected_details?.includes(
-                              detail.detail_id
-                            )
-                              ? "bg-black hover:bg-gray-800"
-                              : ""
-                          }
-                          onClick={() =>
-                            handleVariantSelect(detailName, detail.detail_id)
-                          }
-                          disabled={detail.stock === 0}
-                        >
-                          {detail.detail_desc}
-                          <span className="ml-1 text-xs">({detail.stock})</span>
-                        </Button>
-                      ))}
-                    </div>
+                            );
+                          const isDark =
+                            isValidColor && isColorDark(detail.detail_desc);
+
+                          return (
+                            <div
+                              key={detail.detail_id}
+                              className="relative flex flex-col items-center"
+                            >
+                              <button
+                                type="button"
+                                style={{
+                                  backgroundColor: isValidColor
+                                    ? detail.detail_desc
+                                    : "#e5e5e5",
+                                  boxShadow: isSelected
+                                    ? "0 0 0 2px black"
+                                    : "none",
+                                }}
+                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                                  detail.stock === 0 ? "opacity-40" : ""
+                                }`}
+                                onClick={() =>
+                                  handleVariantSelect(
+                                    detailName,
+                                    detail.detail_id
+                                  )
+                                }
+                                disabled={detail.stock === 0}
+                              >
+                                {!isValidColor && (
+                                  <span className="text-xs">
+                                    {detail.detail_desc}
+                                  </span>
+                                )}
+                              </button>
+                              <span className="mt-1 text-xs text-center">
+                                {detail.stock}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      // Regular details display
+                      <div className="flex flex-wrap gap-2">
+                        {details.map((detail) => (
+                          <Button
+                            key={detail.detail_id}
+                            type="button"
+                            variant={
+                              currentDetail.selected_details?.includes(
+                                detail.detail_id
+                              )
+                                ? "default"
+                                : "outline"
+                            }
+                            className={
+                              currentDetail.selected_details?.includes(
+                                detail.detail_id
+                              )
+                                ? "bg-black hover:bg-gray-800"
+                                : ""
+                            }
+                            onClick={() =>
+                              handleVariantSelect(detailName, detail.detail_id)
+                            }
+                            disabled={detail.stock === 0}
+                          >
+                            {detail.detail_desc}
+                            <span className="ml-1 text-xs">
+                              ({detail.stock})
+                            </span>
+                          </Button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
