@@ -7,9 +7,6 @@ import {
   SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
-  Heart,
-  Eye,
-  ShoppingCart,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import NavbarWhite from "@/components/navbarWhite";
@@ -38,6 +35,7 @@ import {
 import Link from "next/link";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE_URL_IMAGE = process.env.NEXT_PUBLIC_IMAGES_URL;
 
 interface ProductDiscount {
   id_discount: number;
@@ -154,7 +152,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, apiBaseUrl }) => {
           {/* Image container - simplified to only show first image */}
           <div className="relative aspect-[3/4] bg-gray-100">
             <img
-              src={`${apiBaseUrl}${product.images[0]}`}
+              src={`${API_BASE_URL_IMAGE}${product.images[0]}`}
               alt={product.name}
               className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
             />
