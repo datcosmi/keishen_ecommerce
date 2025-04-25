@@ -255,23 +255,6 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ allProducts }) => {
                   <Eye className="w-4 h-4 mr-1" /> Ver Detalles
                 </Button>
               </Link>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full bg-white hover:bg-yellow-300 text-black p-2"
-                >
-                  <Heart className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full bg-white hover:bg-yellow-300 text-black p-2"
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                </Button>
-              </div>
             </div>
           </div>
 
