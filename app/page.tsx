@@ -314,7 +314,9 @@ export default function LandingPage() {
       <BestSellersSection bestSellers={bestSellers} />
 
       {/* Top Rated Products Section */}
-      <TopRatedSection topRatedProducts={topRatedProducts} />
+      <div className="bg-gradient-to-r from-blue-50 to-blue-100">
+        <TopRatedSection topRatedProducts={topRatedProducts} />
+      </div>
 
       {/* Products Section */}
       <ProductsSection allProducts={displayProducts} />
