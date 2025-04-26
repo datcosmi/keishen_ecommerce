@@ -264,13 +264,15 @@ export default function NavbarBlack() {
           </div>
         </div>
 
-        <Link href="/contacto">
+        <Link href="/sobre-nosotros">
           <span
             className={`text-sm font-medium transition-colors hover:text-yellow-300 ${
-              pathname === "/contacto" ? "text-yellow-300" : "text-gray-300"
+              pathname === "/sobre-nosotros"
+                ? "text-yellow-300"
+                : "text-gray-300"
             }`}
           >
-            Contacto
+            Nosotros
           </span>
         </Link>
       </div>

@@ -283,13 +283,15 @@ export default function NavbarWhite() {
             </div>
           </div>
 
-          <Link href="/contacto">
+          <Link href="/sobre-nosotros">
             <span
               className={`text-sm font-medium transition-colors hover:text-yellow-500 ${
-                pathname === "/contacto" ? "text-yellow-500" : "text-black"
+                pathname === "/sobre-nosotros"
+                  ? "text-yellow-500"
+                  : "text-black"
               }`}
             >
-              Contacto
+              Nosotros
             </span>
           </Link>
         </div>
