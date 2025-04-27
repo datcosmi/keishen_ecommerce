@@ -385,7 +385,7 @@ const BestSellersSection: React.FC<BestSellersSectionProps> = ({
   };
 
   return (
-    <section className="py-16 px-8 bg-gray-50 relative z-30">
+    <section className="py-16 px-8 bg-white relative z-30">
       <div className="max-w-6xl mx-auto relative">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -394,7 +394,7 @@ const BestSellersSection: React.FC<BestSellersSectionProps> = ({
               NUESTROS MÁS VENDIDOS
             </h2>
             <p className="text-gray-600 mt-2">
-              Los productos favoritos de nuestros clientes
+              Los productos más comprados por nuestros clientes
             </p>
           </div>
 
