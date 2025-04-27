@@ -242,7 +242,7 @@ export default function ProfilePage() {
         user_id: authUser.id_user,
       };
 
-      const response = await fetch(`${API_BASE_URL}/api/addresses`, {
+      const response = await fetch(`${API_BASE_URL}/api/users/addresses`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

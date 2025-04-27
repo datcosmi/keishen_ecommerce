@@ -33,6 +33,8 @@ interface CartSummary {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const IMAGES_BASE_URL =
+  process.env.NEXT_PUBLIC_IMAGES_URL || "https://keishen.com.mx";
 
 export default function CartPage() {
   const { user } = useAuth();
@@ -403,7 +405,7 @@ export default function CartPage() {
                     <Image
                       src={
                         item.image.length > 0
-                          ? `${API_BASE_URL}${item.image}`
+                          ? `${IMAGES_BASE_URL}${item.image}`
                           : "/images/placeholder.png"
                       }
                       alt={item.name}

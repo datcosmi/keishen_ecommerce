@@ -455,102 +455,104 @@ export default function SimilarProducts({
   }
 
   return (
-    <section className="py-8 px-6 bg-gray-50 rounded-lg mt-12 pb-24">
-      <div className="max-w-7xl mx-auto relative">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-black flex items-center">
-              También te puede interesar
-            </h2>
-            <p className="text-gray-600 text-sm mt-1">
-              Basado en tus productos del carrito
-            </p>
-          </div>
+    similarProducts.length > 0 && (
+      <section className="py-8 px-6 bg-gray-50 rounded-lg mt-12 pb-24">
+        <div className="max-w-7xl mx-auto relative">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-black flex items-center">
+                También te puede interesar
+              </h2>
+              <p className="text-gray-600 text-sm mt-1">
+                Basado en tus productos del carrito
+              </p>
+            </div>
 
-          <Link href="/productos">
-            <Button
-              variant="outline"
-              className="border-black text-black hover:bg-yellow-300 hover:text-black hover:border-yellow-300"
-            >
-              Ver más
-            </Button>
-          </Link>
-        </div>
-
-        <div className="relative">
-          <Button
-            onClick={prevPage}
-            disabled={currentPage === 0}
-            variant="outline"
-            size="icon"
-            className="absolute left-[-20px] top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow-lg disabled:opacity-0 z-10"
-          >
-            <ChevronLeft className="h-5 w-5 text-gray-500" />
-          </Button>
-
-          {/* Products carousel */}
-          <div className="overflow-hidden">
-            <div className="w-full relative">
-              <motion.div
-                className="flex flex-nowrap"
-                animate={{ x: `-${currentPage * 100}%` }}
-                transition={{ duration: 0.5, ease: "easeInOut" }}
+            <Link href="/productos">
+              <Button
+                variant="outline"
+                className="border-black text-black hover:bg-yellow-300 hover:text-black hover:border-yellow-300"
               >
-                {/* Divide products into pages */}
-                {Array.from({ length: totalPages }).map((_, pageIndex) => {
-                  // Get products for this page
-                  const pageProducts = similarProducts.slice(
-                    pageIndex * productsPerPage,
-                    (pageIndex + 1) * productsPerPage
-                  );
-
-                  return (
-                    <div
-                      key={`page-${pageIndex}`}
-                      className="flex flex-nowrap min-w-full"
-                    >
-                      {pageProducts.map((product) => (
-                        <div
-                          key={`product-${product.id_product}`}
-                          className="w-1/4 px-3 flex-shrink-0"
-                        >
-                          {renderProductCard(product)}
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
-              </motion.div>
-            </div>
+                Ver más
+              </Button>
+            </Link>
           </div>
 
-          <Button
-            onClick={nextPage}
-            disabled={currentPage === totalPages - 1}
-            variant="outline"
-            size="icon"
-            className="absolute right-[-20px] top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow-lg disabled:opacity-0 z-10"
-          >
-            <ChevronRight className="h-5 w-5 text-gray-500" />
-          </Button>
+          <div className="relative">
+            <Button
+              onClick={prevPage}
+              disabled={currentPage === 0}
+              variant="outline"
+              size="icon"
+              className="absolute left-[-20px] top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow-lg disabled:opacity-0 z-10"
+            >
+              <ChevronLeft className="h-5 w-5 text-gray-500" />
+            </Button>
 
-          {/* Pagination indicators */}
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-6 gap-2">
-              {Array.from({ length: totalPages }).map((_, index) => (
-                <button
-                  key={`indicator-${index}`}
-                  onClick={() => setCurrentPage(index)}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    currentPage === index ? "bg-gray-800 w-4" : "bg-gray-300"
-                  }`}
-                  aria-label={`Go to page ${index + 1}`}
-                />
-              ))}
+            {/* Products carousel */}
+            <div className="overflow-hidden">
+              <div className="w-full relative">
+                <motion.div
+                  className="flex flex-nowrap"
+                  animate={{ x: `-${currentPage * 100}%` }}
+                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                >
+                  {/* Divide products into pages */}
+                  {Array.from({ length: totalPages }).map((_, pageIndex) => {
+                    // Get products for this page
+                    const pageProducts = similarProducts.slice(
+                      pageIndex * productsPerPage,
+                      (pageIndex + 1) * productsPerPage
+                    );
+
+                    return (
+                      <div
+                        key={`page-${pageIndex}`}
+                        className="flex flex-nowrap min-w-full"
+                      >
+                        {pageProducts.map((product) => (
+                          <div
+                            key={`product-${product.id_product}`}
+                            className="w-1/4 px-3 flex-shrink-0"
+                          >
+                            {renderProductCard(product)}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </motion.div>
+              </div>
             </div>
-          )}
+
+            <Button
+              onClick={nextPage}
+              disabled={currentPage === totalPages - 1}
+              variant="outline"
+              size="icon"
+              className="absolute right-[-20px] top-1/2 -translate-y-1/2 bg-white/80 rounded-full shadow-lg disabled:opacity-0 z-10"
+            >
+              <ChevronRight className="h-5 w-5 text-gray-500" />
+            </Button>
+
+            {/* Pagination indicators */}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-6 gap-2">
+                {Array.from({ length: totalPages }).map((_, index) => (
+                  <button
+                    key={`indicator-${index}`}
+                    onClick={() => setCurrentPage(index)}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      currentPage === index ? "bg-gray-800 w-4" : "bg-gray-300"
+                    }`}
+                    aria-label={`Go to page ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    )
   );
 }
