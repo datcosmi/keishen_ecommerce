@@ -212,6 +212,8 @@ const PaymentPage = () => {
 
   const updateCartStatus = async (cartId: number) => {
     try {
+      console.log({ userEmail: user?.email, cartItems, cartSummary });
+
       const response = await fetch(`${API_BASE_URL}/api/cart/${cartId}`, {
         method: "PUT",
         headers: {
@@ -239,9 +241,10 @@ const PaymentPage = () => {
       if (!user?.id_user || cartId === null) return null;
 
       console.log("Creating order with payment method:", paymentMethod);
+      console.log("token enviado", token);
 
       // First create the order
-      const orderResponse = await fetch("${API_BASE_URL}/api/pedidos", {
+      const orderResponse = await fetch(`${API_BASE_URL}/api/pedidos`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -284,7 +287,7 @@ const PaymentPage = () => {
 
         try {
           const detailResponse = await fetch(
-            "${API_BASE_URL}/api/pedido/details",
+            `${API_BASE_URL}/api/pedido/details`,
             {
               method: "POST",
               headers: {
@@ -524,7 +527,7 @@ const PaymentPage = () => {
     try {
       toast.loading("Conectando con Mercado Pago...");
 
-      const res = await fetch("${API_BASE_URL}/api/pago/create", {
+      const res = await fetch(`${API_BASE_URL}/api/pago/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -532,8 +535,10 @@ const PaymentPage = () => {
         },
         body: JSON.stringify({
           user_id: user.id_user,
+          user_email: user.email,
           cart_items: cartItems,
           summary: cartSummary,
+          cart_id: cartId,
         }),
       });
 
