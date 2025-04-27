@@ -63,6 +63,8 @@ interface PayPalOrderData {
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const IMAGES_BASE_URL =
+  process.env.NEXT_PUBLIC_IMAGES_URL || "https://keishen.com.mx";
 
 const PaymentPage = () => {
   const { user } = useAuth();
@@ -714,7 +716,7 @@ const PaymentPage = () => {
                       <Image
                         src={
                           item.image.length > 0
-                            ? `${API_BASE_URL}${item.image}`
+                            ? `${IMAGES_BASE_URL}${item.image}`
                             : "/images/placeholder.png"
                         }
                         alt={item.name}
