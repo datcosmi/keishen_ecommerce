@@ -378,7 +378,7 @@ export default function CartPage() {
     <div className="min-h-screen bg-white">
       <NavbarWhite />
 
-      <main className="max-w-7xl mx-auto px-8 py-12 pb-36">
+      <main className="max-w-7xl mx-auto px-8 py-12">
         <h1 className="text-3xl font-medium text-gray-800 mb-12">
           Carrito de compras
         </h1>
@@ -581,10 +581,10 @@ export default function CartPage() {
             </div>
           </div>
         </div>
-        {cartItems.length > 0 && (
-          <SimilarProducts cartProductIds={getCartProductIds()} limit={8} />
-        )}
       </main>
+      {cartItems.length > 0 && (
+        <SimilarProducts cartProductIds={getCartProductIds()} limit={8} />
+      )}
       <Footer />
     </div>
   );

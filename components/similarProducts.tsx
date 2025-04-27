@@ -455,7 +455,7 @@ export default function SimilarProducts({
   }
 
   return (
-    <section className="py-8 px-6 bg-gray-50 rounded-lg mt-12">
+    <section className="py-8 px-6 bg-gray-50 rounded-lg mt-12 pb-24">
       <div className="max-w-7xl mx-auto relative">
         <div className="flex justify-between items-center mb-6">
           <div>
