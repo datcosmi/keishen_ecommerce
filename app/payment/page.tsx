@@ -212,7 +212,6 @@ const PaymentPage = () => {
 
   const updateCartStatus = async (cartId: number) => {
     try {
-      
       console.log({ userEmail: user?.email, cartItems, cartSummary });
 
       const response = await fetch(`${API_BASE_URL}/api/cart/${cartId}`, {

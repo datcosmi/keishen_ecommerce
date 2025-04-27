@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import SimilarProducts from "@/components/similarProducts";
 
 interface CartItem {
   id: number;
@@ -298,7 +299,7 @@ export default function CartPage() {
       // });
 
       // Placeholder for checkout functionality
-      toast.loading("Redirigiendo al proceso de pago...");
+      toast.info("Redirigiendo al proceso de pago...");
 
       // Redirect to checkout page or payment gateway
       router.push("/payment");
@@ -368,6 +369,10 @@ export default function CartPage() {
       </div>
     );
   }
+
+  const getCartProductIds = () => {
+    return cartItems.map((item) => item.product_id);
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -576,6 +581,9 @@ export default function CartPage() {
             </div>
           </div>
         </div>
+        {cartItems.length > 0 && (
+          <SimilarProducts cartProductIds={getCartProductIds()} limit={8} />
+        )}
       </main>
       <Footer />
     </div>

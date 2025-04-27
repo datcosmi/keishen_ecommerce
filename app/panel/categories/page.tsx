@@ -52,7 +52,6 @@ import CategoryModal from "@/components/forms/categoryModal";
 import { Category } from "@/types/categoryTypes";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
 
 type SortField = "id_cat" | "name";
 type SortDirection = "asc" | "desc";
@@ -545,11 +544,7 @@ const CategoriesDashboard: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <div className="text-sm text-gray-600">
-                              <Link
-                                href={`/productos?category=${category.id_cat}`}
-                              >
-                                {category.id_cat}
-                              </Link>
+                              {category.id_cat}
                             </div>
                           </TableCell>
                           <TableCell>
