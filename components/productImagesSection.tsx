@@ -17,6 +17,9 @@ interface ProductImage {
   image_url: string;
 }
 
+const IMAGES_BASE_URL =
+  process.env.NEXT_PUBLIC_IMAGES_URL || "https://keishen.com.mx";
+
 export default function ProductImagesSection({
   product,
   activeDiscount,
@@ -78,7 +81,7 @@ export default function ProductImagesSection({
               className="w-full h-full relative"
             >
               <Image
-                src={`${API_BASE_URL}${product.product_images[currentImageIndex].image_url}`}
+                src={`${IMAGES_BASE_URL}${product.product_images[currentImageIndex].image_url}`}
                 alt={product.product_name}
                 fill
                 priority
@@ -132,7 +135,7 @@ export default function ProductImagesSection({
               onClick={() => handleThumbnailClick(index)}
             >
               <Image
-                src={`${API_BASE_URL}${img}`}
+                src={`${IMAGES_BASE_URL}${img}`}
                 alt={`Thumbnail ${index + 1}`}
                 fill
                 className="object-cover"
