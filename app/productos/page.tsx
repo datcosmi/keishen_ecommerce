@@ -33,55 +33,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Link from "next/link";
+import { ProductData } from "@/types/productTypes";
+import { Category } from "@/types/categoryTypes";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const API_BASE_URL_IMAGE = process.env.NEXT_PUBLIC_IMAGES_URL;
-
-interface ProductDiscount {
-  id_discount: number;
-  percent_discount: number;
-  start_date_discount: string;
-  end_date_discount: string;
-}
-
-interface CategoryDiscount {
-  id_discount: number;
-  percent_discount: number;
-  start_date_discount: string;
-  end_date_discount: string;
-}
-
-interface ProductDetail {
-  detail_id: number;
-  detail_name: string;
-  detail_desc: string;
-  stock?: number;
-}
-
-interface ProductImage {
-  image_id: number;
-  image_url: string;
-}
-
-interface ProductData {
-  id_product: number;
-  product_name: string;
-  description: string;
-  price: number;
-  category_id: number;
-  category: string;
-  stock: number;
-  is_deleted: boolean;
-  product_details: ProductDetail[];
-  product_images: ProductImage[];
-  discount_product: ProductDiscount[];
-  discount_category: CategoryDiscount[];
-}
-
-interface Category {
-  id_cat: number;
-  name: string;
-}
 
 interface DisplayProduct {
   id: number;
@@ -450,6 +406,7 @@ function ProductsPageContent() {
   // Search
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get("search") || "";
+  const categoryParam = searchParams.get("category");
 
   useEffect(() => {
     async function fetchData() {
@@ -609,7 +566,10 @@ function ProductsPageContent() {
     if (categories.length > 0) {
       const categoryFilters = categories.reduce(
         (acc, category) => {
-          acc[category.id_cat] = false;
+          // If categoryParam exists and matches this category ID, set it to true
+          const isSelected =
+            categoryParam && categoryParam === category.id_cat.toString();
+          acc[category.id_cat] = isSelected || false;
           return acc;
         },
         {} as Record<number, boolean>
@@ -620,7 +580,7 @@ function ProductsPageContent() {
         categories: categoryFilters,
       }));
     }
-  }, [categories]);
+  }, [categories, categoryParam]);
 
   const [showPriceFilter, setShowPriceFilter] = useState(true);
   const [showCategoryFilter, setShowCategoryFilter] = useState(true);

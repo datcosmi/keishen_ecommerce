@@ -10,6 +10,7 @@ import { Category } from "@/types/categoryTypes";
 import PaymentMethodsSection from "@/components/paymentMethodsSection";
 import FeaturedDiscountSection from "@/components/featuredDiscountSection";
 import TopRatedSection from "@/components/topRatedSection";
+import CategoriesShowcase from "@/components/categoriesShowcase";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -320,6 +321,9 @@ export default function LandingPage() {
 
       {/* Products Section */}
       <ProductsSection allProducts={displayProducts} />
+
+      {/* Categories Showcase Section */}
+      <CategoriesShowcase />
 
       {/* Payment Methods Section */}
       <PaymentMethodsSection />

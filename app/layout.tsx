@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Keishen",
+  title: "Keishen Boutique",
   description:
     "Una experiencia única para hombres, con productos de alta calidaden joyería, ropa y accesorios.",
   icons: {

@@ -341,14 +341,16 @@ const OrderDashboard: React.FC = () => {
   // Aplicar los filtros por búsqueda y estado
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
-      order.pedido_id.toString().includes(searchQuery.toString()) ||
-      order.cliente.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.metodo_pago.toLowerCase().includes(searchQuery.toLowerCase());
+      order.pedido_id?.toString().includes(searchQuery.toString()) ||
+      (order.cliente ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (order.metodo_pago ?? "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
     // Aplicar filtro por estado
     if (
       selectedStatus !== "Todos" &&
-      order.status !== selectedStatus.toLowerCase()
+      order.status?.toLowerCase() !== selectedStatus.toLowerCase()
     ) {
       return false;
     }

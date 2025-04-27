@@ -36,10 +36,20 @@ import { Order } from "@/types/orderTypes";
 import { useSession } from "next-auth/react";
 
 // Colores para las gráficas
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28"];
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#ef3041",
+  "#9340f7",
+  "#f97634",
+];
 const STATUS_COLORS = {
   pendiente: "#FFBB28",
   enviado: "#0088FE",
+  cancelado: "#ef3041",
+  pagado: "#9340f7",
+  reembolsado: "#f97634",
   finalizado: "#00C49F",
 };
 
@@ -102,6 +112,18 @@ const OrdersDashboard = () => {
     {
       name: "Enviado",
       value: pedidos.filter((o) => o.status === "enviado").length,
+    },
+    {
+      name: "Cancelado",
+      value: pedidos.filter((o) => o.status === "cancelado").length,
+    },
+    {
+      name: "Pagado",
+      value: pedidos.filter((o) => o.status === "pagado").length,
+    },
+    {
+      name: "Reembolsado",
+      value: pedidos.filter((o) => o.status === "reembolsado").length,
     },
     {
       name: "Finalizado",

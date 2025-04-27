@@ -10,7 +10,7 @@ const Footer = () => {
   return (
     <footer className="bg-black text-white">
       <div className="overflow-visible h-full flex items-center justify-center">
-        <span className="text-[20rem] font-extrabold text-center tracking-tighter font-bold text-transparent bg-clip-text bg-gradient-to-t from-yellow-100 to-white whitespace-nowrap">
+        <span className="text-[13rem] font-extrabold text-center tracking-tighter font-bold text-transparent bg-clip-text bg-gradient-to-t from-yellow-100 to-white whitespace-nowrap">
           KEISHEN
         </span>
       </div>
