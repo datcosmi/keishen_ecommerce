@@ -103,10 +103,6 @@ export default function ProfilePage() {
   const { data: session } = useSession();
   const token = session?.accessToken;
 
-  // Get token from session
-  const { data: session } = useSession();
-  const token = session?.accessToken;
-
   // Fetch user data from API
   const fetchUserData = async () => {
     if (!authUser?.id_user) return;
