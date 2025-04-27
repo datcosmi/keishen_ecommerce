@@ -925,20 +925,20 @@ const ProductDashboard: React.FC = () => {
 
               {/* Paginación */}
               {filteredProducts.length > 0 && (
-                <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200">
+                <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200 bg-gray-50">
                   <div className="flex items-center">
                     <Select
                       value={rowsPerPage.toString()}
                       onValueChange={handleRowsPerPageChange}
                     >
-                      <SelectTrigger className="w-20 h-8">
+                      <SelectTrigger className="w-20 h-8 border-gray-200">
                         <SelectValue placeholder={rowsPerPage.toString()} />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="5">5</SelectItem>
                         <SelectItem value="10">10</SelectItem>
                         <SelectItem value="25">25</SelectItem>
                         <SelectItem value="50">50</SelectItem>
-                        <SelectItem value="100">100</SelectItem>
                       </SelectContent>
                     </Select>
                     <span className="text-sm text-gray-500 ml-2">
@@ -948,7 +948,15 @@ const ProductDashboard: React.FC = () => {
 
                   <div className="flex items-center justify-end gap-2">
                     <span className="text-sm text-gray-700">
-                      Página {currentPage} de {totalPages}
+                      Mostrando{" "}
+                      <span className="font-medium">
+                        {indexOfFirstProduct + 1}-
+                        {Math.min(indexOfLastProduct, filteredProducts.length)}
+                      </span>{" "}
+                      de{" "}
+                      <span className="font-medium">
+                        {filteredProducts.length}
+                      </span>
                     </span>
 
                     <div className="flex ml-2 gap-1">
@@ -957,7 +965,7 @@ const ProductDashboard: React.FC = () => {
                         size="icon"
                         onClick={() => handlePageChange(1)}
                         disabled={currentPage === 1}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 border-gray-200 hover:bg-blue-50 hover:border-blue-200"
                       >
                         <ChevronsLeft size={16} />
                       </Button>
@@ -966,7 +974,7 @@ const ProductDashboard: React.FC = () => {
                         size="icon"
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 border-gray-200 hover:bg-blue-50 hover:border-blue-200"
                       >
                         <ChevronLeft size={16} />
                       </Button>
@@ -975,7 +983,7 @@ const ProductDashboard: React.FC = () => {
                         size="icon"
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 border-gray-200 hover:bg-blue-50 hover:border-blue-200"
                       >
                         <ChevronRight size={16} />
                       </Button>
@@ -984,7 +992,7 @@ const ProductDashboard: React.FC = () => {
                         size="icon"
                         onClick={() => handlePageChange(totalPages)}
                         disabled={currentPage === totalPages}
-                        className="h-8 w-8 p-0"
+                        className="h-8 w-8 p-0 border-gray-200 hover:bg-blue-50 hover:border-blue-200"
                       >
                         <ChevronsRight size={16} />
                       </Button>
