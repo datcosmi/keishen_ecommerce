@@ -133,7 +133,7 @@ const Sidebar = () => {
   return (
     <aside
       className={cn(
-        "h-screen hidden md:flex flex-col border-r transition-all duration-300 ease-in-out sticky top-0 shadow-md",
+        "h-screen hidden md:flex flex-col border-r transition-all duration-300 ease-in-out sticky top-0 shadow-md overflow-y-auto",
         collapsed ? "w-20" : "w-64",
         "bg-[#f9f9fb] dark:bg-gray-900"
       )}
