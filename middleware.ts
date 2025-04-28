@@ -21,6 +21,10 @@ const protectedRoutes = [
     roles: ["superadmin"],
   },
   {
+    path: "/panel/page-content",
+    roles: ["superadmin"],
+  },
+  {
     path: "/payment",
     roles: ["cliente"],
   },
@@ -70,6 +74,7 @@ export const config = {
     "/panel/products/:path*",
     "/panel/pedidos/:path*",
     "/panel/users/:path*",
+    "/panel/page-content/:path*",
     "/payment/:path*",
     "/compra-confirmada/:path*",
   ],

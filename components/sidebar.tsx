@@ -14,6 +14,7 @@ import {
   Tags,
   Layers2,
   ShoppingBag,
+  Monitor,
 } from "lucide-react";
 import {
   Tooltip,
@@ -83,6 +84,12 @@ const Sidebar = () => {
       name: "Usuarios",
       icon: Users,
       href: "/panel/users",
+      roles: ["superadmin"],
+    },
+    {
+      name: "Contenido de la Página",
+      icon: Monitor,
+      href: "/panel/page-content",
       roles: ["superadmin"],
     },
   ];

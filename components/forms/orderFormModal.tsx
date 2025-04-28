@@ -114,7 +114,7 @@ const OrderFormModal: React.FC<OrderFormModalProps> = ({
       setIsLoading(true);
       try {
         // Fetch users
-        const usersResponse = await fetch(`${API_BASE_URL}/api/users`, {
+        const usersResponse = await fetch(`${API_BASE_URL}/api/users-names`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

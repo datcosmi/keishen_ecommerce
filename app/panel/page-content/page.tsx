@@ -193,7 +193,7 @@ const ContentPreview: React.FC<ContentPreviewProps> = ({
                     </span>
                   </div>
                 )}
-                {content.instagram && (
+                {content.instagram && content.instagram.value && (
                   <div className="bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 p-2 rounded-lg">
                     <span className="w-4 h-4 text-white text-xs">
                       <InstagramIcon></InstagramIcon>
@@ -336,8 +336,6 @@ const PageContentDashboard: React.FC = () => {
       );
 
       if (!hasInstagram) {
-        // Instead of trying to add it to the database right away,
-        // we'll just add it to the local state and the admin can save it later
         data.push({
           id_pc: -1, // Temporary ID
           section: "contact",
@@ -479,21 +477,18 @@ const PageContentDashboard: React.FC = () => {
     try {
       // If this is a new field (like instagram with id_pc -1)
       if (content.id_pc === -1) {
-        const response = await fetch(
-          `${API_BASE_URL}/api/page-content/page-content`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              section: content.section,
-              key: content.key,
-              value: content.newValue,
-            }),
-          }
-        );
+        const response = await fetch(`${API_BASE_URL}/api/page-content`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            section: content.section,
+            key: content.key,
+            value: content.newValue,
+          }),
+        });
 
         if (!response.ok) {
           throw new Error(`Error creating content: ${response.statusText}`);
@@ -501,24 +496,59 @@ const PageContentDashboard: React.FC = () => {
 
         const newContent = await response.json();
 
-        // Update state with the newly created content
-        setPageContents((prev) => [
-          ...prev.filter(
-            (item) => !(item.section === section && item.key === key)
-          ),
-          newContent,
-        ]);
+        // Check if we have a valid response with id_pc
+        if (newContent && newContent.id_pc) {
+          // Update state with the newly created content
+          setPageContents((prev) => [
+            ...prev.filter(
+              (item) => !(item.section === section && item.key === key)
+            ),
+            newContent,
+          ]);
 
-        setEditableContents((prev) => {
-          const updated = { ...prev };
-          updated[section][key] = {
-            ...updated[section][key],
-            id_pc: newContent.id_pc,
-            value: content.newValue,
-            isEditing: false,
-          };
-          return updated;
-        });
+          setEditableContents((prev) => {
+            const updated = { ...prev };
+            if (!updated[section]) updated[section] = {};
+
+            updated[section][key] = {
+              ...updated[section][key],
+              id_pc: newContent.id_pc,
+              value: content.newValue,
+              isEditing: false,
+            };
+            return updated;
+          });
+        } else {
+          // Handle the case where the API returned a response but without a valid id_pc
+          console.warn("API response missing id_pc:", newContent);
+
+          // Create a fallback ID or use an existing one
+          const fallbackId = Date.now(); // Generate a temporary unique ID
+
+          setPageContents((prev) => [
+            ...prev.filter(
+              (item) => !(item.section === section && item.key === key)
+            ),
+            {
+              ...content,
+              id_pc: fallbackId,
+              value: content.newValue,
+            },
+          ]);
+
+          setEditableContents((prev) => {
+            const updated = { ...prev };
+            if (!updated[section]) updated[section] = {};
+
+            updated[section][key] = {
+              ...updated[section][key],
+              id_pc: fallbackId,
+              value: content.newValue,
+              isEditing: false,
+            };
+            return updated;
+          });
+        }
 
         toast.success("Contenido actualizado correctamente");
       } else {
