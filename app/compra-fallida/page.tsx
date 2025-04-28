@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Suspense } from "react";
 import {
   XCircle,
   ChevronRight,
@@ -38,7 +39,8 @@ type FailureReason =
   | "general_error"
   | "order_process_failed";
 
-const CompraFallida = () => {
+// Create a client component that uses useSearchParams
+function CompraFallidaContent() {
   const searchParams = useSearchParams();
   const status = searchParams.get("status") || "rejected";
   const error = searchParams.get("error");
@@ -278,6 +280,15 @@ const CompraFallida = () => {
 
       <Footer />
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+const CompraFallida = () => {
+  return (
+    <Suspense fallback={<div className="p-8">Cargando...</div>}>
+      <CompraFallidaContent />
+    </Suspense>
   );
 };
 
