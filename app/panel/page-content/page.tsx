@@ -57,6 +57,8 @@ import { useSession } from "next-auth/react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const IMAGES_BASE_URL =
+  process.env.NEXT_PUBLIC_IMAGES_URL || "https://keishen.com.mx";
 
 interface PageContent {
   id_pc: number;
@@ -117,6 +119,16 @@ const ContentPreview: React.FC<ContentPreviewProps> = ({
           <UserGroupIcon className="w-5 h-5 text-yellow-400 mr-2" />
           Vista previa: Sobre Nosotros
         </h3>
+        {/* Add image preview */}
+        {content.image && content.image.value && (
+          <div className="mb-4 flex justify-center">
+            <img
+              src={IMAGES_BASE_URL + content.image.value}
+              alt="Sobre Nosotros"
+              className="rounded-lg max-h-[20vw] object-cover mb-2 border-2 border-white shadow-sm"
+            />
+          </div>
+        )}
         <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-yellow-400">
           {Object.entries(content)
             .filter(([key]) => key.startsWith("paragraph_"))
@@ -304,6 +316,7 @@ const PageContentDashboard: React.FC = () => {
     email: "Correo Electrónico",
     facebook: "Facebook",
     instagram: "Instagram",
+    image: "Imagen Principal",
   };
 
   const SECTION_ICONS: { [key: string]: React.ReactNode } = {
@@ -340,6 +353,22 @@ const PageContentDashboard: React.FC = () => {
           id_pc: -1, // Temporary ID
           section: "contact",
           key: "instagram",
+          value: "", // Empty by default
+        });
+      }
+
+      // Add image key to about-us section if it doesn't exist
+      const hasImage = data.some(
+        (item: any) =>
+          (item.section === "about-us" || item.section === "about_us") &&
+          item.key === "image"
+      );
+
+      if (!hasImage) {
+        data.push({
+          id_pc: -1, // Temporary ID
+          section: "about-us",
+          key: "image",
           value: "", // Empty by default
         });
       }
@@ -597,6 +626,71 @@ const PageContentDashboard: React.FC = () => {
     } catch (error) {
       console.error("Error updating content:", error);
       toast.error("Error al actualizar el contenido");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleImageUpload = async (
+    section: string,
+    key: string,
+    event: any
+  ) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Create a FormData object
+    const formData = new FormData();
+    formData.append("image", file);
+
+    setSubmitting(true);
+    try {
+      // Check if there's already an image
+      const existingImage = editableContents[section][key];
+      let response;
+
+      if (existingImage && existingImage.id_pc && existingImage.id_pc !== -1) {
+        // Update existing image
+        response = await fetch(
+          `${API_BASE_URL}/api/page-content/images/${existingImage.id_pc}`,
+          {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+          }
+        );
+      } else {
+        // Upload new image
+        formData.append("section", section);
+        formData.append("key", key);
+
+        response = await fetch(
+          `${API_BASE_URL}/api/page-content/images/upload`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+          }
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(`Error uploading image: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Refresh content after upload
+      await fetchPageContents();
+
+      toast.success("Imagen actualizada correctamente");
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Error al subir la imagen");
     } finally {
       setSubmitting(false);
     }
@@ -912,6 +1006,37 @@ const PageContentDashboard: React.FC = () => {
                                         </div>
                                       </div>
                                     </div>
+                                  ) : key === "image" ? (
+                                    // Special handling for image
+                                    <div className="space-y-2">
+                                      <Label htmlFor={`edit-${section}-${key}`}>
+                                        {getDisplayName(key)}
+                                      </Label>
+                                      {content.value && (
+                                        <div className="mb-4 flex justify-center">
+                                          <img
+                                            src={
+                                              IMAGES_BASE_URL + content.value
+                                            }
+                                            alt="Imagen actual"
+                                            className="max-h-[20vw] object-cover rounded-lg border-2 border-white shadow-sm mb-2"
+                                          />
+                                        </div>
+                                      )}
+                                      <Input
+                                        id={`upload-${section}-${key}`}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) =>
+                                          handleImageUpload(section, key, e)
+                                        }
+                                        className="w-full"
+                                      />
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        Formatos recomendados: JPG, PNG. Tamaño
+                                        máximo: 2MB.
+                                      </p>
+                                    </div>
                                   ) : (
                                     <div className="space-y-2">
                                       <Label htmlFor={`edit-${section}-${key}`}>
@@ -998,6 +1123,30 @@ const PageContentDashboard: React.FC = () => {
                                         </p>
                                       </div>
                                     </div>
+                                  ) : key === "image" ? (
+                                    <div className="space-y-2">
+                                      <p className="text-sm font-medium text-gray-500">
+                                        {getDisplayName(key)}:
+                                      </p>
+                                      {content.value ? (
+                                        <div className="mt-1 flex justify-center">
+                                          <img
+                                            src={
+                                              IMAGES_BASE_URL + content.value
+                                            }
+                                            alt="Imagen principal"
+                                            className="max-h-[20vw] object-cover rounded-lg shadow-sm"
+                                          />
+                                        </div>
+                                      ) : (
+                                        <div className="mt-1 bg-gray-100 p-4 rounded-md border border-gray-200 text-center">
+                                          <span className="text-gray-400 italic">
+                                            Sin imagen - Haga clic en "Editar"
+                                            para añadir
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
                                   ) : (
                                     <div>
                                       <p className="text-sm font-medium text-gray-500">
@@ -1033,7 +1182,7 @@ const PageContentDashboard: React.FC = () => {
                                       Editar
                                     </Button>
 
-                                    {isParagraph(key) && (
+                                    {isParagraph(key) || key === "image" ? (
                                       <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                           <Button
@@ -1041,7 +1190,9 @@ const PageContentDashboard: React.FC = () => {
                                             size="sm"
                                           >
                                             <Trash2 className="h-4 w-4 mr-1" />
-                                            Eliminar
+                                            {key === "image"
+                                              ? "Eliminar Imagen"
+                                              : "Eliminar"}
                                           </Button>
                                         </AlertDialogTrigger>
                                         <AlertDialogContent>
@@ -1052,8 +1203,10 @@ const PageContentDashboard: React.FC = () => {
                                             <AlertDialogDescription>
                                               Esta acción no se puede deshacer.
                                               Esto eliminará permanentemente
-                                              este contenido de la base de
-                                              datos.
+                                              {key === "image"
+                                                ? " esta imagen "
+                                                : " este contenido "}
+                                              de la base de datos.
                                             </AlertDialogDescription>
                                           </AlertDialogHeader>
                                           <AlertDialogFooter>
@@ -1071,7 +1224,7 @@ const PageContentDashboard: React.FC = () => {
                                           </AlertDialogFooter>
                                         </AlertDialogContent>
                                       </AlertDialog>
-                                    )}
+                                    ) : null}
                                   </div>
                                 </div>
                               )}
