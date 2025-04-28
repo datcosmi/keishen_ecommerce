@@ -291,17 +291,109 @@ export default function LandingPage() {
       {/* Hero Section */}
       <HeroSection />
 
-      {/* Brands Section */}
+      {/* Value Propositions Section */}
       <div className="py-8 bg-yellow-300 relative z-30">
-        <div className="max-w-6xl mx-auto px-8">
-          <div className="flex justify-between items-center">
-            {["JOYERIA", "CAMISAS", "PANTALONES", "GORRAS", "OTROS"].map(
-              (brand) => (
-                <span key={brand} className="text-black font-bold text-xl">
-                  {brand}
-                </span>
-              )
-            )}
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+            <div className="flex flex-col items-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8 mb-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              <span className="text-black font-bold text-sm md:text-lg">
+                CALIDAD PREMIUM
+              </span>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8 mb-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14h-1a2 2 0 00-2-2H9a2 2 0 00-2 2H6c-.265 0-.52.105-.707.293L4 17h5"
+                />
+              </svg>
+              <span className="text-black font-bold text-sm md:text-lg">
+                ATENCIÓN PERSONALIZADA
+              </span>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8 mb-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                />
+              </svg>
+              <span className="text-black font-bold text-sm md:text-lg">
+                PAGO SEGURO
+              </span>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8 mb-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 10h16M4 14h16M4 18h16"
+                />
+              </svg>
+              <span className="text-black font-bold text-sm md:text-lg">
+                EXCLUSIVIDAD EN PRENDAS
+              </span>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8 mb-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m2 7H7a2 2 0 01-2-2v-5a2 2 0 012-2h5"
+                />
+              </svg>
+              <span className="text-black font-bold text-sm md:text-lg">
+                AJUSTES DISPONIBLES
+              </span>
+            </div>
           </div>
         </div>
       </div>
