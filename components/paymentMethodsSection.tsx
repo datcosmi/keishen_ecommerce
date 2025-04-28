@@ -2,7 +2,7 @@
 import React from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Shield, CreditCard, Truck, ArrowRight } from "lucide-react";
+import { Shield, CreditCard, Truck, ArrowRight, Store } from "lucide-react";
 
 const PaymentMethodsSection: React.FC = () => {
   // Animation variants for staggered appearance
@@ -156,11 +156,12 @@ const PaymentMethodsSection: React.FC = () => {
 
           <motion.div className="p-6 bg-gray-50 rounded-lg" variants={item}>
             <div className="flex justify-center mb-4">
-              <Truck className="h-10 w-10 text-yellow-500" />
+              <Store className="h-10 w-10 text-yellow-500" />
             </div>
-            <h3 className="text-lg font-bold mb-2">Envíos Garantizados</h3>
+            <h3 className="text-lg font-bold mb-2">Recoge en Tienda</h3>
             <p className="text-gray-600 text-sm">
-              Realiza tu pago y recibe tu producto con total garantía.
+              Compra en línea y recoge tu pedido fácilmente en nuestra boutique.
+              Servicio personalizado y atención exclusiva.
             </p>
           </motion.div>
         </motion.div>
