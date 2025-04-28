@@ -12,8 +12,6 @@
   background: linear-gradient(to right, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.4));
 }
 
-
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -70,8 +68,6 @@
   }
 }
 
-
-
 @layer base {
   * {
     @apply border-border;
@@ -79,4 +75,31 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@keyframes slow-slide {
+  0% {
+    transform: translateX(-100%) rotate(12deg);
+  }
+  100% {
+    transform: translateX(100%) rotate(12deg);
+  }
+}
+
+.animate-slow-slide {
+  animation: slow-slide 7s linear infinite;
+}
+
+@keyframes pulse-gentle {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.animate-pulse {
+  animation: pulse-gentle 4s ease-in-out infinite;
 }

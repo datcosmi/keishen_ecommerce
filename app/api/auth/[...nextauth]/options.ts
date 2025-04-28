@@ -40,40 +40,32 @@ export const authOptions: NextAuthOptions = {
           .eq("email", credentials.email)
           .single();
 
-        if (error || !user) {
-          throw new Error("User not found");
-        }
-
-        // Verify password (assuming the password is stored hashed)
-        // If using plaintext passwords for now, adjust comparison accordingly
-        let passwordValid = false;
-
-        if (user.pass === credentials.password) {
-          // Direct comparison for plain text passwords (temporary solution)
-          passwordValid = true;
-        } else if (user.pass && credentials.password) {
-          // For bcrypt hashed passwords
-          try {
-            passwordValid = await bcrypt.compare(
-              credentials.password,
-              user.pass
-            );
-          } catch (e) {
-            console.error("Error comparing passwords:", e);
-          }
-        }
-
-        if (!passwordValid) {
+        if (error || !user || !user.pass) {
           throw new Error("Invalid credentials");
         }
 
-        return {
-          id: user.id_user.toString(),
-          name: user.name + " " + (user.surname || ""),
-          email: user.email,
-          role: user.role,
-          id_user: user.id_user,
-        };
+        // Only use bcrypt comparison
+        try {
+          const passwordValid = await bcrypt.compare(
+            credentials.password,
+            user.pass
+          );
+
+          if (!passwordValid) {
+            throw new Error("Invalid credentials");
+          }
+
+          return {
+            id: user.id_user.toString(),
+            name: user.name + " " + (user.surname || ""),
+            email: user.email,
+            role: user.role,
+            id_user: user.id_user,
+          };
+        } catch (e) {
+          console.error("Error verifying password:", e);
+          throw new Error("Authentication error");
+        }
       },
     }),
   ],

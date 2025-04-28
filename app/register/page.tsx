@@ -110,7 +110,7 @@ export default function Register() {
       };
 
       // Send request to register endpoint
-      const response = await fetch(`${API_BASE_URL}/api/users`, {
+      const response = await fetch(`${API_BASE_URL}/api/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
