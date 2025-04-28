@@ -14,10 +14,13 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const IMAGES_BASE_URL =
+  process.env.NEXT_PUBLIC_IMAGES_URL || "https://keishen.com.mx";
 
 const AboutUs = () => {
   // Page content state
   const [aboutUsParagraphs, setAboutUsParagraphs] = useState<string[]>([]);
+  const [aboutUsImage, setAboutUsImage] = useState<string>("");
   const [scheduleParagraphs, setScheduleParagraphs] = useState<string[]>([]);
   const [contactInfo, setContactInfo] = useState({
     location: "",
@@ -57,12 +60,22 @@ const AboutUs = () => {
       setIsLoading(true);
       const response = await fetch(`${API_BASE_URL}/api/page-content/about-us`);
       if (!response.ok) {
-        throw new Error("Failed to fetch about us paragraphs");
+        throw new Error("Failed to fetch about us content");
       }
       const data = await response.json();
-      setAboutUsParagraphs(data.map((item: any) => item.value));
+
+      const paragraphs: string[] = [];
+      data.forEach((item: any) => {
+        if (item.key === "image") {
+          setAboutUsImage(item.value);
+        } else {
+          paragraphs.push(item.value);
+        }
+      });
+
+      setAboutUsParagraphs(paragraphs);
     } catch (error) {
-      console.error("Error fetching about us paragraphs", error);
+      console.error("Error fetching about us content", error);
     } finally {
       setIsLoading(false);
     }
@@ -152,13 +165,15 @@ const AboutUs = () => {
               <div className="relative">
                 <div className="absolute -top-4 -left-4 w-24 h-24 bg-yellow-400 rounded-tl-3xl z-0"></div>
                 <div className="relative z-10 overflow-hidden rounded-lg shadow-xl">
-                  <Image
-                    src="/images/boutique-exterior.jpg"
-                    alt="Boutique exterior"
-                    width={600}
-                    height={800}
-                    className="w-full h-auto object-cover"
-                  />
+                  {aboutUsImage && (
+                    <Image
+                      src={`${IMAGES_BASE_URL}${aboutUsImage}`}
+                      alt="Boutique exterior"
+                      width={600}
+                      height={800}
+                      className="w-full h-auto object-cover"
+                    />
+                  )}
                 </div>
                 <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-black rounded-br-3xl z-0"></div>
               </div>
