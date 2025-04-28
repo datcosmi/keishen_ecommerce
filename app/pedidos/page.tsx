@@ -92,6 +92,7 @@ interface Pedido {
   status: string;
   metodo_pago: string;
   cliente: string;
+  comentarios?: string;
   detalles: Detalle[];
 }
 
@@ -173,7 +174,7 @@ export default function OrdersPage() {
     setFilteredOrders(filtered);
   }, [searchTerm, statusFilter, orders]);
 
-  const cancelOrder = async (pedidoId: number) => {
+  const cancelOrder = async (pedidoId: number, comentarios: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/pedido/${pedidoId}`, {
         method: "PUT",
@@ -181,7 +182,7 @@ export default function OrdersPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ status: "cancelado" }),
+        body: JSON.stringify({ status: "cancelado", comentarios }),
       });
 
       if (!response.ok) {
@@ -192,7 +193,7 @@ export default function OrdersPage() {
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
           order.pedido_id === pedidoId
-            ? { ...order, status: "cancelado" }
+            ? { ...order, status: "cancelado", comentarios }
             : order
         )
       );
@@ -201,7 +202,7 @@ export default function OrdersPage() {
       setFilteredOrders((prevFiltered) =>
         prevFiltered.map((order) =>
           order.pedido_id === pedidoId
-            ? { ...order, status: "cancelado" }
+            ? { ...order, status: "cancelado", comentarios }
             : order
         )
       );
@@ -220,6 +221,8 @@ export default function OrdersPage() {
     status: string;
     pedidoId: number;
   }) => {
+    const [comment, setComment] = useState("");
+
     if (status !== "pendiente") {
       return null;
     }
@@ -244,10 +247,25 @@ export default function OrdersPage() {
               cancelado y no podrás revertir este cambio.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="mb-4">
+            <label
+              htmlFor="cancelComment"
+              className="block text-sm font-medium mb-1"
+            >
+              Motivo de cancelación (opcional):
+            </label>
+            <textarea
+              id="cancelComment"
+              className="w-full border rounded-md px-3 py-2 text-sm h-24"
+              placeholder="Por favor indica el motivo de la cancelación"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => cancelOrder(pedidoId)}
+              onClick={() => cancelOrder(pedidoId, comment)}
               className="bg-red-600 hover:bg-red-700"
             >
               Confirmar Cancelación
@@ -481,6 +499,15 @@ export default function OrdersPage() {
                                   status={pedido.status}
                                   pedidoId={pedido.pedido_id}
                                 />
+                                {pedido.status === "cancelado" &&
+                                  pedido.comentarios && (
+                                    <div className="mt-2 text-sm">
+                                      <span className="font-medium">
+                                        Motivo:
+                                      </span>{" "}
+                                      {pedido.comentarios}
+                                    </div>
+                                  )}
                               </div>
                             </div>
                           </div>
@@ -656,6 +683,15 @@ export default function OrdersPage() {
                               </div>
                               <div>
                                 <StatusBadge status={pedido.status} />
+                                {pedido.status === "cancelado" &&
+                                  pedido.comentarios && (
+                                    <div className="mt-2 text-sm bg-red-50 p-2 rounded border border-red-100">
+                                      <span className="font-medium">
+                                        Motivo de cancelación:
+                                      </span>{" "}
+                                      {pedido.comentarios}
+                                    </div>
+                                  )}
                               </div>
                             </div>
                           </div>

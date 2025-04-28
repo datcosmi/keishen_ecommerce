@@ -204,9 +204,9 @@ const AboutUs = () => {
                   Nuestros Productos
                   <ChevronRight className="w-5 h-5 ml-2" />
                 </button>
-                <button className="bg-transparent border-2 border-black text-black px-6 py-3 rounded-lg font-medium hover:bg-black hover:text-white transition-colors">
+                {/* <button className="bg-transparent border-2 border-black text-black px-6 py-3 rounded-lg font-medium hover:bg-black hover:text-white transition-colors">
                   Nuestra Historia
-                </button>
+                </button> */}
               </div>
             </div>
           </div>

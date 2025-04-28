@@ -140,7 +140,7 @@ export default function NotFound() {
       </main>
 
       {/* Search Bar Section */}
-      {mounted && (
+      {/* {mounted && (
         <motion.section
           className="py-16 bg-gray-50"
           initial={{ opacity: 0, y: 20 }}
@@ -168,7 +168,7 @@ export default function NotFound() {
             </div>
           </div>
         </motion.section>
-      )}
+      )} */}
 
       <Footer />
     </div>
